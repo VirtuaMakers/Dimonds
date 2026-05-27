@@ -619,21 +619,37 @@ function PixelPip({ suit, size=24 }) {
   );
 
   if (suit==="♠") return (
+    // SPADES — sharp pointed top, swept curves, classic pedestal stem
     <svg width={size} height={size} viewBox="0 0 20 21" style={{display:"block"}}>
-      <path d="M10 2 C10 2 2 8 2 13 C2 16 4.5 17 7 16 C8 15.5 9 14.5 9 14.5 C8.5 16 7.5 17.5 6 18 L14 18 C12.5 17.5 11.5 16 11 14.5 C11 14.5 12 15.5 13 16 C15.5 17 18 16 18 13 C18 8 10 2 10 2 Z" fill={col}/>
-      <rect x="8" y="17" width="4" height="3" fill={col}/>
+      <path d="
+        M 10 1.5
+        C 10 1.5, 1.5 8, 1.5 13.5
+        C 1.5 16.5, 4 17.8, 6.5 16.8
+        C 8 16.3, 9 15, 9 15
+        C 8.7 16.5, 7.5 17.5, 6 18.2
+        L 14 18.2
+        C 12.5 17.5, 11.3 16.5, 11 15
+        C 11 15, 12 16.3, 13.5 16.8
+        C 16 17.8, 18.5 16.5, 18.5 13.5
+        C 18.5 8, 10 1.5, 10 1.5
+        Z
+      " fill={col}/>
+      {/* pedestal base */}
+      <path d="M 6 18.2 L 14 18.2 L 15 20 L 5 20 Z" fill={col}/>
     </svg>
   );
 
-  // Clubs — three smooth circles, solid fill, clean stem
+  // Clubs — three prominent, well-separated round lobes; thin tapered stem
   return (
     <svg width={size} height={size} viewBox="0 0 20 21" style={{display:"block"}}>
-      <circle cx="10" cy="6"  r="4.5" fill={col}/>
-      <circle cx="5"  cy="13" r="4.5" fill={col}/>
-      <circle cx="15" cy="13" r="4.5" fill={col}/>
-      <polygon points="6,10 14,10 16,16 4,16" fill={col}/>
-      <rect x="8" y="15" width="4" height="4" fill={col}/>
-      <rect x="5" y="18" width="10" height="2" fill={col}/>
+      {/* three big distinct circles, more separated than before */}
+      <circle cx="10" cy="5.5" r="4.2" fill={col}/>
+      <circle cx="4.2" cy="13"  r="4.2" fill={col}/>
+      <circle cx="15.8" cy="13" r="4.2" fill={col}/>
+      {/* small connector triangle filling the center gap */}
+      <polygon points="10,8 7,13 13,13" fill={col}/>
+      {/* slim tapered stem (narrower than spade pedestal) */}
+      <path d="M 8.5 14 L 11.5 14 L 13 20 L 7 20 Z" fill={col}/>
     </svg>
   );
 }
@@ -648,8 +664,8 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
   const batman = isBatman(card);
   // Responsive sizing: larger on desktop (>768px wide)
   const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
-  const w = tiny ? 36 : isDesktop ? 96 : 72;
-  const h = tiny ? 52 : isDesktop ? 138 : 103;
+  const w = tiny ? 40 : isDesktop ? 108 : 80;
+  const h = tiny ? 58 : isDesktop ? 156 : 115;
 
   // Face-down — pixel art seasonal back
   if (faceDown) return (
@@ -670,7 +686,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
   const cardBg = batman ? (selected?"#e4e4f0":"#ececf8") : selected ? "#fffbe0" : "#fffef8";
   const borderCol = selected ? "#b8860b" : "#c0b090";
   const shadow = selected ? "0 0 0 2px #b8860b88, 0 8px 20px #00000066" : played ? "0 4px 14px #00000044" : "0 2px 8px #00000033";
-  const pipSize = tiny ? 14 : isDesktop ? 30 : 26;
+  const pipSize = tiny ? 15 : isDesktop ? 34 : 30;
 
   return (
     <div onClick={onClick} style={{
@@ -961,7 +977,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver }) {
+function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver }) {
   if (!result) return null;
 
   const aceCard = result.plays?.find(p => isBatman(p.card))?.card;
@@ -969,8 +985,8 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver }) {
   const pointsWon = result.diamondsCaptured?.reduce((s,c)=>s+diamondPoints(c),0) || 0;
   const btnLabel = isGameOver ? "END"
     : result.pendingAmericanFamily ? "PROCEED"
-    : result.americanFamily ? "NEXT ROUND →"
-    : result.jokerWin ? "NEXT TRICK →"
+    : result.americanFamily ? "PROCEED"
+    : isHandOver ? "PROCEED"
     : "NEXT TRICK →";
 
   // ===== AMERICAN FAMILY =====
@@ -1045,7 +1061,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver }) {
 
   // ===== NORMAL TRICK WON =====
   return (
-    <EventBox borderColor="#c9a84c" emoji="💰" title="Trick Won" btnLabel={btnLabel} onContinue={onContinue}>
+    <EventBox borderColor="#c9a84c" emoji="🎩" title="Trick Won" btnLabel={btnLabel} onContinue={onContinue}>
       <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:"Georgia,serif"}}>
         {allNames[result.winnerIdx]}
       </div>
@@ -1247,8 +1263,7 @@ function DiamondsGame() {
   const [showAceCelebration, setShowAceCelebration] = useState(false);
   const [pendingFireworks, setPendingFireworks] = useState(false);
   const [diamondsBroken, setDiamondsBroken] = useState(false);
-  const [showCuttingTeeth, setShowCuttingTeeth] = useState(false);
-  const [pendingCuttingTeeth, setPendingCuttingTeeth] = useState(false);
+  const [pendingPlayContinuation, setPendingPlayContinuation] = useState(null); // CYT interrupt
   const allNames = [playerName, ...AI_NAMES];
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
@@ -1291,7 +1306,6 @@ function DiamondsGame() {
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
-    setPendingCuttingTeeth(false);
   }
 
   function startGame() {
@@ -1315,7 +1329,6 @@ function DiamondsGame() {
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
-    setPendingCuttingTeeth(false);
   }
 
   // ---- Play a card ----
@@ -1340,25 +1353,30 @@ function DiamondsGame() {
   function submitPlay(playerIdx, card) {
     soundCardPlay();
 
-    // Cutting Your Teeth — mark that it needs to show after trick resolves
-    const justBrokeDimonds = !diamondsBroken && isDiamond(card);
-    if (justBrokeDimonds) {
-      setDiamondsBroken(true);
-      setPendingCuttingTeeth(true);
-      soundCuttingYourTeeth();
-      addLog("♦ Cutting Your Teeth — Dimonds are now in play!");
-    }
-
     const newPlays = [...trickPlays, { playerIdx, card }];
     const newHands = hands.map((h,i) => i===playerIdx ? h.filter(c=>c.id!==card.id) : h);
     setHands(newHands);
     setTrickPlays(newPlays);
 
-    // Check American Family for player who just played (after removing card, check remaining)
-    // Actually check all players after each play
+    // Cutting Your Teeth — INTERRUPT the trick immediately on first diamond played
+    const justBrokeDimonds = !diamondsBroken && isDiamond(card);
+    if (justBrokeDimonds) {
+      setDiamondsBroken(true);
+      soundCuttingYourTeeth();
+      addLog("♦ Cutting Your Teeth — Dimonds are now in play!");
+      // Stash continuation; PROCEED on CYT modal will resume the trick flow
+      setPendingPlayContinuation({ playerIdx, card, newPlays, newHands });
+      setPhase("cuttingteeth_interrupt");
+      return;
+    }
+
+    continuePlayFlow(playerIdx, card, newPlays, newHands);
+  }
+
+  function continuePlayFlow(playerIdx, card, newPlays, newHands) {
+    // Check American Family for any player after each play
     for (let i=0; i<4; i++) {
       if (checkAmericanFamily(newHands[i])) {
-        // Trigger American Family
         handleAmericanFamily(i, newHands, newPlays);
         return;
       }
@@ -1468,16 +1486,7 @@ function DiamondsGame() {
           setTotalScores(newTotal);
           if (gameWon) setPendingFireworks(true);
         }
-        // Show Cutting Your Teeth FIRST if diamonds just broke, then trick result after PROCEED
-        if (pendingCuttingTeeth) {
-          setPendingCuttingTeeth(false);
-          setShowCuttingTeeth(true);
-          // phase stays as "playing" until Cutting Your Teeth dismissed, 
-          // then trickresult shows via the PROCEED button
-          setPhase("cuttingteeth");
-        } else {
-          setPhase("trickresult");
-        }
+        setPhase("trickresult");
       }, 600);
     }
   }
@@ -1538,6 +1547,9 @@ function DiamondsGame() {
   }
 
   function afterTrickResult() {
+    // Delay before firing fireworks, to let the event's tune finish playing
+    const FIREWORKS_DELAY = 1000;
+
     // If the Joker Kidnaps event is queued with a pending AF, fire AF now.
     // (User just dismissed the kidnap box; show The American Family Together next.)
     if (trickResult?.pendingAmericanFamily) {
@@ -1549,16 +1561,20 @@ function DiamondsGame() {
     // American Family win — end round immediately
     if (trickResult?.americanFamily) {
       const gameOver = totalScores.some(s=>s>=WIN_SCORE);
-      if (gameOver) { soundRoundWin(); setShowFireworks(true); }
-      else { soundRoundWin(); setPhase("roundover"); setRoundNum(r=>r+1); }
+      if (gameOver) {
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
+      } else {
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r=>r+1);
+      }
       return;
     }
 
     // If fireworks were pending (game won mid-trick), fire now after modal dismissed
     if (pendingFireworks) {
       setPendingFireworks(false);
-      soundRoundWin();
-      setShowFireworks(true);
+      setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       return;
     }
 
@@ -1581,9 +1597,13 @@ function DiamondsGame() {
       const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s=>s>=WIN_SCORE);
-      soundRoundWin();
-      if (gameOver) setShowFireworks(true);
-      else { setPhase("roundover"); setRoundNum(r=>r+1); }
+      if (gameOver) {
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
+      } else {
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r=>r+1);
+      }
       return;
     }
     const winner = trickResult.winnerIdx;
@@ -1985,7 +2005,7 @@ function DiamondsGame() {
           textTransform:"uppercase",textAlign:"center",marginBottom:4,
           fontWeight:700, flexShrink:0,
         }}>
-          {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open — it's the law! 🎩" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+          {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
         </div>
 
         {/* FANNED HAND */}
@@ -1997,7 +2017,7 @@ function DiamondsGame() {
         }}>
           <div style={{
             position:"relative",
-            height: 113, // taller cards (103px) + 10px bottom padding for lift
+            height: 125, // taller cards (115px) + 10px bottom padding for lift
             width:"100%",
             display:"flex",
             alignItems:"flex-end",
@@ -2007,7 +2027,7 @@ function DiamondsGame() {
             // Compute fan layout to fit available width.
             // Available width = container width minus a safety margin for selected-card lift.
             const total = playerHand.length;
-            const cardW = 72;
+            const cardW = 80;
             const SAFETY = 20; // px of breathing room on each side
             const availW = (typeof window !== 'undefined' ? window.innerWidth : 360) - SAFETY * 2;
             // We want total spread = cardW + OVERLAP*(total-1) <= availW
@@ -2095,6 +2115,7 @@ function DiamondsGame() {
           allNames={allNames}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
+          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
         />
       )}
 
@@ -2117,14 +2138,19 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
 
-      {/* CUTTING YOUR TEETH — appears before trick result, dismissed with PROCEED */}
-      {(phase==="cuttingteeth" || showCuttingTeeth) && (
+      {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played */}
+      {phase==="cuttingteeth_interrupt" && (
         <EventBox
           borderColor="#cc1111"
           emoji="💎"
           title="Cutting Your Teeth!"
           btnLabel="PROCEED"
-          onContinue={() => { setShowCuttingTeeth(false); setPhase("trickresult"); }}
+          onContinue={() => {
+            const cont = pendingPlayContinuation;
+            setPendingPlayContinuation(null);
+            setPhase("playing");
+            if (cont) continuePlayFlow(cont.playerIdx, cont.card, cont.newPlays, cont.newHands);
+          }}
         >
           <div style={{
             color:"#e2c97ecc", fontSize:14,
