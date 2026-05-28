@@ -470,10 +470,19 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
   const familyIds = ["J♦","Q♦","K♦","A♦"];
   const familyInHand = hand.filter(c => familyIds.includes(c.id));
 
+  // Helper: can the Ace of Spades legally be played right now?
+  // Rule: must follow suit if possible. The Ace can be played freely only when:
+  //   (a) led suit is spades (Ace IS spades — always legal), OR
+  //   (b) no led suit at all (you're the leader, or Joker led), OR
+  //   (c) hand has no cards of the led suit (so you're off-suit anyway).
+  const canPlayBatmanLegally = !ledSuit
+    || ledSuit === "♠"
+    || !hand.some(c => !c.isJoker && c.suit === ledSuit);
+
   // ---- ACE HUNTER: hold Batman, wait for Joker ----
   if (role === "ace" && batman) {
-    // Play A♠ immediately if Joker is in the trick
-    if (trickHasJoker && !trickHasBatman) return batman;
+    // Play A♠ if Joker is in the trick AND it's legal to play (follows-suit rules respected)
+    if (trickHasJoker && !trickHasBatman && canPlayBatmanLegally) return batman;
     // Otherwise protect A♠ — never discard it, play anything else
     const mustFollow = ledSuit ? hand.filter(c => !c.isJoker && c.suit === ledSuit) : [];
     const mustFollowNoBatman = mustFollow.filter(c => !isBatman(c));
@@ -505,7 +514,8 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
   const mustFollow = ledSuit ? hand.filter(c => !c.isJoker && c.suit === ledSuit) : [];
   const canFollow = mustFollow.length > 0;
 
-  if (batman && trickHasJoker && !trickHasBatman) return batman;
+  // Only deploy the Ace of Spades against the Joker when it's LEGAL to do so
+  if (batman && trickHasJoker && !trickHasBatman && canPlayBatmanLegally) return batman;
   if (joker && trickPlays.length > 0 && trickDiamondPoints >= 2 && !trickHasBatman) return joker;
   if (joker && trickPlays.length === 0 && hand.length <= 4) return joker;
 
@@ -868,7 +878,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme }) {
       <div>
         <div style={{textAlign:"center",marginBottom:16}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Joker Strikes</div>
-          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:"Georgia,serif"}}>Choose a card to steal</h2>
+          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:"Georgia,serif"}}>Choose a card to kidnap.</h2>
           <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Inspect any hand, then take your pick.</p>
         </div>
 
@@ -918,7 +928,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme }) {
 
         <div style={{textAlign:"center"}}>
           <GoldBtn onClick={confirm} disabled={chosenCardIdx===null}>
-            Steal This Card 🃏
+            Kidnap This Card 🃏
           </GoldBtn>
         </div>
       </div>
@@ -1186,6 +1196,52 @@ function GameOverModal({ scores, allNames, onRestart }) {
 // RULES PANEL
 // ============================================================
 function RulesPanel({ onClose }) {
+  const [view, setView] = useState("rules"); // "rules" | "credits"
+
+  if (view === "credits") {
+    return (
+      <Modal>
+        <div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <h2 style={{color:"#e2c97e",margin:0,fontFamily:"Georgia,serif"}}>♦ Credits</h2>
+            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+          </div>
+          {[
+            {role:"Director", name:"Chris Bruckmann"},
+            {role:"Coding", name:"Claude (Anthropic)"},
+            {role:"Concepts", name:"ChatGPT (OpenAI)"},
+            {role:"Graphics", name:"Gemini (Alphabet), Copilot (Microsoft)"},
+            {role:"Playtesting", name:"Rob Vasseur"},
+          ].map(({role,name})=>(
+            <div key={role} style={{display:"flex",gap:10,marginBottom:8,paddingLeft:8}}>
+              <div style={{color:"#c9a84c",fontSize:13,fontWeight:700,minWidth:90,flexShrink:0}}>{role}</div>
+              <div style={{color:"#ffffffcc",fontSize:13}}>— {name}</div>
+            </div>
+          ))}
+          <div style={{
+            marginTop:20, paddingTop:14,
+            borderTop:"1px solid #c9a84c22",
+            color:"#ffffff88", fontSize:11,
+            fontStyle:"italic", lineHeight:1.6,
+          }}>
+            <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Note</div>
+            The "Dimonds" spelling is so for at least 4 secret reasons.
+          </div>
+          <div style={{
+            marginTop:18, textAlign:"center",
+            color:"#c9a84c99", fontSize:11,
+            letterSpacing:1.5, fontFamily:"Georgia,serif",
+          }}>
+            VirtuaMakers © 2026
+          </div>
+          <div style={{textAlign:"center",marginTop:18}}>
+            <GoldBtn onClick={()=>setView("rules")} small secondary>← How to Play</GoldBtn>
+          </div>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal>
       <div>
@@ -1213,6 +1269,13 @@ function RulesPanel({ onClose }) {
             </div>
           </div>
         ))}
+        <div style={{
+          marginTop:18, paddingTop:14,
+          borderTop:"1px solid #c9a84c22",
+          textAlign:"center",
+        }}>
+          <GoldBtn onClick={()=>setView("credits")} small secondary>♦ Credits</GoldBtn>
+        </div>
       </div>
     </Modal>
   );
