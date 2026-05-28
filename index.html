@@ -105,6 +105,20 @@ function soundAceSuccess() {
   );
 }
 
+// Ace of Spades Rescue — heroic yet dark 5-note melody
+// E3 → G3 → B3 → C4 → G3, brass-like timbre with octave-below shadow
+function soundAceRescue() {
+  const notes = [164.81, 196.00, 246.94, 261.63, 196.00];
+  notes.forEach((f, i) => {
+    // Heroic brass-like layer
+    playTone({ freq:f, type:"sawtooth", volume:0.15, attack:0.015, decay:0.42, delay:i*0.11 });
+    // Warm body
+    playTone({ freq:f, type:"triangle", volume:0.18, attack:0.01,  decay:0.40, delay:i*0.11 });
+    // Dark octave-below shadow for gravitas
+    playTone({ freq:f/2, type:"sine",   volume:0.14, attack:0.02,  decay:0.45, delay:i*0.11 });
+  });
+}
+
 // Cutting Your Teeth — first diamond played
 function soundCuttingYourTeeth() {
   playTone({ freq:440, type:"sawtooth", volume:0.1, attack:0.005, decay:0.08 });
@@ -123,6 +137,16 @@ function soundJokerKidnaps() {
 // ============================================================
 // FIREWORKS COMPONENT
 // ============================================================
+// Firework boom — deep, low, loud
+function soundFireworkBoom() {
+  // Low sub-bass thud
+  playTone({ freq:55,  type:"sine",     volume:0.55, attack:0.005, decay:0.55 });
+  // Mid-low body
+  playTone({ freq:110, type:"triangle", volume:0.40, attack:0.005, decay:0.45, delay:0.01 });
+  // Subtle high crack for sparkle
+  playTone({ freq:880, type:"square",   volume:0.10, attack:0.001, decay:0.08, delay:0.005 });
+}
+
 function Fireworks({ onDone }) {
   const canvasRef = useRef(null);
   useEffect(() => {
@@ -133,59 +157,84 @@ function Fireworks({ onDone }) {
     canvas.height = window.innerHeight;
 
     const particles = [];
-    const colors = ["#e2c97e","#ff4444","#44ff88","#4488ff","#ff44ff","#ffff44","#ff8844"];
+    // Whites and golds only — elegant, refined palette
+    const colors = ["#ffffff","#fff8e0","#fceabb","#e2c97e","#c9a84c","#f4d97a","#fff2c4"];
 
     function spawnBurst(x, y) {
-      for (let i = 0; i < 40; i++) {
-        const angle = (Math.PI * 2 * i) / 40;
-        const speed = 3 + Math.random() * 5;
+      // More particles, slower outward velocity → softer, longer cascade
+      const count = 70;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.05;
+        // Gentler initial velocity — explosion is graceful, not violent
+        const speed = 1.2 + Math.random() * 2.2;
         particles.push({
           x, y,
           vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.5, // slight upward initial bias
           color: colors[Math.floor(Math.random() * colors.length)],
-          life: 1, decay: 0.015 + Math.random() * 0.02,
-          size: 3 + Math.random() * 4,
+          life: 1,
+          // Slower decay → particles linger and waterfall down
+          decay: 0.004 + Math.random() * 0.006,
+          size: 2.5 + Math.random() * 3.5,
+          // Each particle gets a slight twinkle phase
+          twinkle: Math.random() * Math.PI * 2,
         });
       }
     }
 
-    // Spawn several bursts
+    // More bursts, scattered across the screen
     const burstPositions = [
-      [canvas.width * 0.25, canvas.height * 0.3],
-      [canvas.width * 0.75, canvas.height * 0.25],
-      [canvas.width * 0.5,  canvas.height * 0.4],
-      [canvas.width * 0.2,  canvas.height * 0.6],
-      [canvas.width * 0.8,  canvas.height * 0.55],
+      [canvas.width * 0.20, canvas.height * 0.25],
+      [canvas.width * 0.75, canvas.height * 0.22],
+      [canvas.width * 0.50, canvas.height * 0.35],
+      [canvas.width * 0.30, canvas.height * 0.45],
+      [canvas.width * 0.70, canvas.height * 0.50],
+      [canvas.width * 0.45, canvas.height * 0.20],
+      [canvas.width * 0.85, canvas.height * 0.40],
+      [canvas.width * 0.15, canvas.height * 0.55],
     ];
     let burstIdx = 0;
+    // Slower interval between bursts — let each one breathe and cascade
     const burstTimer = setInterval(() => {
       if (burstIdx < burstPositions.length) {
         spawnBurst(...burstPositions[burstIdx++]);
-        soundRoundWin();
+        soundFireworkBoom();
       } else clearInterval(burstTimer);
-    }, 300);
+    }, 550);
 
     let animId;
+    let frameCount = 0;
     function animate() {
-      ctx.fillStyle = "rgba(0,0,0,0.15)";
+      // Slightly slower fade so trails persist longer (waterfall effect)
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
+      frameCount++;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.x += p.vx; p.y += p.vy; p.vy += 0.12;
+        p.x += p.vx; p.y += p.vy;
+        // Lighter gravity → waterfall cascade is gentle, not a fast plunge
+        p.vy += 0.05;
+        // Air drag — slows horizontal travel for that floaty waterfall feel
+        p.vx *= 0.992;
         p.life -= p.decay;
         if (p.life <= 0) { particles.splice(i, 1); continue; }
-        ctx.globalAlpha = p.life;
+
+        // Twinkle: vary brightness slightly per frame
+        const tw = 0.85 + 0.15 * Math.sin(frameCount * 0.18 + p.twinkle);
+        ctx.globalAlpha = p.life * tw;
         ctx.fillStyle = p.color;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
         ctx.fill();
       }
       ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
       if (particles.length > 0 || burstIdx < burstPositions.length) {
         animId = requestAnimationFrame(animate);
       } else {
-        setTimeout(onDone, 600);
+        setTimeout(onDone, 800);
       }
     }
     animId = requestAnimationFrame(animate);
@@ -936,6 +985,86 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme }) {
   );
 }
 
+// ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
+function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme }) {
+  const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
+  const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
+  const [chosenCardIdx, setChosenCardIdx] = useState(null);
+
+  const displayHand = chosenPlayer !== null ? sortHand(hands[chosenPlayer]) : [];
+
+  function getOriginalIdx(card) {
+    return hands[chosenPlayer].findIndex(c => c.id === card.id);
+  }
+
+  function confirm() {
+    if (chosenPlayer === null || chosenCardIdx === null) return;
+    onRescue(chosenPlayer, chosenCardIdx);
+  }
+
+  return (
+    <Modal>
+      <div>
+        <div style={{textAlign:"center",marginBottom:16}}>
+          <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Ace of Spades Rescues</div>
+          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:"Georgia,serif"}}>Choose a card to rescue.</h2>
+          <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Inspect any hand, then take your pick.</p>
+        </div>
+
+        {/* Player tabs */}
+        <div style={{display:"flex",gap:6,marginBottom:14,justifyContent:"center"}}>
+          {targets.map(i => (
+            <div key={i} onClick={()=>{ setChosenPlayer(i); setChosenCardIdx(null); }} style={{
+              background: chosenPlayer===i ? "#c9a84c22" : "#ffffff08",
+              border:`1.5px solid ${chosenPlayer===i ? "#c9a84c" : "#ffffff22"}`,
+              borderRadius:10, padding:"8px 14px", cursor:"pointer",
+              transition:"all 0.15s", textAlign:"center", flex:1,
+            }}>
+              <div style={{fontSize:18}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+              <div style={{color:chosenPlayer===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
+              <div style={{color:"#ffffff44",fontSize:10}}>{hands[i].length} cards</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Face-up hand display */}
+        {chosenPlayer !== null && (
+          <div style={{
+            background:"#ffffff08", borderRadius:12, padding:"12px 8px",
+            marginBottom:16, minHeight:100,
+          }}>
+            <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>
+              {allNames[chosenPlayer]}'s Hand — tap to select
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
+              {displayHand.map((card) => {
+                const origIdx = getOriginalIdx(card);
+                const isSelected = chosenCardIdx === origIdx;
+                return (
+                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{cursor:"pointer"}}>
+                    <CardComp
+                      card={card}
+                      selected={isSelected}
+                      tiny
+                      deckTheme={deckTheme}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <div style={{textAlign:"center"}}>
+          <GoldBtn onClick={confirm} disabled={chosenCardIdx===null}>
+            Rescue This Card 🗡️
+          </GoldBtn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ============================================================
 // ============================================================
 // TRICK RESULT MODAL — 4 distinct event styles
@@ -1060,6 +1189,34 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         {pointsWon > 0 && (
           <div style={{
             background:"#7700cc11", border:"1px solid #7700cc44",
+            borderRadius:10, padding:"8px 20px", display:"inline-block",
+          }}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
+  // ===== ACE OF SPADES RESCUE =====
+  if (result.aceRescued) {
+    return (
+      <EventBox borderColor="#4466ff" emoji="🗡️" title="Ace of Spades Rescue!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:"Georgia,serif"}}>
+          {allNames[result.winnerIdx]}
+        </div>
+        {result.rescuedCard && (
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:"Georgia,serif",fontStyle:"italic"}}>
+            {allNames[result.winnerIdx]} rescues the{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
+              {result.rescuedCard.isJoker ? "Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
+            </strong>{" "}from{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
+          </div>
+        )}
+        {pointsWon > 0 && (
+          <div style={{
+            background:"#4466ff11", border:"1px solid #4466ff44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
@@ -1213,9 +1370,9 @@ function RulesPanel({ onClose }) {
             {role:"Graphics", name:"Gemini (Alphabet), Copilot (Microsoft)"},
             {role:"Playtesting", name:"Rob Vasseur"},
           ].map(({role,name})=>(
-            <div key={role} style={{display:"flex",gap:10,marginBottom:8,paddingLeft:8}}>
-              <div style={{color:"#c9a84c",fontSize:13,fontWeight:700,minWidth:90,flexShrink:0}}>{role}</div>
-              <div style={{color:"#ffffffcc",fontSize:13}}>— {name}</div>
+            <div key={role} style={{marginBottom:10, paddingLeft:8}}>
+              <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
+              <div style={{color:"#ffffffcc",fontSize:13,whiteSpace:"nowrap"}}>{name}</div>
             </div>
           ))}
           <div style={{
@@ -1256,7 +1413,7 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"Trick Rules ▶️",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:"Wins any trick automatically. Lets you kidnap any card from any opponent's hand.",sub:true},
-          {num:"d.",title:"♠ Ace of Spades",text:"Stops The Joker if played in the same trick, wins the trick, and earns +35 bonus points!",sub:true},
+          {num:"d.",title:"♠ Ace of Spades",text:"Stops The Joker if played in the same trick — wins the trick, +35 bonus. With no Joker present, the Ace can instead Rescue any card from any opponent's hand.",sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
           {num:"f.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
           {num:"4.",title:"💎 Scoring",text:"Each dimond captured scores points!\n♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt",sub:false},
@@ -1314,9 +1471,10 @@ function DiamondsGame() {
   const [currentTurn, setCurrentTurn] = useState(0); // index in turn order
   const [turnOrder, setTurnOrder] = useState([0,1,2,3]);
   const [selectedCard, setSelectedCard] = useState(null);
-  const [phase, setPhase] = useState("playing"); // playing | kidnap | trickresult | roundover | gameover
+  const [phase, setPhase] = useState("playing"); // playing | kidnap | rescue | trickresult | roundover | gameover
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
+  const [rescueState, setRescueState] = useState(null);
   const [roundNum, setRoundNum] = useState(1);
   const [tricksPlayed, setTricksPlayed] = useState(0);
   const [isFirstTrick, setIsFirstTrick] = useState(true);
@@ -1365,6 +1523,7 @@ function DiamondsGame() {
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
+    setRescueState(null);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -1388,6 +1547,7 @@ function DiamondsGame() {
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
+    setRescueState(null);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -1500,11 +1660,18 @@ function DiamondsGame() {
       soundAceSuccess();
     }
 
+    // ACE OF SPADES RESCUE: A♠ played, NO Joker in trick, and A♠ owner won → rescue power
+    const acePlay = plays.find(p => isBatman(p.card));
+    const trickHasJoker = plays.some(p => p.card.isJoker);
+    const aceWonWithoutJoker = acePlay && !trickHasJoker && acePlay.playerIdx === winner;
+
     // Play sound based on outcome
-    if (pointsWon > 0 && !batmanBlocked) soundDiamondTrick();
+    if (pointsWon > 0 && !batmanBlocked && !aceWonWithoutJoker) soundDiamondTrick();
 
     addLog(batmanBlocked
       ? `♠ ${allNames[winner]} (Ace of Spades) stops The Joker! +${aceBonus} pts bonus!`
+      : aceWonWithoutJoker
+      ? `🗡️ ${allNames[winner]} wins with the Ace of Spades — preparing rescue...`
       : `${allNames[winner]} wins trick (+${pointsWon}💎)`);
 
     setRoundScores(newRoundScores);
@@ -1539,6 +1706,24 @@ function DiamondsGame() {
         }
         setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
         setPhase("kidnap");
+      }, 600);
+    } else if (aceWonWithoutJoker) {
+      setTimeout(() => {
+        // Guard: if no opponent has cards to rescue, just show normal trick result
+        const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
+        if (!hasTargets) {
+          addLog(`♠ ${allNames[winner]} wins with the Ace of Spades (no cards left to rescue)`);
+          setTrickResult(resultObj);
+          const allEmpty = currentHands.every(h=>h.length===0);
+          if (allEmpty || gameWon) {
+            setTotalScores(newTotal);
+            if (gameWon) setPendingFireworks(true);
+          }
+          setPhase("trickresult");
+          return;
+        }
+        setRescueState({ acePlayerIdx: winner, hands: currentHands, resultObj });
+        setPhase("rescue");
       }, 600);
     } else {
       setTimeout(() => {
@@ -1607,6 +1792,94 @@ function DiamondsGame() {
       setTotalScores(newTotal);
       if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
     }
+  }
+
+  // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
+  function handleRescue(fromPlayer, cardIdx) {
+    if (!rescueState) return;
+    const currentHands = rescueState.hands;
+    const rescuedCard = currentHands[fromPlayer][cardIdx];
+    const acePlayerIdx = rescueState.acePlayerIdx;
+
+    const newHands = currentHands.map((h,i) => {
+      if (i === fromPlayer) return h.filter((_,ci)=>ci!==cardIdx);
+      if (i === acePlayerIdx) return [...h, rescuedCard];
+      return h;
+    });
+
+    addLog(`🗡️ ${allNames[acePlayerIdx]} rescues from ${allNames[fromPlayer]}!`);
+    soundAceRescue();
+
+    // Check American Family on the Ace player's new hand
+    for (let i=0; i<4; i++) {
+      if (checkAmericanFamily(newHands[i])) {
+        setHands(newHands);
+        setTrickResult({
+          ...rescueState.resultObj,
+          aceRescued: true,
+          rescuedCard,
+          rescuedFrom: fromPlayer,
+          pendingAmericanFamily: {
+            playerIdx: i,
+            hands: newHands,
+            plays: rescueState.resultObj.plays,
+          },
+        });
+        setRescueState(null);
+        setPhase("trickresult");
+        return;
+      }
+    }
+
+    setHands(newHands);
+    const resultObj = { ...rescueState.resultObj, aceRescued: true, rescuedCard, rescuedFrom: fromPlayer };
+    setTrickResult(resultObj);
+    setRescueState(null);
+    setPhase("trickresult");
+
+    const allEmpty = newHands.every(h=>h.length===0);
+    if (allEmpty) {
+      const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
+      setTotalScores(newTotal);
+      if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
+    }
+  }
+
+  // AI picks a card to rescue — prioritize American Family completion, else highest value
+  function aiChooseRescueTarget(currentHands, playerIdx) {
+    const myHand = currentHands[playerIdx];
+    const familyIds = ["J♦","Q♦","K♦","A♦"];
+    const myFamily = myHand.filter(c => familyIds.includes(c.id));
+
+    // P1: AmFamily completion
+    if (myFamily.length === 3) {
+      const missing = familyIds.find(id => !myFamily.some(c => c.id === id));
+      for (let i=0; i<4; i++) {
+        if (i === playerIdx) continue;
+        const idx = currentHands[i].findIndex(c => c.id === missing);
+        if (idx >= 0) return { fromPlayer:i, cardIdx:idx };
+      }
+    }
+    if (myFamily.length === 2) {
+      const missing = familyIds.filter(id => !myFamily.some(c => c.id === id));
+      for (let i=0; i<4; i++) {
+        if (i === playerIdx) continue;
+        for (const m of missing) {
+          const idx = currentHands[i].findIndex(c => c.id === m);
+          if (idx >= 0) return { fromPlayer:i, cardIdx:idx };
+        }
+      }
+    }
+    // P2: highest-value card from any opponent
+    let best = null;
+    for (let i=0; i<4; i++) {
+      if (i === playerIdx) continue;
+      currentHands[i].forEach((c, ci) => {
+        const score = c.isJoker ? 999 : (isDiamond(c) ? 100 + diamondPoints(c)*5 : cardScore(c));
+        if (!best || score > best.score) best = { fromPlayer:i, cardIdx:ci, score };
+      });
+    }
+    return best ? { fromPlayer:best.fromPlayer, cardIdx:best.cardIdx } : null;
   }
 
   function afterTrickResult() {
@@ -1753,6 +2026,26 @@ function DiamondsGame() {
     }, 900);
     return () => clearTimeout(timer);
   }, [phase, kidnapState]);
+
+  // AI rescue (Ace of Spades wins trick without a Joker)
+  useEffect(() => {
+    if (phase !== "rescue" || !rescueState) return;
+    const acePlayer = rescueState.acePlayerIdx;
+    if (acePlayer === 0) return; // human handles it via RescueModal
+
+    const timer = setTimeout(() => {
+      const target = aiChooseRescueTarget(rescueState.hands, acePlayer);
+      if (target) {
+        handleRescue(target.fromPlayer, target.cardIdx);
+      } else {
+        // No valid target — show result directly
+        setTrickResult(rescueState.resultObj);
+        setRescueState(null);
+        setPhase("trickresult");
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [phase, rescueState]);
 
   // ============================================================
   // RENDER: MENU
@@ -2168,6 +2461,16 @@ function DiamondsGame() {
           jokerPlayerIdx={0}
           allNames={allNames}
           onSteal={handleKidnap}
+          deckTheme={deckTheme}
+        />
+      )}
+
+      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&(
+        <RescueModal
+          hands={hands}
+          acePlayerIdx={0}
+          allNames={allNames}
+          onRescue={handleRescue}
           deckTheme={deckTheme}
         />
       )}
