@@ -1200,14 +1200,15 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 
   // ===== ACE OF SPADES RESCUE =====
   if (result.aceRescued) {
+    const rescuerIdx = result.aceRescuerIdx ?? result.winnerIdx;
     return (
       <EventBox borderColor="#4466ff" emoji="🗡️" title="Ace of Spades Rescue!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:"Georgia,serif"}}>
-          {allNames[result.winnerIdx]}
+          {allNames[rescuerIdx]}
         </div>
         {result.rescuedCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:"Georgia,serif",fontStyle:"italic"}}>
-            {allNames[result.winnerIdx]} rescues the{" "}
+            {allNames[rescuerIdx]} rescues the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {result.rescuedCard.isJoker ? "Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
             </strong>{" "}from{" "}
@@ -1219,7 +1220,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             background:"#4466ff11", border:"1px solid #4466ff44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎 (to {allNames[result.winnerIdx]})</span>
           </div>
         )}
       </EventBox>
@@ -1413,7 +1414,7 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"Trick Rules ▶️",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:"Wins any trick automatically. Lets you kidnap any card from any opponent's hand.",sub:true},
-          {num:"d.",title:"♠ Ace of Spades",text:"Stops The Joker if played in the same trick — wins the trick, +35 bonus. With no Joker present, the Ace can instead Rescue any card from any opponent's hand.",sub:true},
+          {num:"d.",title:"♠ Ace of Spades",text:"When played, the Ace always acts: with a Joker in the trick it Blocks (wins the trick, +35 bonus). Otherwise it Rescues — its owner takes any one card from any opponent's hand.",sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
           {num:"f.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
           {num:"4.",title:"💎 Scoring",text:"Each dimond captured scores points!\n♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt",sub:false},
@@ -1660,18 +1661,20 @@ function DiamondsGame() {
       soundAceSuccess();
     }
 
-    // ACE OF SPADES RESCUE: A♠ played, NO Joker in trick, and A♠ owner won → rescue power
+    // ACE OF SPADES RESCUE: A♠ played and NO Joker in trick → rescue power fires
+    // for the player who played the Ace, regardless of whether they win the trick.
     const acePlay = plays.find(p => isBatman(p.card));
     const trickHasJoker = plays.some(p => p.card.isJoker);
-    const aceWonWithoutJoker = acePlay && !trickHasJoker && acePlay.playerIdx === winner;
+    const aceRescueTriggered = acePlay && !trickHasJoker;
+    const acePlayerIdx = aceRescueTriggered ? acePlay.playerIdx : null;
 
     // Play sound based on outcome
-    if (pointsWon > 0 && !batmanBlocked && !aceWonWithoutJoker) soundDiamondTrick();
+    if (pointsWon > 0 && !batmanBlocked && !aceRescueTriggered) soundDiamondTrick();
 
     addLog(batmanBlocked
       ? `♠ ${allNames[winner]} (Ace of Spades) stops The Joker! +${aceBonus} pts bonus!`
-      : aceWonWithoutJoker
-      ? `🗡️ ${allNames[winner]} wins with the Ace of Spades — preparing rescue...`
+      : aceRescueTriggered
+      ? `🗡️ ${allNames[acePlayerIdx]} played the Ace of Spades — preparing rescue...`
       : `${allNames[winner]} wins trick (+${pointsWon}💎)`);
 
     setRoundScores(newRoundScores);
@@ -1707,12 +1710,12 @@ function DiamondsGame() {
         setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
         setPhase("kidnap");
       }, 600);
-    } else if (aceWonWithoutJoker) {
+    } else if (aceRescueTriggered) {
       setTimeout(() => {
         // Guard: if no opponent has cards to rescue, just show normal trick result
-        const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
+        const hasTargets = currentHands.some((h, i) => i !== acePlayerIdx && h.length > 0);
         if (!hasTargets) {
-          addLog(`♠ ${allNames[winner]} wins with the Ace of Spades (no cards left to rescue)`);
+          addLog(`♠ ${allNames[acePlayerIdx]} played the Ace of Spades (no cards left to rescue)`);
           setTrickResult(resultObj);
           const allEmpty = currentHands.every(h=>h.length===0);
           if (allEmpty || gameWon) {
@@ -1722,7 +1725,7 @@ function DiamondsGame() {
           setPhase("trickresult");
           return;
         }
-        setRescueState({ acePlayerIdx: winner, hands: currentHands, resultObj });
+        setRescueState({ acePlayerIdx, hands: currentHands, resultObj });
         setPhase("rescue");
       }, 600);
     } else {
@@ -1817,6 +1820,7 @@ function DiamondsGame() {
         setTrickResult({
           ...rescueState.resultObj,
           aceRescued: true,
+          aceRescuerIdx: acePlayerIdx,
           rescuedCard,
           rescuedFrom: fromPlayer,
           pendingAmericanFamily: {
@@ -1832,7 +1836,7 @@ function DiamondsGame() {
     }
 
     setHands(newHands);
-    const resultObj = { ...rescueState.resultObj, aceRescued: true, rescuedCard, rescuedFrom: fromPlayer };
+    const resultObj = { ...rescueState.resultObj, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
     setTrickResult(resultObj);
     setRescueState(null);
     setPhase("trickresult");
