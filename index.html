@@ -119,6 +119,21 @@ function soundAceRescue() {
   });
 }
 
+// Aces Low — flying ace bugle motif. Rising military fanfare on a bugle's natural
+// overtone series (G major triad: G3 B3 D4 G4 D4), with a low dignified undertone.
+function soundAcesLow() {
+  const notes = [196.00, 246.94, 293.66, 392.00, 293.66]; // G3 B3 D4 G4 D4
+  notes.forEach((f, i) => {
+    // Bugle-like body (sawtooth for brassy harmonics)
+    playTone({ freq:f, type:"sawtooth", volume:0.16, attack:0.012, decay:0.40, delay:i*0.11 });
+    // Bell-like upper sparkle
+    playTone({ freq:f*2, type:"sine",   volume:0.07, attack:0.005, decay:0.30, delay:i*0.11 });
+  });
+  // Solemn low-end drone underneath — a quiet honor for the fallen ace
+  playTone({ freq:98, type:"sine", volume:0.13, attack:0.05, decay:0.85, delay:0 });
+  playTone({ freq:98, type:"triangle", volume:0.08, attack:0.05, decay:0.85, delay:0 });
+}
+
 // Cutting Your Teeth — first diamond played
 function soundCuttingYourTeeth() {
   playTone({ freq:440, type:"sawtooth", volume:0.1, attack:0.005, decay:0.08 });
@@ -444,6 +459,13 @@ function checkAmericanFamily(hand) {
   return needed.every(id => hand.find(c => c.id===id));
 }
 
+// Aces Low check: all four aces (A♠ A♥ A♣ A♦) all in hand
+function checkAcesLow(hand) {
+  const needed = ["A♠","A♥","A♣","A♦"];
+  return needed.every(id => hand.find(c => c.id===id));
+}
+const ACES_LOW_BONUS = 10;
+
 // Determine trick winner index (within trick players array)
 function resolveTrick(plays, trumpBroken=true) {
   const ledSuit = plays[0].card.isJoker ? null : plays[0].card.suit;
@@ -708,13 +730,20 @@ const GLASS = {
 function PipShape({ suit, size=24 }) {
   const s = size;
   if (suit==="♦") {
-    // Faceted isometric gem — gold shell, RED core, bright top facets
+    // Ruby set in gold — coral/red gem body framed by a gold outline.
+    // Outer gold diamond → inner coral body → bright top facet → tiny gold core dot.
     return (
       <svg width={s} height={s} viewBox="0 0 20 20" style={{display:"block"}}>
+        {/* Gold setting (outer frame) */}
         <polygon points="10,0.5 17,10 10,19.5 3,10" fill={VM.gold}/>
-        <polygon points="10,0.5 17,10 10,10 3,10" fill={VM.goldBright}/>
-        <polygon points="10,5 14,10 10,15 6,10" fill={VM.red}/>
-        <polygon points="10,5 14,10 10,10" fill={VM.coral}/>
+        {/* Subtle highlight along the upper gold edge */}
+        <polygon points="10,0.5 17,10 14,10 10,3" fill={VM.goldBright}/>
+        {/* Ruby body — inset from the gold by ~1.4 units on each side */}
+        <polygon points="10,2.2 15.2,10 10,17.8 4.8,10" fill={VM.coral}/>
+        {/* Top-half facet — brighter coral catching the light */}
+        <polygon points="10,2.2 15.2,10 10,10 4.8,10" fill="#d96658"/>
+        {/* Tiny inner core for depth */}
+        <polygon points="10,7 12,10 10,13 8,10" fill={VM.red}/>
       </svg>
     );
   }
@@ -973,7 +1002,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
       {!isJoker && !batman && (() => {
         const isFace = card.rank==="J" || card.rank==="Q" || card.rank==="K";
         const isAce = card.rank==="A";
-        const idxColor = card.suit==="♦" ? "#b89a4a"
+        const idxColor = card.suit==="♦" ? "#c9a84c"
           : card.suit==="♥" ? VM.coral
           : VM.tealDeep;
         const cornerPip = tiny ? 7 : isDesktop ? 12 : 10;
@@ -1079,7 +1108,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
             {isDiamond(card) && diamondPoints(card) > 1 && (
               <div style={{
                 position:"absolute",top:tiny?2:3,right:tiny?2:4,
-                background:VM.gold,color:VM.ink,
+                background:VM.red,color:"#fff",
                 fontSize:tiny?6:9,fontWeight:900,
                 borderRadius:3,padding:"1px 3px",
                 lineHeight:1.2,fontFamily:"'Trebuchet MS',sans-serif",
@@ -1629,7 +1658,7 @@ function RulesPanel({ onClose }) {
             {role:"Coding", name:"Claude (Anthropic)"},
             {role:"Concepts", name:"ChatGPT (OpenAI)"},
             {role:"Graphics", name:"Copilot (Microsoft)"},
-            {role:"Playtesting", name:"Rob Vasseur"},
+            {role:"Playtesting", name:"Donnie Swing, Rob Vasseur"},
           ].map(({role,name})=>(
             <div key={role} style={{marginBottom:10, paddingLeft:8}}>
               <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
@@ -1672,18 +1701,23 @@ function RulesPanel({ onClose }) {
           {num:"2.",title:"🃏 The Deck",text:"53 cards: standard 52 + 1 Joker.\nAces are LOW.",sub:false},
           {num:"3.",title:"Gameplay",text:"",sub:false},
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
-          {num:"b.",title:"Trick Rules ▶️",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
-          {num:"c.",title:"🃏 The Joker",text:"Wins any trick automatically. Lets you kidnap any card from any opponent's hand.",sub:true},
-          {num:"d.",title:"♠ Ace of Spades",text:"When played, the Ace always acts: with a Joker in the trick it Blocks (wins the trick, +35 bonus). Otherwise it Rescues — its owner takes any one card from any opponent's hand.",sub:true},
+          {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
+          {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
+          {num:"d.",title:"♠️ The Ace of Spades",text:(<>...unless The Ace of Spades is played on The Joker's trick, which blocks The Joker! The Ace of Spades wins that trick instead and a 35 pt. bonus is awarded to its player. Otherwise, The Ace of Spades will <em style={{fontStyle:"italic"}}>Rescue</em> any one card from any opponent's hand.</>),sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
-          {num:"f.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
+          {num:"f.",title:"✈️ Aces Low",text:"Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for +10 points, or hold them to push for a bigger set.",sub:true},
+          {num:"g.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
           {num:"4.",title:"💎 Scoring",text:"Each dimond captured scores points!\n♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt",sub:false},
         ].map(({num,title,text,sub})=>(
           <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
             <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
             <div>
               <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?11:13,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
-              {text&&<div style={{color:"#ffffffaa",fontSize:12,lineHeight:1.6}}>{text.split('\n').map((line,i)=><div key={i}>{line}</div>)}</div>}
+              {text&&<div style={{color:"#ffffffaa",fontSize:12,lineHeight:1.6}}>{
+                typeof text === "string"
+                  ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
+                  : text
+              }</div>}
             </div>
           </div>
         ))}
@@ -1736,6 +1770,8 @@ function DiamondsGame() {
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
   const [rescueState, setRescueState] = useState(null);
+  const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
+  const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [roundNum, setRoundNum] = useState(1);
   const [tricksPlayed, setTricksPlayed] = useState(0);
   const [isFirstTrick, setIsFirstTrick] = useState(true);
@@ -1800,6 +1836,8 @@ function DiamondsGame() {
     setTrickResult(null);
     setKidnapState(null);
     setRescueState(null);
+    setAcesLowState(null);
+    setAcesLowOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -1824,6 +1862,8 @@ function DiamondsGame() {
     setTrickResult(null);
     setKidnapState(null);
     setRescueState(null);
+    setAcesLowState(null);
+    setAcesLowOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -1881,6 +1921,45 @@ function DiamondsGame() {
       }
     }
 
+    // Check Aces Low — four aces gathered in one hand → offer cash-in
+    for (let i=0; i<4; i++) {
+      if (!acesLowOffered[i] && checkAcesLow(newHands[i])) {
+        // Mark offered so we don't ask again later in the round
+        setAcesLowOffered(prev => { const next = [...prev]; next[i] = true; return next; });
+        // For AI: auto-decide. For human: open modal.
+        if (i === 0) {
+          // Stash continuation so PROCEED on the offer resumes the trick
+          setAcesLowState({ playerIdx:i, hands:newHands, plays:newPlays, continuation:{playerIdx, card, newPlays, newHands} });
+          setPhase("aceslow_offer");
+          return;
+        } else {
+          // AI: hold if they have 3+ American Family cards in hand (pushing for the bigger 35pt set);
+          // otherwise cash the 10 immediately.
+          const familyIds = ["J♦","Q♦","K♦","A♦"];
+          const familyCount = newHands[i].filter(c => familyIds.includes(c.id)).length;
+          const aiCashesIn = familyCount < 3;
+          if (aiCashesIn) {
+            const newRoundScores = [...roundScores];
+            newRoundScores[i] += ACES_LOW_BONUS;
+            setRoundScores(newRoundScores);
+            addLog(`✈️ ${allNames[i]} cashes in Aces Low (+${ACES_LOW_BONUS} pts)`);
+            soundAcesLow();
+            // Stash continuation so dismissing the event resumes the trick
+            setAcesLowState({
+              playerIdx:i, hands:newHands, plays:newPlays,
+              continuation:{playerIdx, card, newPlays, newHands},
+              cashed:true, points:ACES_LOW_BONUS,
+            });
+            setPhase("aceslow_event");
+            return;
+          } else {
+            addLog(`✈️ ${allNames[i]} HOLDS Aces Low — pushing for bigger sets`);
+            // No event box for AI holds — silent decision, play continues
+          }
+        }
+      }
+    }
+
     // AUTO-CLAIM: if everyone but one player is out of cards, that player
     // automatically wins all their remaining cards as solo tricks.
     const playersWithCards = newHands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
@@ -1928,7 +2007,7 @@ function DiamondsGame() {
     soundAmericanFamily();
 
     // Collect the family cards for display
-    const familyCards = ["J♦","Q♦","K♦","A♦"].map(id =>
+    const familyCards = ["A♦","J♦","Q♦","K♦"].map(id =>
       [...currentHands[playerIdx], ...currentPlays.map(p=>p.card)].find(c=>c.id===id)
     ).filter(Boolean);
 
@@ -2146,6 +2225,43 @@ function DiamondsGame() {
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
       setTotalScores(newTotal);
       if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
+    }
+  }
+
+  // ---- Aces Low: human chose CASH IT ----
+  function acceptAcesLow() {
+    if (!acesLowState) return;
+    const { playerIdx, continuation } = acesLowState;
+    const newRoundScores = [...roundScores];
+    newRoundScores[playerIdx] += ACES_LOW_BONUS;
+    setRoundScores(newRoundScores);
+    addLog(`✈️ ${allNames[playerIdx]} cashes in Aces Low (+${ACES_LOW_BONUS} pts)`);
+    soundAcesLow();
+    setAcesLowState({ ...acesLowState, cashed:true, points:ACES_LOW_BONUS });
+    setPhase("aceslow_event");
+  }
+
+  // ---- Aces Low: human chose HOLD ----
+  function declineAcesLow() {
+    if (!acesLowState) return;
+    const { playerIdx, continuation } = acesLowState;
+    addLog(`✈️ ${allNames[playerIdx]} HOLDS Aces Low — pushing for bigger sets`);
+    setAcesLowState(null);
+    setPhase("playing");
+    // Resume the trick flow that was interrupted
+    if (continuation) {
+      continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    }
+  }
+
+  // ---- Aces Low: dismiss the event box (cash-in completed), resume play ----
+  function dismissAcesLowEvent() {
+    if (!acesLowState) return;
+    const { continuation } = acesLowState;
+    setAcesLowState(null);
+    setPhase("playing");
+    if (continuation) {
+      continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
     }
   }
 
@@ -2618,7 +2734,9 @@ function DiamondsGame() {
                 color:isLeading?VM.gold:"#ffffffcc",
                 lineHeight:1.1,
               }}>{total}</div>
-              {roundScores[i]>0&&<div style={{fontSize:9,color:VM.gold+"bb",lineHeight:1,fontFamily:FONT_UI}}>+{roundScores[i]}</div>}
+              {/* +N round-running display removed — was confusing because the big total
+                  doesn't change until round end. Round-end events show points earned. */}
+              <div style={{height:11,lineHeight:1}}/>
               {/* Progress bar toward 80 */}
               <div style={{
                 marginTop:3,height:3,borderRadius:2,
@@ -2837,6 +2955,93 @@ function DiamondsGame() {
           onRescue={handleRescue}
           deckTheme={deckTheme}
         />
+      )}
+
+      {/* Aces Low — offer modal (only when it's the human's choice) */}
+      {phase==="aceslow_offer" && acesLowState && acesLowState.playerIdx === 0 && (
+        <div style={{
+          position:"fixed", inset:0,
+          background:"rgba(4,18,15,0.78)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:200, padding:16,
+          backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)",
+        }}>
+          <div style={{
+            background:"linear-gradient(155deg,#0f3c38,#08231f)",
+            border:`2.5px solid #0a0a0a`,
+            borderRadius:20, padding:"28px 32px",
+            maxWidth:400, width:"100%",
+            boxShadow:`0 0 40px #00000088, 0 20px 60px #000000cc`,
+            textAlign:"center",
+            display:"flex", flexDirection:"column", alignItems:"center",
+          }}>
+            <div style={{fontSize:40, marginBottom:8, lineHeight:1}}>✈️</div>
+            <div style={{
+              color:VM.goldBright,
+              fontSize:13, fontWeight:900,
+              letterSpacing:3, textTransform:"uppercase",
+              fontFamily:FONT_DISPLAY, marginBottom:16,
+              textShadow:`0 0 12px ${VM.gold}44`,
+            }}>Aces Low</div>
+            <div style={{
+              width:"100%",
+              display:"flex", flexDirection:"column",
+              alignItems:"center", gap:12,
+            }}>
+              <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY}}>
+                You've gathered all four aces.
+              </div>
+              <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5}}>
+                Cash in for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{ACES_LOW_BONUS} pts</strong>,<br/>
+                or hold them for a chance at bigger sets.
+              </div>
+            </div>
+            <div style={{display:"flex", gap:10, marginTop:20}}>
+              <button onClick={declineAcesLow} style={{
+                background:"transparent",
+                color:VM.tealLight,
+                border:`1.5px solid ${VM.tealLight}66`,
+                borderRadius:10, padding:"12px 22px",
+                fontSize:13, fontWeight:900, cursor:"pointer",
+                letterSpacing:2, textTransform:"uppercase",
+                fontFamily:FONT_DISPLAY,
+              }}>Hold</button>
+              <button onClick={acceptAcesLow} style={{
+                background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+                color:"#0a2320", border:"none", borderRadius:10,
+                padding:"12px 28px", fontSize:13,
+                fontWeight:900, cursor:"pointer",
+                letterSpacing:2, textTransform:"uppercase",
+                fontFamily:FONT_DISPLAY,
+                boxShadow:`0 4px 14px ${VM.gold}33`,
+              }}>Cash It +{ACES_LOW_BONUS}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
+      {phase==="aceslow_event" && acesLowState && (
+        <EventBox
+          borderColor="#0a0a0a"
+          emoji="✈️"
+          title="Aces Low!"
+          btnLabel="PROCEED"
+          onContinue={dismissAcesLowEvent}
+        >
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>
+            {allNames[acesLowState.playerIdx]}
+          </div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+            Four aces gathered — cashed in for the bonus.
+          </div>
+          <div style={{
+            background:"rgba(10,10,10,0.4)", border:"1px solid #ffffff22",
+            borderRadius:10, padding:"8px 20px", display:"inline-block",
+          }}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ACES_LOW_BONUS} pts ✈️</span>
+          </div>
+        </EventBox>
       )}
 
       {phase==="trickresult"&&trickResult&&(
