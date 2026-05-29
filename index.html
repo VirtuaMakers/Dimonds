@@ -493,7 +493,9 @@ function resolveNormal(plays, ledSuit, trumpBroken=true) {
     // Trump overrides — highest diamond wins
     let winner = diamondPlays[0];
     for (let i=1; i<diamondPlays.length; i++) {
-      if (cardRankVal(diamondPlays[i].card) > cardRankVal(winner.card)) winner = diamondPlays[i];
+      const pv = cardRankVal(diamondPlays[i].card), wv = cardRankVal(winner.card);
+      if (pv > wv) winner = diamondPlays[i];
+      else if (pv === wv && winner.playerIdx === 0 && diamondPlays[i].playerIdx !== 0) winner = diamondPlays[i];
     }
     return { winnerIdx: winner.playerIdx, jokerWin: false };
   }
@@ -504,8 +506,18 @@ function resolveNormal(plays, ledSuit, trumpBroken=true) {
   let winner = pool[0];
   for (let i=1; i<pool.length; i++) {
     const p = pool[i];
-    if (cardRankVal(p.card) > cardRankVal(winner.card)) winner = p;
-    else if (cardRankVal(p.card) === cardRankVal(winner.card) && cardSuitVal(p.card) > cardSuitVal(winner.card)) winner = p;
+    const pv = cardRankVal(p.card), wv = cardRankVal(winner.card);
+    if (pv > wv) winner = p;
+    else if (pv === wv) {
+      // Tie on rank. First tiebreak by suit value; if still tied, the AI wins
+      // over the human (player 0) — house edge on ties.
+      const ps = cardSuitVal(p.card), ws = cardSuitVal(winner.card);
+      if (ps > ws) winner = p;
+      else if (ps === ws) {
+        // True tie — AI beats the human
+        if (winner.playerIdx === 0 && p.playerIdx !== 0) winner = p;
+      }
+    }
   }
   return { winnerIdx: winner.playerIdx, jokerWin: false };
 }
@@ -1159,6 +1171,52 @@ function Modal({ children, dim=true }) {
   );
 }
 
+// Overlay that animates cards flying from one screen point to another (fixed-position).
+function FlyingCardsOverlay({ flyers, deckTheme }) {
+  const [moved, setMoved] = useState(false);
+  useEffect(() => {
+    if (flyers.length === 0) { setMoved(false); return; }
+    // Next frame: flip to destination so CSS transition animates the movement
+    const id = requestAnimationFrame(() => requestAnimationFrame(() => setMoved(true)));
+    return () => cancelAnimationFrame(id);
+  }, [flyers]);
+  if (flyers.length === 0) return null;
+  return (
+    <div style={{position:"fixed",inset:0,pointerEvents:"none",zIndex:400}}>
+      {flyers.map((f, i) => {
+        const x = moved ? f.toX : f.fromX;
+        const y = moved ? f.toY : f.fromY;
+        if (f.arc) {
+          // Kidnap/rescue arc: card stays full-size and visible, with a slight lift mid-flight
+          return (
+            <div key={f.id} style={{
+              position:"absolute", left:0, top:0,
+              transform:`translate(${x}px,${y}px) translate(-50%,-50%) scale(${moved?1:0.9})`,
+              opacity: moved ? 1 : 0.85,
+              transition:"transform 0.6s cubic-bezier(0.3,0.0,0.2,1), opacity 0.25s ease-out",
+              filter:`drop-shadow(0 8px 16px #00000066)`,
+            }}>
+              <CardComp card={f.card} deckTheme={deckTheme}/>
+            </div>
+          );
+        }
+        return (
+          <div key={f.id} style={{
+            position:"absolute",
+            left:0, top:0,
+            transform:`translate(${x}px,${y}px) translate(-50%,-50%) scale(${moved?0.45:1}) rotate(${moved?(i-1.5)*18:0}deg)`,
+            opacity: moved ? 0 : 1,
+            transition:"transform 0.55s cubic-bezier(0.4,0.1,0.2,1), opacity 0.55s ease-in",
+            transitionDelay:`${i*0.04}s`,
+          }}>
+            <CardComp card={f.card} deckTheme={deckTheme}/>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Rolling number — eases from its previous value to the new value over ~550ms
 function AnimatedNumber({ value, style }) {
   const [display, setDisplay] = useState(value);
@@ -1260,12 +1318,17 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme }) {
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>
               {allNames[chosenPlayer]}'s Hand — tap to select
             </div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:13,justifyContent:"center",padding:"6px 0"}}>
               {displayHand.map((card) => {
                 const origIdx = getOriginalIdx(card);
                 const isSelected = chosenCardIdx === origIdx;
                 return (
-                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{cursor:"pointer"}}>
+                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{
+                    cursor:"pointer",
+                    transform:"scale(1.4)",
+                    transformOrigin:"center",
+                    margin:"10px 6px",
+                  }}>
                     <CardComp
                       card={card}
                       selected={isSelected}
@@ -1340,12 +1403,17 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme }) {
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>
               {allNames[chosenPlayer]}'s Hand — tap to select
             </div>
-            <div style={{display:"flex",flexWrap:"wrap",gap:4,justifyContent:"center"}}>
+            <div style={{display:"flex",flexWrap:"wrap",gap:13,justifyContent:"center",padding:"6px 0"}}>
               {displayHand.map((card) => {
                 const origIdx = getOriginalIdx(card);
                 const isSelected = chosenCardIdx === origIdx;
                 return (
-                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{cursor:"pointer"}}>
+                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{
+                    cursor:"pointer",
+                    transform:"scale(1.4)",
+                    transformOrigin:"center",
+                    margin:"10px 6px",
+                  }}>
                     <CardComp
                       card={card}
                       selected={isSelected}
@@ -1801,6 +1869,10 @@ function DiamondsGame() {
   const [turnOrder, setTurnOrder] = useState([0,1,2,3]);
   const [selectedCard, setSelectedCard] = useState(null);
   const [dealing, setDealing] = useState(false); // true briefly at round start for deal-out animation
+  const [flyingCards, setFlyingCards] = useState([]); // overlay cards animating between points
+  const scorePanelRefs = useRef([null,null,null,null]); // DOM nodes of the 4 score tiles
+  const trickAreaRef = useRef(null); // trick cards container
+  const handAreaRef = useRef(null); // player's hand container
   const [phase, setPhase] = useState("playing"); // playing | kidnap | rescue | trickresult | roundover | gameover
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
@@ -2178,6 +2250,8 @@ function DiamondsGame() {
 
     addLog(`🃏 ${allNames[jokerPlayerIdx]} kidnaps from ${allNames[fromPlayer]}!`);
     soundJokerKidnaps();
+    // Kidnap arc — card flies from victim to the Joker player
+    flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
     for (let i=0; i<4; i++) {
       if (checkAmericanFamily(newHands[i])) {
@@ -2230,6 +2304,8 @@ function DiamondsGame() {
 
     addLog(`🗡️ ${allNames[acePlayerIdx]} rescues from ${allNames[fromPlayer]}!`);
     soundAceRescue();
+    // Rescue arc — card flies from the other player to the Ace player
+    flyCardBetweenPlayers(rescuedCard, fromPlayer, acePlayerIdx);
 
     // Check American Family on the Ace player's new hand
     for (let i=0; i<4; i++) {
@@ -2435,6 +2511,8 @@ function DiamondsGame() {
     }
 
     const winner = trickResult.winnerIdx;
+    // Trick-to-winner sweep: capture card + target positions, spawn flying overlays
+    sweepTrickToWinner(trickPlays, winner);
     const newOrder = [0,1,2,3].map(i=>(winner+i)%4);
     setTurnOrder(newOrder);
     setCurrentTurn(0);
@@ -2445,6 +2523,65 @@ function DiamondsGame() {
     // Show Cutting Your Teeth BEFORE resuming play if it was just triggered
     setPhase("playing");
     setTrickResult(null);
+  }
+
+  // Animate the trick's cards gathering toward the winner's score panel, then fading.
+  function sweepTrickToWinner(plays, winnerIdx) {
+    if (typeof window === "undefined") return;
+    const trickEl = trickAreaRef.current;
+    const panelEl = scorePanelRefs.current[winnerIdx];
+    if (!trickEl || !panelEl) return;
+    const slots = Array.from(trickEl.children); // each played card's wrapper
+    const panelRect = panelEl.getBoundingClientRect();
+    const toX = panelRect.left + panelRect.width/2;
+    const toY = panelRect.top + panelRect.height/2;
+    const flyers = [];
+    plays.forEach((p, idx) => {
+      const slot = slots[idx];
+      if (!slot) return;
+      const r = slot.getBoundingClientRect();
+      flyers.push({
+        id: `${p.playerIdx}-${p.card.id}-${Date.now()}`,
+        card: p.card,
+        fromX: r.left + r.width/2,
+        fromY: r.top + r.height/2,
+        toX, toY,
+      });
+    });
+    if (flyers.length === 0) return;
+    setFlyingCards(flyers);
+    // Clear the flyers after the animation completes
+    setTimeout(() => setFlyingCards([]), 650);
+  }
+
+  // Anchor point for a player: their score panel for AI/others; the hand area for the human.
+  function playerAnchor(idx) {
+    if (idx === 0 && handAreaRef.current) {
+      const r = handAreaRef.current.getBoundingClientRect();
+      return { x: r.left + r.width/2, y: r.top + r.height*0.35 };
+    }
+    const el = scorePanelRefs.current[idx];
+    if (el) {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width/2, y: r.top + r.height/2 };
+    }
+    return null;
+  }
+
+  // Fly a single card from one player's anchor to another's (kidnap / rescue arc).
+  function flyCardBetweenPlayers(card, fromIdx, toIdx, durMs=650) {
+    if (typeof window === "undefined") return;
+    const from = playerAnchor(fromIdx);
+    const to = playerAnchor(toIdx);
+    if (!from || !to) return;
+    setFlyingCards([{
+      id: `arc-${card.id}-${Date.now()}`,
+      card,
+      fromX: from.x, fromY: from.y,
+      toX: to.x, toY: to.y,
+      arc: true,
+    }]);
+    setTimeout(() => setFlyingCards([]), durMs);
   }
 
   function finishRound(fromAF) {
@@ -2696,15 +2833,17 @@ function DiamondsGame() {
 
   return (
     <div style={{
-      minHeight:"100vh",
+      height:"100dvh",
+      maxHeight:"100dvh",
       background:"radial-gradient(ellipse at 50% 22%, #15564c 0%, #0d3b34 45%, #061d19 100%)",
       display:"flex",flexDirection:"column",
       fontFamily:FONT_UI,color:"#fff",
       userSelect:"none",
-      overflowY:"auto",
-      overflowX:"hidden",
+      overflow:"hidden",
       WebkitOverflowScrolling:"touch",
     }}>
+
+      <FlyingCardsOverlay flyers={flyingCards} deckTheme={deckTheme}/>
 
       {/* TOP BAR */}
       <div style={{
@@ -2759,7 +2898,7 @@ function DiamondsGame() {
           const total = totalScores[i]||0;
           const pct = Math.min(100, Math.round(total/WIN_SCORE*100));
           return (
-            <div key={n} style={{
+            <div key={n} ref={el => scorePanelRefs.current[i] = el} style={{
               background: isLeading?"rgba(75,195,175,0.16)":"rgba(255,255,255,0.04)",
               border:`1px solid ${isLeading?VM.tealLight+"66":"rgba(75,195,175,0.10)"}`,
               borderRadius:10,padding:"5px 8px",
@@ -2830,13 +2969,13 @@ function DiamondsGame() {
         })}
       </div>
 
-      {/* TRICK AREA — fixed total height so nothing below ever shifts */}
+      {/* TRICK AREA — flexes to fill leftover vertical space; centered content */}
       <div style={{
-        display:"flex",flexDirection:"column",alignItems:"center",
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
         padding:"6px 12px 8px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
-        flexShrink:0,
-        height: 190, // fixed: label 13 + ledSuit 22 + gap 10 + cards 130 + padding ~14 + slack
+        flex:"1 1 auto",
+        minHeight: 190, // never smaller than this (label + ledSuit + cards)
         boxSizing:"border-box",
       }}>
         <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:4,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
@@ -2849,7 +2988,7 @@ function DiamondsGame() {
           )}
         </div>
         {/* Cards row — fixed height matches a mobile card (115) + name label (~14) */}
-        <div style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
+        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
@@ -2888,7 +3027,7 @@ function DiamondsGame() {
         </div>
 
         {/* FANNED HAND */}
-        <div style={{
+        <div ref={handAreaRef} style={{
           overflowX:"hidden",
           overflowY:"visible",
           paddingTop:36, // headroom for the lifted selected card (which rises 20px)
