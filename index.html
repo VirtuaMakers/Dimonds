@@ -2673,28 +2673,32 @@ function DiamondsGame() {
         })}
       </div>
 
-      {/* TRICK AREA */}
+      {/* TRICK AREA — fixed total height so nothing below ever shifts */}
       <div style={{
         display:"flex",flexDirection:"column",alignItems:"center",
         padding:"6px 12px 8px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
         flexShrink:0,
+        height: 184, // fixed: label 13 + ledSuit 22 + cards 130 + padding ~14 + slack
+        boxSizing:"border-box",
       }}>
-        <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:4,textTransform:"uppercase",fontFamily:FONT_UI}}>Current Trick</div>
-        {/* Led suit ABOVE cards */}
-        {ledSuit&&(
-          <div style={{color:VM.tealLight,fontSize:11,marginBottom:6,fontWeight:700,fontFamily:FONT_UI}}>
-            Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
-          </div>
-        )}
-        <div style={{display:"flex",gap:10,justifyContent:"center",minHeight:96,alignItems:"center",flexWrap:"wrap"}}>
+        <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:4,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
+        {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
+        <div style={{height:22,marginBottom:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          {ledSuit && (
+            <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
+              Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
+            </div>
+          )}
+        </div>
+        {/* Cards row — fixed height matches a mobile card (115) + name label (~14) */}
+        <div style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
             trickPlays.map((p,i)=>(
               <div key={`${p.playerIdx}-${p.card.id}`} style={{textAlign:"center"}}>
                 <CardComp card={p.card} played/>
-                {/* Player name UNDER card */}
                 <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
               </div>
             ))
@@ -2705,17 +2709,20 @@ function DiamondsGame() {
       {/* SPACER — small visual gap; fan wrapper's paddingTop provides headroom for the lifted card */}
       <div style={{ height:16, flexShrink:0 }} />
 
-      {/* PLAYER HAND — sized to content, sits near the bottom of the screen */}
+      {/* PLAYER HAND — fixed-height block so the row never jumps */}
       <div style={{
         flexShrink:0,
         display:"flex",flexDirection:"column",
         padding:"4px 10px 16px",
+        height: 226, // fixed: label 14 + fan paddingTop 36 + cards 125 + indicator/button row 42 + slack
+        boxSizing:"border-box",
       }}>
         <div style={{
           color: isPlayerTurn?VM.tealLight:"#ffffff44",
           fontSize:9,letterSpacing:2,
           textTransform:"uppercase",textAlign:"center",marginBottom:4,
           fontWeight:700, flexShrink:0, fontFamily:FONT_UI,
+          height:14, lineHeight:"14px",
         }}>
           {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
         </div>
@@ -2736,16 +2743,17 @@ function DiamondsGame() {
             justifyContent:"center",
           }}>
           {(() => {
-            // Compute fan layout to fit available width.
-            // Available width = container width minus a safety margin for selected-card lift.
+            // Compute fan layout based on the STARTING hand size (always 13 at deal time),
+            // not the current hand size. This way overlap stays constant as cards are played,
+            // and the row doesn't slide/expand on each play.
             const total = playerHand.length;
             const cardW = 80;
             const SAFETY = 20; // px of breathing room on each side
+            const STARTING_HAND_SIZE = 13;
             const availW = (typeof window !== 'undefined' ? window.innerWidth : 360) - SAFETY * 2;
-            // We want total spread = cardW + OVERLAP*(total-1) <= availW
-            // → OVERLAP <= (availW - cardW) / (total-1)
-            const maxOverlap = total > 1 ? Math.floor((availW - cardW) / (total - 1)) : 0;
-            const OVERLAP = Math.min(22, Math.max(8, maxOverlap)); // clamp to [8, 22]
+            // Lock overlap to what it would be at full hand size (13 cards).
+            const maxOverlap = Math.floor((availW - cardW) / (STARTING_HAND_SIZE - 1));
+            const OVERLAP = Math.min(22, Math.max(8, maxOverlap));
             const totalWidth = OVERLAP * (total - 1) + cardW;
             const startX = -totalWidth / 2;
             return playerHand.map((card, ci) => {
@@ -2789,7 +2797,7 @@ function DiamondsGame() {
           </div>
         </div>
 
-        <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:6}}>
+        <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:6,height:42,alignItems:"center",flexShrink:0}}>
           {selectedCard && isPlayerTurn && (
             <div style={{
               background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
