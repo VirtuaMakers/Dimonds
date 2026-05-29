@@ -154,12 +154,14 @@ function soundJokerKidnaps() {
 // ============================================================
 // Firework boom — deep, low, loud
 function soundFireworkBoom() {
-  // Low sub-bass thud
-  playTone({ freq:55,  type:"sine",     volume:0.55, attack:0.005, decay:0.55 });
-  // Mid-low body
-  playTone({ freq:110, type:"triangle", volume:0.40, attack:0.005, decay:0.45, delay:0.01 });
-  // Subtle high crack for sparkle
-  playTone({ freq:880, type:"square",   volume:0.10, attack:0.001, decay:0.08, delay:0.005 });
+  // Deep sub-bass thud (dropped from 55Hz to 40Hz, louder)
+  playTone({ freq:40,  type:"sine",     volume:0.75, attack:0.005, decay:0.7 });
+  // Low body (dropped from 110 to 80Hz)
+  playTone({ freq:80,  type:"sine",     volume:0.55, attack:0.005, decay:0.55, delay:0.01 });
+  // Mid rumble for chest-thump
+  playTone({ freq:120, type:"triangle", volume:0.40, attack:0.008, decay:0.4, delay:0.02 });
+  // Faint high tail (much quieter than before, lower pitch — less "high pitched")
+  playTone({ freq:520, type:"sine",     volume:0.06, attack:0.001, decay:0.10, delay:0.005 });
 }
 
 function Fireworks({ onDone }) {
@@ -207,6 +209,8 @@ function Fireworks({ onDone }) {
       [canvas.width * 0.45, canvas.height * 0.20],
       [canvas.width * 0.85, canvas.height * 0.40],
       [canvas.width * 0.15, canvas.height * 0.55],
+      [canvas.width * 0.60, canvas.height * 0.15],
+      [canvas.width * 0.38, canvas.height * 0.58],
     ];
     let burstIdx = 0;
     // Slower interval between bursts — let each one breathe and cascade
@@ -960,8 +964,13 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
       padding:"2px 3px",
       position:"relative", flexShrink:0,
       userSelect:"none", overflow:"hidden",
+      isolation:"isolate", // establish stacking context so this card never bleeds through
     }}>
-
+      {/* Solid opaque backing — guarantees no card beneath shows through, even with image edge alpha */}
+      <div style={{
+        position:"absolute", inset:0, borderRadius:7,
+        background:cardBg, zIndex:0,
+      }}/>
       {/* ---- JOKER ---- */}
       {isJoker && (
         <>
@@ -1148,6 +1157,31 @@ function Modal({ children, dim=true }) {
       </div>
     </div>
   );
+}
+
+// Rolling number — eases from its previous value to the new value over ~550ms
+function AnimatedNumber({ value, style }) {
+  const [display, setDisplay] = useState(value);
+  const fromRef = useRef(value);
+  const rafRef = useRef(null);
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) return;
+    const dur = 550;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      const cur = Math.round(from + (to - from) * eased);
+      setDisplay(cur);
+      if (t < 1) { rafRef.current = requestAnimationFrame(tick); }
+      else { fromRef.current = to; }
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); fromRef.current = to; };
+  }, [value]);
+  return <span style={style}>{display}</span>;
 }
 
 function GoldBtn({ onClick, children, disabled, small, secondary }) {
@@ -1766,6 +1800,7 @@ function DiamondsGame() {
   const [currentTurn, setCurrentTurn] = useState(0); // index in turn order
   const [turnOrder, setTurnOrder] = useState([0,1,2,3]);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [dealing, setDealing] = useState(false); // true briefly at round start for deal-out animation
   const [phase, setPhase] = useState("playing"); // playing | kidnap | rescue | trickresult | roundover | gameover
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
@@ -1842,6 +1877,8 @@ function DiamondsGame() {
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
+    setDealing(true);
+    setTimeout(()=>setDealing(false), 1150);
   }
 
   function startGame() {
@@ -1868,6 +1905,8 @@ function DiamondsGame() {
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
+    setDealing(true);
+    setTimeout(()=>setDealing(false), 1150);
   }
 
   // ---- Play a card ----
@@ -2729,11 +2768,11 @@ function DiamondsGame() {
               boxShadow: isLeading?`0 0 16px ${VM.tealLight}22`:"none",
             }}>
               <div style={{fontSize:9,color:VM.tealLight+"aa",letterSpacing:1,marginBottom:1,fontFamily:FONT_UI}}>{n.slice(0,7)}</div>
-              <div style={{
+              <AnimatedNumber value={total} style={{
                 fontSize:20,fontWeight:800,fontFamily:FONT_DISPLAY,
                 color:isLeading?VM.gold:"#ffffffcc",
-                lineHeight:1.1,
-              }}>{total}</div>
+                lineHeight:1.1,display:"block",
+              }}/>
               {/* +N round-running display removed — was confusing because the big total
                   doesn't change until round end. Round-end events show points earned. */}
               <div style={{height:11,lineHeight:1}}/>
@@ -2797,12 +2836,12 @@ function DiamondsGame() {
         padding:"6px 12px 8px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
         flexShrink:0,
-        height: 184, // fixed: label 13 + ledSuit 22 + cards 130 + padding ~14 + slack
+        height: 190, // fixed: label 13 + ledSuit 22 + gap 10 + cards 130 + padding ~14 + slack
         boxSizing:"border-box",
       }}>
         <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:4,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
         {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
-        <div style={{height:22,marginBottom:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:22,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {ledSuit && (
             <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
               Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
@@ -2815,7 +2854,10 @@ function DiamondsGame() {
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
             trickPlays.map((p,i)=>(
-              <div key={`${p.playerIdx}-${p.card.id}`} style={{textAlign:"center"}}>
+              <div key={`${p.playerIdx}-${p.card.id}`} style={{
+                textAlign:"center",
+                animation:"cardLand 0.28s cubic-bezier(0.2,0.8,0.3,1)",
+              }}>
                 <CardComp card={p.card} played/>
                 <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
               </div>
@@ -2874,6 +2916,7 @@ function DiamondsGame() {
             const OVERLAP = Math.min(22, Math.max(8, maxOverlap));
             const totalWidth = OVERLAP * (total - 1) + cardW;
             const startX = -totalWidth / 2;
+            const selIdx = playerHand.findIndex(c => c.id === selectedCard?.id);
             return playerHand.map((card, ci) => {
               const isLegal = mustOpenWith2C
                 ? (card.rank==="2" && card.suit==="♣")
@@ -2883,7 +2926,15 @@ function DiamondsGame() {
                 ? (!isDiamond(card) || canLeadDiamond)
                 : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit));
               const isSelected = selectedCard?.id === card.id;
-              const xPos = startX + ci * OVERLAP;
+              // Neighbor spread: cards near the selected one ease outward to make room.
+              let spread = 0;
+              if (selIdx >= 0 && !isSelected) {
+                const dist = ci - selIdx;
+                const mag = Math.max(0, 10 - Math.abs(dist) * 3); // falls off with distance
+                spread = dist > 0 ? mag : -mag;
+              }
+              const xPos = startX + ci * OVERLAP + spread;
+              const showGlow = isPlayerTurn && isLegal && !isSelected;
 
               return (
                 <div
@@ -2895,8 +2946,19 @@ function DiamondsGame() {
                     bottom: isSelected ? 20 : 0,
                     zIndex: isSelected ? total + 10 : ci,
                     cursor: isPlayerTurn ? "pointer" : "default",
-                    transition:"bottom 0.15s ease",
-                    filter: (!isPlayerTurn || !isLegal) ? "brightness(0.55)" : "none",
+                    transition:"bottom 0.15s ease, left 0.18s ease, filter 0.2s ease",
+                    filter: (!isPlayerTurn || !isLegal)
+                      ? "brightness(0.55)"
+                      : showGlow
+                      ? "drop-shadow(0 0 0 rgba(75,195,175,0))"
+                      : "none",
+                    animation: dealing
+                      ? `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`
+                      : showGlow ? `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite` : "none",
+                    // deck origin: cards fly up from bottom-center
+                    "--deal-dx": `${-xPos*0.5}px`,
+                    "--deal-dy": "120px",
+                    "--deal-rot": `${(ci-6)*1.5}deg`,
                   }}
                 >
                   <CardComp
@@ -3106,6 +3168,31 @@ function DiamondsGame() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+        /* Card lands into the trick — drops in from above with a slight settle */
+        @keyframes cardLand {
+          0% { opacity:0; transform:translateY(-46px) scale(1.08); }
+          70% { opacity:1; transform:translateY(3px) scale(1.0); }
+          100% { opacity:1; transform:translateY(0) scale(1.0); }
+        }
+        /* Legal-card hint — a soft teal glow that breathes */
+        @keyframes legalGlow {
+          0%,100% { box-shadow:0 2px 10px #00000033, 0 0 0px rgba(75,195,175,0); }
+          50% { box-shadow:0 2px 10px #00000033, 0 0 14px rgba(75,195,175,0.55); }
+        }
+        @keyframes legalRipple {
+          0%,100% { filter: drop-shadow(0 0 0 rgba(75,195,175,0)); }
+          50% { filter: drop-shadow(0 0 6px rgba(75,195,175,0.6)); }
+        }
+        /* Trick cards sweep away toward the winner */
+        @keyframes trickSweep {
+          0% { opacity:1; transform:scale(1) translate(0,0); }
+          100% { opacity:0; transform:scale(0.6) translate(0,-40px); }
+        }
+        /* Deal-out — card flies in from the deck origin */
+        @keyframes dealIn {
+          from { opacity:0; transform:translate(var(--deal-dx,0), var(--deal-dy,-200px)) scale(0.7) rotate(var(--deal-rot,0deg)); }
+          to { opacity:1; transform:translate(0,0) scale(1) rotate(0deg); }
+        }
         ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
         * { scrollbar-width: none; }
       `}</style>
