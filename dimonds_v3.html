@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a1f14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dimonds">
+<meta name="mobile-web-app-capable" content="yes">
 <title>Dimonds</title>
 <style>
   html, body {
@@ -22,6 +26,9 @@
   ::-webkit-scrollbar-track { background: #00000033; }
   ::-webkit-scrollbar-thumb { background: #4bc3af66; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #4bc3af99; }
+  /* Prevent iOS callout/magnifier on long-press */
+  * { -webkit-touch-callout: none; }
+  input { -webkit-touch-callout: default; }
 </style>
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -1269,13 +1276,15 @@ function GoldBtn({ onClick, children, disabled, small, secondary }) {
       color: disabled ? "#ffffff33" : secondary ? VM.tealLight : "#0a2320",
       border: secondary ? `1px solid ${VM.tealLight}44` : "none",
       borderRadius:10,
-      padding: small ? "6px 10px" : "12px 32px",
-      fontSize: small ? 11 : 14,
+      padding: small ? "7px 11px" : "14px 32px",
+      fontSize: small ? 12 : 15,
       fontWeight:800, cursor: disabled?"not-allowed":"pointer",
       letterSpacing: small ? 0.5 : 1, textTransform:"uppercase",
       transition:"all 0.15s",
       fontFamily:FONT_DISPLAY,
       boxShadow: disabled||secondary ? "none" : `0 4px 14px ${VM.gold}33`,
+      minHeight: small ? 34 : 48,
+      touchAction:"manipulation",
     }}>{children}</button>
   );
 }
@@ -2941,6 +2950,10 @@ function DiamondsGame() {
       userSelect:"none",
       overflow:"hidden",
       WebkitOverflowScrolling:"touch",
+      paddingTop:"env(safe-area-inset-top, 0px)",
+      paddingLeft:"env(safe-area-inset-left, 0px)",
+      paddingRight:"env(safe-area-inset-right, 0px)",
+      boxSizing:"border-box",
     }}>
 
       <FlyingCardsOverlay flyers={flyingCards} deckTheme={deckTheme}/>
@@ -2948,24 +2961,25 @@ function DiamondsGame() {
       {/* TOP BAR */}
       <div style={{
         display:"flex",justifyContent:"space-between",alignItems:"center",
-        padding:"10px 16px",
+        padding:"7px 12px",
         borderBottom:"1px solid rgba(75,195,175,0.15)",
         background:"linear-gradient(180deg, rgba(8,35,31,0.78), rgba(8,35,31,0.45))",
         backdropFilter:"blur(14px) saturate(1.2)",
         WebkitBackdropFilter:"blur(14px) saturate(1.2)",
         flexShrink:0,
+        gap:6,
       }}>
         <div style={{
-          fontFamily:FONT_DISPLAY, fontSize:17, fontWeight:800,
+          fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800,
           background:`linear-gradient(90deg,${VM.tealLight},${VM.gold})`,
           WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-          letterSpacing:3,
+          letterSpacing:2, flexShrink:0,
         }}>◆ DIMONDS</div>
-        <div style={{display:"flex",gap:12,alignItems:"center"}}>
-          <span style={{color:VM.tealLight+"99",fontSize:11,fontFamily:FONT_UI}}>Round <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
-          <span style={{color:VM.tealLight+"99",fontSize:11,fontFamily:FONT_UI}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
+          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Rnd <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
+          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
-        <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
           <GoldBtn onClick={()=>setShowRules(true)} small secondary>Rules</GoldBtn>
           <GoldBtn onClick={()=>setScreen("menu")} small secondary>Menu</GoldBtn>
           <button
@@ -2976,12 +2990,14 @@ function DiamondsGame() {
               background:"transparent",
               border:`1px solid ${soundOn ? VM.tealLight+"55" : "#66666655"}`,
               borderRadius:10,
-              padding:"4px 7px",
-              fontSize:13,
+              padding:"5px 7px",
+              fontSize:14,
               lineHeight:1,
               color:soundOn ? VM.tealLight : "#888",
               cursor:"pointer",
               fontFamily:"inherit",
+              minHeight:34,
+              touchAction:"manipulation",
             }}
           >{soundOn ? "🔊" : "🔇"}</button>
         </div>
@@ -3075,7 +3091,7 @@ function DiamondsGame() {
         padding:"6px 12px 8px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
         flex:"1 1 auto",
-        minHeight: 190, // never smaller than this (label + ledSuit + cards)
+        minHeight: 170, // never smaller than this (label + ledSuit + cards)
         boxSizing:"border-box",
       }}>
         <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:4,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
@@ -3112,8 +3128,8 @@ function DiamondsGame() {
       <div style={{
         flexShrink:0,
         display:"flex",flexDirection:"column",
-        padding:"4px 10px 16px",
-        height: 226, // fixed: label 14 + fan paddingTop 36 + cards 125 + indicator/button row 42 + slack
+        padding:"4px 10px 10px",
+        height: 240, // label 14 + fan paddingTop 36 + cards 125 + btn row 48 + slack 17
         boxSizing:"border-box",
       }}>
         <div style={{
@@ -3178,7 +3194,11 @@ function DiamondsGame() {
               return (
                 <div
                   key={card.id}
-                  onClick={isPlayerTurn ? ()=>setSelectedCard(isSelected ? null : card) : undefined}
+                  onClick={isPlayerTurn ? () => {
+                    // Tap already-selected legal card → play it immediately (phone-friendly)
+                    if (isSelected && isLegal) { playCard(card); }
+                    else { setSelectedCard(isSelected ? null : card); }
+                  } : undefined}
                   style={{
                     position:"absolute",
                     left:`calc(50% + ${xPos}px)`,
@@ -3186,6 +3206,7 @@ function DiamondsGame() {
                     zIndex: isSelected ? total + 10 : ci,
                     cursor: isPlayerTurn ? "pointer" : "default",
                     transition:"bottom 0.15s ease, left 0.18s ease, filter 0.2s ease",
+                    touchAction:"manipulation",
                     filter: (!isPlayerTurn || !isLegal)
                       ? "brightness(0.55)"
                       : showGlow
@@ -3216,7 +3237,7 @@ function DiamondsGame() {
           </div>
         </div>
 
-        <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:6,height:42,alignItems:"center",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"center",gap:10,marginTop:6,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
           {selectedCard && isPlayerTurn && (
             <div style={{
               background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
@@ -3235,6 +3256,8 @@ function DiamondsGame() {
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
         </div>
+        {/* Safe-area spacer — clears iPhone home indicator */}
+        <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
       </div>
 
       {/* MODALS */}
