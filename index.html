@@ -1596,6 +1596,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     : result.pendingAmericanFamily ? "PROCEED"
     : result.americanFamily ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
+    : result.pendingJokerKidnap ? "PROCEED"
     : isHandOver ? "PROCEED"
     : "NEXT TRICK →";
 
@@ -1690,6 +1691,32 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           }}>
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
               +{pointsWon} pt{pointsWon!==1?"s":""} 💎{!robbinWonTrick ? ` (to ${allNames[trickWinner]})` : ""}
+            </span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
+  // ===== ROBBIN JACK — NO ROB =====
+  if (result.jackDiamondPassed) {
+    const robbinIdx = result.jackDiamondPlayerIdx;
+    const trickWinner = result.winnerIdx;
+    return (
+      <EventBox borderColor="#1f8f4e" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
+          {robbinIdx != null ? allNames[robbinIdx] : "?"}
+        </div>
+        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+          Chose not to rob.
+        </div>
+        {pointsWon > 0 && (
+          <div style={{
+            background:"#1f8f4e11", border:"1px solid #1f8f4e44",
+            borderRadius:10, padding:"8px 20px", display:"inline-block",
+          }}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
+              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{trickWinner !== robbinIdx ? ` (to ${allNames[trickWinner]})` : ""}
             </span>
           </div>
         )}
@@ -2418,6 +2445,27 @@ function DiamondsGame() {
           setPhase("trickresult");
           return;
         }
+        // Turn-order: if J♦ was also in trick and played BEFORE Joker, J♦ acts first
+        if (result.jackDiamondRob) {
+          const jokerTurnPos = plays.findIndex(p => p.card.isJoker);
+          const jackDTurnPos = plays.findIndex(p => isJackDiamond(p.card));
+          if (jackDTurnPos !== -1 && jackDTurnPos < jokerTurnPos) {
+            const jackDIdx = result.jackDiamondPlayerIdx;
+            const jackFirstHasTargets = currentHands.some((h, i) => i !== jackDIdx && h.length > 0);
+            const jackFirstResultObj = { ...resultObj, jokerWin: false, jackDiamondRob: jackFirstHasTargets, jackDiamondPassed: !jackFirstHasTargets, pendingJokerKidnap: { jokerPlayerIdx: winner } };
+            if (!jackFirstHasTargets) {
+              addLog(`🎴 ${allNames[jackDIdx]} (Robbin Jack) — no cards left to rob`);
+              setTrickResult(jackFirstResultObj);
+              const allEmpty2 = currentHands.every(h=>h.length===0);
+              if (allEmpty2 || gameWon) { setTotalScores(newTotal); if (gameWon) setPendingFireworks(true); }
+              setPhase("trickresult");
+              return;
+            }
+            setKidnapState({ jokerPlayerIdx: jackDIdx, isRobbinJack: true, hands: currentHands, resultObj: jackFirstResultObj });
+            setPhase("kidnap");
+            return;
+          }
+        }
         // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
         const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
         const batmanHolderForSummon = currentHands.findIndex(h => h.some(c => isBatman(c)));
@@ -2435,7 +2483,7 @@ function DiamondsGame() {
         const hasTargets = currentHands.some((h, i) => i !== jackDPlayerIdx && h.length > 0);
         if (!hasTargets) {
           addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) — no cards left to rob`);
-          setTrickResult({ ...resultObj, jackDiamondRob: false });
+          setTrickResult({ ...resultObj, jackDiamondRob: false, jackDiamondPassed: true });
           const allEmpty = currentHands.every(h=>h.length===0);
           if (allEmpty || gameWon) {
             setTotalScores(newTotal);
@@ -2599,7 +2647,7 @@ function DiamondsGame() {
       } else {
         addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob.`);
       }
-      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false });
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true });
       setKidnapState(null);
       setPhase("trickresult");
     }
@@ -2795,6 +2843,23 @@ function DiamondsGame() {
   function afterTrickResult() {
     // Delay before firing fireworks, to let the event's tune finish playing
     const FIREWORKS_DELAY = 1000;
+
+    // J♦ acted first — now open Joker kidnap modal
+    if (trickResult?.pendingJokerKidnap) {
+      const { jokerPlayerIdx } = trickResult.pendingJokerKidnap;
+      const cleanResult = { ...trickResult, pendingJokerKidnap: undefined, jackDiamondRob: false };
+      const hasTargets = hands.some((h, i) => i !== jokerPlayerIdx && h.length > 0);
+      if (!hasTargets) {
+        addLog(`🃏 ${allNames[jokerPlayerIdx]} wins with the Joker (no cards left to kidnap)`);
+        setTrickResult({ ...cleanResult, jokerWin: true });
+        setPhase("trickresult");
+        return;
+      }
+      setKidnapState({ jokerPlayerIdx, hands, resultObj: { ...cleanResult, jokerWin: false } });
+      setPhase("kidnap");
+      setTrickResult(null);
+      return;
+    }
 
     // Joker kidnapped AND J♦ rob pending — open J♦ modal on PROCEED
     if (trickResult?.pendingRobbinKidnap) {
@@ -3058,7 +3123,7 @@ function DiamondsGame() {
       } else {
         // No valid target — show result directly (preserve rob vs kidnap)
         const isRobbin = !!kidnapState.isRobbinJack;
-        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin });
+        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin });
         setKidnapState(null);
         setPhase("trickresult");
       }
