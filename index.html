@@ -1950,7 +1950,10 @@ function RulesPanel({ onClose }) {
       <div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
           <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>How to Play</h2>
-          <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+          <div style={{display:"flex",gap:6}}>
+            <GoldBtn onClick={()=>setView("credits")} small secondary>♦ Credits</GoldBtn>
+            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+          </div>
         </div>
         {[
           {num:"1.",title:"🎯 Objective",text:"Be first to 80 points across multiple rounds.",sub:false},
@@ -1959,12 +1962,12 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand! Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a Rescue, and Robin earns +1 pt for the attempt.</>),sub:true},
-          {num:"d.",title:"♠️ The Ace of Spades",text:(<>...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em style={{fontStyle:"italic"}}>Blocks</em> either or both of them (in the same trick) from either Kidnapping or Robbin'! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>. Otherwise, The Ace of Spades will <em style={{fontStyle:"italic"}}>Rescue</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
-          {num:"f.",title:"✈️ Aces Low",text:"Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for +18 points, or hold them to push for a bigger set.",sub:true},
+          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+1 pt</strong> for the attempt.</div></>),sub:true},
+          {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
+          {num:"e.",title:"🇺🇸 American Family",text:(<>Hold J♦ Q♦ K♦ A♦ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 points!</strong></>),sub:true},
+          {num:"f.",title:"✈️ Aces Low",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+18 points</strong>, or hold them to push for a bigger set.</>),sub:true},
           {num:"g.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
-          {num:"4.",title:"💎 Scoring",text:"Each dimond captured scores points!\n♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt",sub:false},
+          {num:"4.",title:"💎 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e"}}>♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt</strong></>),sub:false},
         ].map(({num,title,text,sub})=>(
           <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
             <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -1978,13 +1981,7 @@ function RulesPanel({ onClose }) {
             </div>
           </div>
         ))}
-        <div style={{
-          marginTop:18, paddingTop:14,
-          borderTop:"1px solid #c9a84c22",
-          textAlign:"center",
-        }}>
-          <GoldBtn onClick={()=>setView("credits")} small secondary>♦ Credits</GoldBtn>
-        </div>
+        <div style={{height:8}}/>
       </div>
     </Modal>
   );
@@ -3215,7 +3212,7 @@ function DiamondsGame() {
                 margin:"0 0 2px",letterSpacing:8,textShadow:"none",
               }}>DIMONDS</h1>
               <p style={{color:VM.tealLight+"77",fontSize:11,letterSpacing:5,marginBottom:24,textTransform:"uppercase",fontFamily:FONT_UI}}>
-                Prototype 1 · 4 Players
+                Prototype 3 · 4 Players
               </p>
               {nameBox}
               {buttons}
@@ -3237,7 +3234,7 @@ function DiamondsGame() {
               margin:"0 0 2px",letterSpacing:6,textShadow:"none",
             }}>DIMONDS</h1>
             <p style={{color:VM.tealLight+"77",fontSize:10,letterSpacing:4,marginBottom:14,textTransform:"uppercase",fontFamily:FONT_UI}}>
-              Prototype 1 · 4 Players
+              Prototype 3 · 4 Players
             </p>
             {nameBox}
             {cardSelector}
