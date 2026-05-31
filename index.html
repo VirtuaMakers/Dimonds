@@ -2435,7 +2435,7 @@ function DiamondsGame() {
         const hasTargets = currentHands.some((h, i) => i !== jackDPlayerIdx && h.length > 0);
         if (!hasTargets) {
           addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) — no cards left to rob`);
-          setTrickResult({ ...resultObj, jackDiamondRob: true });
+          setTrickResult({ ...resultObj, jackDiamondRob: false });
           const allEmpty = currentHands.every(h=>h.length===0);
           if (allEmpty || gameWon) {
             setTotalScores(newTotal);
