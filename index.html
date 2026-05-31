@@ -310,13 +310,13 @@ const HAND_SUIT_ORDER = { "♣":0,"♥":1,"♠":2,"♦":3 };
 // CARD BACK IMAGES — external files in images/ folder
 // ============================================================
 const CARD_BACK_IMAGES = {
-  skyscraper: "images/skyscraper.png",
+  skyscraper: "images/skyscraper.jpg",
   vmlogo:     "images/vmlogo.jpg",
-  newengland: "images/newengland.png",
+  newengland: "images/newengland.jpg",
   flamingo:   "images/flamingo.jpg",
-  moon:       "images/moon.png",
-  peacock:    "images/peacock.png",
-  goldmobo:   "images/goldmobo.png",
+  moon:       "images/moon.jpg",
+  peacock:    "images/peacock.jpg",
+  goldmobo:   "images/goldmobo.jpg",
 };
 const DECK_THEMES = [
   { id:"skyscraper", label:"Skyscraper",    emoji:"🏙️" },
@@ -2779,7 +2779,7 @@ function DiamondsGame() {
       </div>
     );
     const nameBox = (
-      <div style={{...GLASS,borderRadius:14,padding:"20px 24px",marginBottom:16}}>
+      <div style={{...GLASS,borderRadius:14,padding:"14px 20px",marginBottom:12}}>
         <label style={{color:VM.tealLight+"cc",fontSize:13,letterSpacing:2,display:"block",marginBottom:8,textTransform:"uppercase",fontWeight:700,fontFamily:FONT_UI}}>Your Name</label>
         <input
           value={nameInput}
@@ -2798,47 +2798,49 @@ function DiamondsGame() {
       </div>
     );
     const cardSelector = (
-      <div style={{...GLASS,borderRadius:14,padding:"16px 20px",marginBottom:isWide?0:20}}>
-        <label style={{color:VM.tealLight+"cc",fontSize:13,letterSpacing:2,display:"block",marginBottom:12,textTransform:"uppercase",fontWeight:700,fontFamily:FONT_UI}}>Card Back</label>
-        <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:16,marginBottom:12}}>
+      <div style={{...GLASS,borderRadius:14,padding:"12px 16px",marginBottom:isWide?0:14}}>
+        <label style={{color:VM.tealLight+"cc",fontSize:12,letterSpacing:2,display:"block",marginBottom:8,textTransform:"uppercase",fontWeight:700,fontFamily:FONT_UI}}>Card Back</label>
+        <div style={{display:"flex",justifyContent:"center",alignItems:"center",gap:14,marginBottom:10}}>
           <div style={{
-            width:110,height:154,borderRadius:8,flexShrink:0,
+            width:90,height:126,borderRadius:8,flexShrink:0,
             border:`2px solid ${VM.tealLight}`,
             position:"relative",overflow:"hidden",
             boxShadow:`0 0 22px ${VM.tealLight}44, 0 4px 18px #00000066`,
           }}>
-            <PixelCardBack theme={deckTheme} w={110} h={154}/>
+            <PixelCardBack theme={deckTheme} w={90} h={126}/>
           </div>
           <div style={{textAlign:"center"}}>
-            <div style={{color:"#fff",fontSize:16,fontWeight:800,fontFamily:FONT_UI,marginBottom:4,letterSpacing:0.5}}>
+            <div style={{color:"#fff",fontSize:15,fontWeight:800,fontFamily:FONT_UI,marginBottom:3,letterSpacing:0.5}}>
               {DECK_THEMES.find(t=>t.id===deckTheme)?.label}
             </div>
-            <div style={{fontSize:26,marginBottom:6,lineHeight:1}}>
+            <div style={{fontSize:22,marginBottom:4,lineHeight:1}}>
               {DECK_THEMES.find(t=>t.id===deckTheme)?.emoji}
             </div>
-            <div style={{color:VM.tealLight+"88",fontSize:11,fontFamily:FONT_UI}}>
+            <div style={{color:VM.tealLight+"88",fontSize:10,fontFamily:FONT_UI}}>
               Tap a style below to switch.
             </div>
           </div>
         </div>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",justifyContent:"center",paddingBottom:2}}>
+        {/* Single-row thumbnail strip — no wrapping */}
+        <div style={{display:"flex",gap:3,justifyContent:"center",flexWrap:"nowrap"}}>
           {DECK_THEMES.map(t=>(
             <div key={t.id} onClick={()=>setDeckTheme(t.id)} style={{
               cursor:"pointer",textAlign:"center",flexShrink:0,
               background: deckTheme===t.id?VM.tealLight+"22":"rgba(255,255,255,0.04)",
               border:`1.5px solid ${deckTheme===t.id?VM.tealLight:"rgba(255,255,255,0.10)"}`,
-              borderRadius:8,padding:"5px 3px",
-              transition:"all 0.15s",width:36,
+              borderRadius:7,padding:"4px 2px",
+              transition:"all 0.15s",width:32,
+              touchAction:"manipulation",
             }}>
               <div style={{
-                width:24,height:34,borderRadius:3,
+                width:20,height:28,borderRadius:3,
                 border:`1px solid ${deckTheme===t.id?"#fff":"#ffffff55"}`,
-                margin:"0 auto 3px",
+                margin:"0 auto 2px",
                 position:"relative",overflow:"hidden",
               }}>
-                <PixelCardBack theme={t.id} w={24} h={34}/>
+                <PixelCardBack theme={t.id} w={20} h={28}/>
               </div>
-              <div style={{fontSize:10,lineHeight:1}}>{t.emoji}</div>
+              <div style={{fontSize:9,lineHeight:1}}>{t.emoji}</div>
             </div>
           ))}
         </div>
@@ -2862,7 +2864,7 @@ function DiamondsGame() {
         display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:"center",
         fontFamily:FONT_UI,
-        padding:24,
+        padding:`16px 20px max(16px, env(safe-area-inset-bottom, 16px)) 20px`,
         position:"relative",
         overflow:"hidden",
         boxSizing:"border-box",
@@ -2895,15 +2897,15 @@ function DiamondsGame() {
           // ── Mobile: single-column layout ──
           <div style={{
             position:"relative",textAlign:"center",maxWidth:420,width:"100%",
-            marginTop:"-6vh",
+            marginTop:"-4vh",
           }}>
             <h1 style={{
-              fontFamily:FONT_DISPLAY,fontSize:54,fontWeight:900,
+              fontFamily:FONT_DISPLAY,fontSize:46,fontWeight:900,
               background:`linear-gradient(135deg,${VM.tealLight} 0%,${VM.goldBright} 45%,${VM.gold} 70%,${VM.tealLight} 100%)`,
               WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-              margin:"0 0 2px",letterSpacing:8,textShadow:"none",
+              margin:"0 0 2px",letterSpacing:6,textShadow:"none",
             }}>DIMONDS</h1>
-            <p style={{color:VM.tealLight+"77",fontSize:11,letterSpacing:5,marginBottom:24,textTransform:"uppercase",fontFamily:FONT_UI}}>
+            <p style={{color:VM.tealLight+"77",fontSize:10,letterSpacing:4,marginBottom:14,textTransform:"uppercase",fontFamily:FONT_UI}}>
               Prototype 1 · 4 Players
             </p>
             {nameBox}
