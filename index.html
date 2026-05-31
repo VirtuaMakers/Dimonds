@@ -1947,7 +1947,7 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand!</>),sub:true},
+          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand! Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a Rescue, and Robin earns +1 pt for the attempt. <em style={{color:"#c9a84c77",fontSize:11}}>"Robbin Jack" is spelled with two b's. Whether he keeps them is up to the player.</em></>),sub:true},
           {num:"d.",title:"♠️ The Ace of Spades",text:(<>...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em style={{fontStyle:"italic"}}>Blocks</em> either or both of them (in the same trick) from either Kidnapping or Robbin'! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>. Otherwise, The Ace of Spades will <em style={{fontStyle:"italic"}}>Rescue</em> any one card from any opponent's hand.</>),sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
           {num:"f.",title:"✈️ Aces Low",text:"Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for +18 points, or hold them to push for a bigger set.",sub:true},
@@ -2032,6 +2032,7 @@ function DiamondsGame() {
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
+  const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands, resultObj, gameWon, newTotal }
   const [showAceCelebration, setShowAceCelebration] = useState(false);
   const [pendingFireworks, setPendingFireworks] = useState(false);
   const [diamondsBroken, setDiamondsBroken] = useState(false);
@@ -2115,6 +2116,7 @@ function DiamondsGame() {
     setKidnapState(null);
     setRescueState(null);
     setAcesLowState(null);
+    setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
@@ -2153,6 +2155,7 @@ function DiamondsGame() {
     setKidnapState(null);
     setRescueState(null);
     setAcesLowState(null);
+    setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
@@ -2386,6 +2389,8 @@ function DiamondsGame() {
       batmanBlocked,
       batmanBlockedJoker,
       batmanBlockedRobbin,
+      jackDiamondRob: result.jackDiamondRob,
+      jackDiamondPlayerIdx: result.jackDiamondPlayerIdx,
       plays,
       diamondsCaptured: capturedDiamonds,
     };
@@ -2402,6 +2407,14 @@ function DiamondsGame() {
             if (gameWon) setPendingFireworks(true);
           }
           setPhase("trickresult");
+          return;
+        }
+        // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
+        const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
+        const batmanHolderForSummon = currentHands.findIndex(h => h.some(c => isBatman(c)));
+        if (jackDPlayerForSummon === 0 && batmanHolderForSummon !== -1) {
+          setRobbinSummonState({ jackPlayerIdx: jackDPlayerForSummon, jokerPlayerIdx: winner, batmanHolderIdx: batmanHolderForSummon, hands: currentHands, resultObj, gameWon, newTotal });
+          setPhase("robbinsummon");
           return;
         }
         setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
@@ -2537,12 +2550,76 @@ function DiamondsGame() {
   function handleKidnapSkip() {
     if (!kidnapState) return;
     const isRobbin = !!kidnapState.isRobbinJack;
-    addLog(isRobbin
-      ? `🎴 ${allNames[kidnapState.jokerPlayerIdx]} (Robbin Jack) chooses not to rob.`
-      : `🃏 ${allNames[kidnapState.jokerPlayerIdx]} releases their kidnap.`);
-    setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false });
-    setKidnapState(null);
+    const jackPlayerIdx = kidnapState.jokerPlayerIdx;
+
+    if (!isRobbin) {
+      addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false });
+      setKidnapState(null);
+      setPhase("trickresult");
+      return;
+    }
+
+    // Robbin Jack chose not to rob — Robin Gambit
+    const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin;
+    const currentHands = kidnapState.hands;
+    const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
+    const aceAvailable = batmanHolder !== -1;
+
+    if (aceAvailable && !isChainedAfterJoker) {
+      // Summon A♠ for rescue — A♠ holder rescues, J♦ player gets +1 pt
+      const newHands = currentHands.map((h,i) => i===batmanHolder ? h.filter(c=>!isBatman(c)) : h);
+      addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! ${allNames[batmanHolder]} gets a rescue. +1 pt to Robin.`);
+      soundAceRescue();
+      setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
+      setHands(newHands);
+      setKidnapState(null);
+      const rescueResultObj = { ...kidnapState.resultObj, jokerWin: false, jackDiamondRob: false, robbinSummon: true };
+      const hasRescueTargets = newHands.some((h,i) => i !== batmanHolder && h.length > 0);
+      if (!hasRescueTargets) {
+        addLog(`♠ ${allNames[batmanHolder]} — no cards left to rescue.`);
+        setTrickResult(rescueResultObj);
+        setPhase("trickresult");
+      } else {
+        setRescueState({ acePlayerIdx: batmanHolder, hands: newHands, resultObj: rescueResultObj });
+        setPhase("rescue");
+      }
+    } else {
+      // A♠ already played — +1 pt consolation (unless chained after Joker who already acted)
+      if (!isChainedAfterJoker) {
+        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob. +1 pt for the attempt.`);
+        setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
+      } else {
+        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob.`);
+      }
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false });
+      setKidnapState(null);
+      setPhase("trickresult");
+    }
+  }
+
+  function handleRobbinSummonYes() {
+    if (!robbinSummonState) return;
+    const { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands: currentHands, resultObj, gameWon, newTotal } = robbinSummonState;
+    // Remove A♠ from holder's hand (summoned)
+    const newHands = currentHands.map((h,i) => i===batmanHolderIdx ? h.filter(c=>!isBatman(c)) : h);
+    setHands(newHands);
+    setRoundScores(prev=>{ const n=[...prev]; n[batmanHolderIdx]+=35; return n; });
+    addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! Joker BLOCKED! ${allNames[batmanHolderIdx]} gets +35! ${allNames[jackPlayerIdx]} wins the trick!`);
+    soundBatmanBlocks();
+    const updatedResult = { ...resultObj, winnerIdx: jackPlayerIdx, jokerWin: false, jackDiamondRob: false, batmanBlocked: true, batmanBlockedJoker: true, robbinSummon: true };
+    setTrickResult(updatedResult);
+    setRobbinSummonState(null);
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setPhase("trickresult");
+  }
+
+  function handleRobbinSummonNo() {
+    if (!robbinSummonState) return;
+    const { jokerPlayerIdx, hands: currentHands, resultObj } = robbinSummonState;
+    setRobbinSummonState(null);
+    setKidnapState({ jokerPlayerIdx, hands: currentHands, resultObj });
+    setPhase("kidnap");
   }
 
   function handleTheStealEndRound() {
@@ -2574,13 +2651,7 @@ function DiamondsGame() {
   function handleTheStealPlayOn() {
     if (!theStealState) return;
     const pi = theStealState.playerIdx;
-    // Remove all 3 steal cards from the player's hand
-    const newHands = hands.map((h,i)=>
-      i===pi ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h
-    );
-    setHands(newHands);
-    setRoundScores(prev=>{ const n=[...prev]; n[pi]+=THE_STEAL_BONUS; return n; });
-    addLog(`🌇 THE STEAL — ${allNames[pi]} plays on! +${THE_STEAL_BONUS} pts. 3 cards removed.`);
+    addLog(`🌇 THE STEAL — ${allNames[pi]} plays on. The trio stays in hand.`);
     soundTheSteal();
     setTheStealState(null);
     setPhase("playing");
@@ -3531,16 +3602,39 @@ function DiamondsGame() {
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
               You hold the Joker, Robbin Jack, and Ace of Spades.
             </p>
-            <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 20px"}}>
-              +{THE_STEAL_BONUS} pts awarded either way.
+            <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
+              End the Round → +{THE_STEAL_BONUS} pts
+            </p>
+            <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
+              Play On → keep all cards, no bonus
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleTheStealEndRound}>
-                End the Round 🏁
+                End the Round 🏁 (+{THE_STEAL_BONUS} pts)
               </GoldBtn>
               <GoldBtn onClick={handleTheStealPlayOn} secondary>
-                Play On — Remove the 3 Cards
+                Play On — Keep the Cards
               </GoldBtn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {phase==="robbinsummon" && robbinSummonState && robbinSummonState.jackPlayerIdx === 0 && (
+        <Modal>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:4}}>🎴</div>
+            <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robin's Choice</div>
+            <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>Summon The Ace of Spades?</h2>
+            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 4px"}}>
+              Block the Joker and win this trick yourself.
+            </p>
+            <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
+              {allNames[robbinSummonState.batmanHolderIdx]} receives +35 pts. You win the trick.
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+              <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
+              <GoldBtn onClick={handleRobbinSummonNo} secondary>Let the Joker Win</GoldBtn>
             </div>
           </div>
         </Modal>
