@@ -191,107 +191,204 @@ function soundFireworkBoom() {
   playTone({ freq:520, type:"sine",     volume:0.06, attack:0.001, decay:0.10, delay:0.005 });
 }
 
-function Fireworks({ onDone }) {
+// THE STEAL — 5-note dramatic descending heist sting
+function soundTheSteal() {
+  const notes = [466, 415, 370, 311, 277];
+  notes.forEach((f, i) =>
+    playTone({ freq:f, type:"sawtooth", volume:0.22, attack:0.01, decay:0.38, delay:i*0.10 })
+  );
+  [233, 185].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.16, attack:0.02, decay:0.55, delay:i*0.14 })
+  );
+}
+// 4th place — high-pitch sparkler hiss, 50% loudness
+function soundPlace4() {
+  [1400, 1800, 2200, 1600, 1200].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.14, attack:0.003, decay:0.09, delay:i*0.05 })
+  );
+}
+// 3rd place — medium boom, 75%
+function soundPlace3() {
+  playTone({ freq:60,  type:"sine",     volume:0.75, attack:0.005, decay:0.65 });
+  playTone({ freq:120, type:"triangle", volume:0.50, attack:0.008, decay:0.50, delay:0.01 });
+  playTone({ freq:200, type:"sine",     volume:0.30, attack:0.01,  decay:0.35, delay:0.02 });
+}
+// 2nd place — fire roar, 85%
+function soundPlace2() {
+  [55, 80, 110, 150].forEach((f, i) =>
+    playTone({ freq:f, type:"sawtooth", volume:Math.max(0.30, 0.85 - i*0.10), attack:0.06, decay:1.4, delay:i*0.18 })
+  );
+}
+// 1st place — willow firework boom, 75%
+function soundPlace1Willow() {
+  playTone({ freq:50,  type:"sine",     volume:0.75, attack:0.005, decay:0.75 });
+  playTone({ freq:100, type:"sine",     volume:0.55, attack:0.005, decay:0.60, delay:0.01 });
+  playTone({ freq:160, type:"triangle", volume:0.35, attack:0.01,  decay:0.45, delay:0.02 });
+}
+// 1st place — F1 mortar shell, very deep and loud (100%)
+function soundPlace1Mortar() {
+  playTone({ freq:35,  type:"sine",     volume:1.00, attack:0.003, decay:0.85 });
+  playTone({ freq:70,  type:"sine",     volume:0.80, attack:0.005, decay:0.65, delay:0.01 });
+  playTone({ freq:110, type:"triangle", volume:0.50, attack:0.008, decay:0.50, delay:0.02 });
+  playTone({ freq:600, type:"sine",     volume:0.04, attack:0.001, decay:0.08, delay:0.005 });
+}
+
+function Fireworks({ onDone, place=1 }) {
   const canvasRef = useRef(null);
+  const placeRef = useRef(place);
   useEffect(() => {
+    const place = placeRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
+    const cw = canvas.width, ch = canvas.height;
     const particles = [];
-    // Whites and golds only — elegant, refined palette
-    const colors = ["#ffffff","#fff8e0","#fceabb","#e2c97e","#c9a84c","#f4d97a","#fff2c4"];
+    let animId, frameCount = 0, finished = false;
+    const allTimers = [];
 
-    function spawnBurst(x, y) {
-      // More particles, slower outward velocity → softer, longer cascade
-      const count = 70;
+    const palettes = {
+      1: ["#ffd700","#fff8e0","#fceabb","#ffffff","#f4d97a","#fff2c4","#e2c97e"],
+      2: ["#ff2020","#ff5010","#ff7020","#ff3020","#ff8030","#ff1010"],
+      3: ["#2060ff","#4090ff","#60b0ff","#9090ff","#ffffff","#20b0ff"],
+      4: ["#ffffff","#e0e0e0","#c8c8d8","#f0f0f0","#d0d0ff","#ffffff"],
+    };
+    const colors = palettes[place] || palettes[1];
+
+    function spawnBurst(x, y, cfg={}) {
+      const count  = cfg.count  || 70;
+      const spd    = cfg.speed  || 2.2;
+      const decay  = cfg.decay  || 0.005;
+      const grav   = cfg.grav   || 0.05;
+      const droopy = cfg.droopy || false;
       for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.05;
-        // Gentler initial velocity — explosion is graceful, not violent
-        const speed = 1.2 + Math.random() * 2.2;
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.12;
+        const s = spd * (0.5 + Math.random() * 0.8);
         particles.push({
           x, y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed - 0.5, // slight upward initial bias
-          color: colors[Math.floor(Math.random() * colors.length)],
-          life: 1,
-          // Slower decay → particles linger and waterfall down
-          decay: 0.004 + Math.random() * 0.006,
-          size: 2.5 + Math.random() * 3.5,
-          // Each particle gets a slight twinkle phase
-          twinkle: Math.random() * Math.PI * 2,
+          vx: Math.cos(angle) * s,
+          vy: droopy ? Math.sin(angle)*s - Math.abs(Math.cos(angle)*s)*0.2 : Math.sin(angle)*s - 0.5,
+          color: colors[Math.floor(Math.random()*colors.length)],
+          life: 1, decay: decay + Math.random()*decay,
+          size: cfg.size || (2.5 + Math.random()*3.5),
+          twinkle: Math.random()*Math.PI*2,
+          grav, dragX: cfg.dragX || 0.992,
         });
       }
     }
 
-    // More bursts, scattered across the screen
-    const burstPositions = [
-      [canvas.width * 0.20, canvas.height * 0.25],
-      [canvas.width * 0.75, canvas.height * 0.22],
-      [canvas.width * 0.50, canvas.height * 0.35],
-      [canvas.width * 0.30, canvas.height * 0.45],
-      [canvas.width * 0.70, canvas.height * 0.50],
-      [canvas.width * 0.45, canvas.height * 0.20],
-      [canvas.width * 0.85, canvas.height * 0.40],
-      [canvas.width * 0.15, canvas.height * 0.55],
-      [canvas.width * 0.60, canvas.height * 0.15],
-      [canvas.width * 0.38, canvas.height * 0.58],
-    ];
-    let burstIdx = 0;
-    // Slower interval between bursts — let each one breathe and cascade
-    const burstTimer = setInterval(() => {
-      if (burstIdx < burstPositions.length) {
-        spawnBurst(...burstPositions[burstIdx++]);
-        soundFireworkBoom();
-      } else clearInterval(burstTimer);
-    }, 550);
-
-    let animId;
-    let frameCount = 0;
-    function animate() {
-      // Slightly slower fade so trails persist longer (waterfall effect)
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      frameCount++;
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx; p.y += p.vy;
-        // Lighter gravity → waterfall cascade is gentle, not a fast plunge
-        p.vy += 0.05;
-        // Air drag — slows horizontal travel for that floaty waterfall feel
-        p.vx *= 0.992;
-        p.life -= p.decay;
-        if (p.life <= 0) { particles.splice(i, 1); continue; }
-
-        // Twinkle: vary brightness slightly per frame
-        const tw = 0.85 + 0.15 * Math.sin(frameCount * 0.18 + p.twinkle);
-        ctx.globalAlpha = p.life * tw;
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      ctx.shadowBlur = 0;
-      if (particles.length > 0 || burstIdx < burstPositions.length) {
-        animId = requestAnimationFrame(animate);
-      } else {
-        setTimeout(onDone, 800);
+    function spawnWaterfall(x, y) {
+      for (let i = 0; i < 18; i++) {
+        particles.push({
+          x: x + (Math.random()-0.5)*50, y,
+          vx: (Math.random()-0.5)*1.0,
+          vy: 2.5 + Math.random()*3.5,
+          color: colors[Math.floor(Math.random()*colors.length)],
+          life: 1, decay: 0.003 + Math.random()*0.004,
+          size: 2 + Math.random()*3,
+          twinkle: Math.random()*Math.PI*2,
+          grav: 0.07, dragX: 0.996,
+        });
       }
     }
-    animId = requestAnimationFrame(animate);
-    return () => { cancelAnimationFrame(animId); clearInterval(burstTimer); };
+
+    function spawnSparkle(x, y) {
+      for (let i = 0; i < 6; i++) {
+        const angle = Math.random()*Math.PI*2;
+        const s = 0.4 + Math.random()*1.5;
+        particles.push({
+          x, y,
+          vx: Math.cos(angle)*s, vy: Math.sin(angle)*s,
+          color: colors[Math.floor(Math.random()*colors.length)],
+          life: 0.7+Math.random()*0.5, decay: 0.018+Math.random()*0.025,
+          size: 1+Math.random()*2, twinkle: Math.random()*Math.PI*2,
+          grav: 0.015, dragX: 0.97,
+        });
+      }
+    }
+
+    let totalDuration;
+    if (place === 4) {
+      // 3s sparkler — continuous small silver sparks from center-top
+      totalDuration = 3200;
+      soundPlace4();
+      const iv = setInterval(()=>{ if(!finished) spawnSparkle(cw*0.5, ch*0.28); }, 45);
+      allTimers.push({type:"interval", id:iv});
+
+    } else if (place === 3) {
+      // 3 big blue F3 bursts
+      totalDuration = 6000;
+      [[cw*0.25,ch*0.25],[cw*0.75,ch*0.20],[cw*0.50,ch*0.33]].forEach(([x,y],i) => {
+        const id = setTimeout(()=>{ spawnBurst(x,y,{count:130,speed:3.8,decay:0.003,size:3.8}); soundPlace3(); }, i*1600);
+        allTimers.push({type:"timeout",id});
+      });
+
+    } else if (place === 2) {
+      // Red waterfall from top, 5 seconds
+      totalDuration = 5500;
+      soundPlace2();
+      const iv = setInterval(()=>{ if(!finished) spawnWaterfall(cw*0.5 + (Math.random()-0.5)*30, -10); }, 80);
+      allTimers.push({type:"interval",id:iv});
+
+    } else {
+      // 1st place: 3 golden willow trees, then 10 rapid F1 mortars after 5s
+      totalDuration = 11000;
+      [[cw*0.20,ch*0.25],[cw*0.75,ch*0.22],[cw*0.50,ch*0.30]].forEach(([x,y],i) => {
+        const id = setTimeout(()=>{ spawnBurst(x,y,{count:110,speed:2.6,decay:0.003,grav:0.09,droopy:true,size:3.2}); soundPlace1Willow(); }, i*1600);
+        allTimers.push({type:"timeout",id});
+      });
+      for (let i=0; i<10; i++) {
+        const id = setTimeout(()=>{
+          const x = cw*(0.1+Math.random()*0.8), y = ch*(0.08+Math.random()*0.38);
+          spawnBurst(x,y,{count:90,speed:4.2,decay:0.006,grav:0.06,size:3.2});
+          soundPlace1Mortar();
+        }, 5000 + i*320 + Math.random()*180);
+        allTimers.push({type:"timeout",id});
+      }
+    }
+
+    function animate() {
+      ctx.fillStyle = "rgba(0,0,0,0.08)";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      frameCount++;
+      for (let i=particles.length-1; i>=0; i--) {
+        const p=particles[i];
+        p.x+=p.vx; p.y+=p.vy;
+        p.vy+=p.grav||0.05;
+        p.vx*=p.dragX||0.992;
+        p.life-=p.decay;
+        if (p.life<=0){particles.splice(i,1);continue;}
+        const tw=0.85+0.15*Math.sin(frameCount*0.18+p.twinkle);
+        ctx.globalAlpha=p.life*tw;
+        ctx.fillStyle=p.color;
+        ctx.shadowColor=p.color;
+        ctx.shadowBlur=place===4?3:8;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha=1; ctx.shadowBlur=0;
+      if (!finished) animId=requestAnimationFrame(animate);
+    }
+    animId=requestAnimationFrame(animate);
+
+    const doneTimer = setTimeout(()=>{
+      finished=true;
+      cancelAnimationFrame(animId);
+      allTimers.forEach(({type,id})=> type==="interval"?clearInterval(id):clearTimeout(id));
+      onDone();
+    }, totalDuration);
+    allTimers.push({type:"timeout",id:doneTimer});
+
+    return ()=>{
+      finished=true;
+      cancelAnimationFrame(animId);
+      allTimers.forEach(({type,id})=> type==="interval"?clearInterval(id):clearTimeout(id));
+    };
   }, []);
 
-  return (
-    <canvas ref={canvasRef} style={{
-      position:"fixed", inset:0, zIndex:500, pointerEvents:"none",
-    }}/>
-  );
+  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:500,pointerEvents:"none"}}/>;
 }
 
 // ============================================================
@@ -429,6 +526,12 @@ function checkAcesLow(hand) {
 }
 const ACES_LOW_BONUS = 18;
 
+// THE STEAL — all three special steal cards in one hand
+function checkTheSteal(hand) {
+  return hand.some(c=>c.isJoker) && hand.some(c=>isJackDiamond(c)) && hand.some(c=>isBatman(c));
+}
+const THE_STEAL_BONUS = 21;
+
 // Determine trick winner index (within trick players array)
 function resolveTrick(plays, trumpBroken=true) {
   const ledSuit = plays[0].card.isJoker ? null : plays[0].card.suit;
@@ -446,9 +549,15 @@ function resolveTrick(plays, trumpBroken=true) {
       batmanBlockedRobbin: !!jackDPlay,
     };
   }
-  // Joker wins (no Batman) — Joker kidnaps
+  // Joker wins (no Batman) — Joker kidnaps; if J♦ also in trick, flag for rob afterward
   if (jokerPlay && !batmanPlay) {
-    return { winnerIdx: jokerPlay.playerIdx, jokerWin: true, jokerPlayerIdx: jokerPlay.playerIdx };
+    return {
+      winnerIdx: jokerPlay.playerIdx,
+      jokerWin: true,
+      jokerPlayerIdx: jokerPlay.playerIdx,
+      jackDiamondRob: !!jackDPlay,
+      jackDiamondPlayerIdx: jackDPlay?.playerIdx,
+    };
   }
   // Jack of Dimonds in trick (no Batman) — Robbin' fires after trick resolves normally
   const normalResult = resolveNormal(plays, ledSuit, trumpBroken);
@@ -1250,7 +1359,7 @@ function GoldBtn({ onClick, children, disabled, small, secondary }) {
 // ============================================================
 // KIDNAP MODAL — full hand inspection, pick best card
 // ============================================================
-function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme, isRobbinJack=false }) {
+function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckTheme, isRobbinJack=false }) {
   const targets = [0,1,2,3].filter(i => i!==jokerPlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
@@ -1325,10 +1434,13 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, deckTheme, isRo
           </div>
         )}
 
-        <div style={{textAlign:"center"}}>
+        <div style={{textAlign:"center",display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
           <GoldBtn onClick={confirm} disabled={chosenCardIdx===null}>
             {isRobbinJack ? "Rob This Card 🎴" : "Kidnap This Card 🃏"}
           </GoldBtn>
+          {isRobbinJack && onSkip && (
+            <GoldBtn onClick={onSkip} secondary small>Don't Rob</GoldBtn>
+          )}
         </div>
       </div>
     </Modal>
@@ -1835,7 +1947,7 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand!</>),sub:true},
+          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand! Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a Rescue, and Robin earns +1 pt for the attempt. <em style={{color:"#c9a84c77",fontSize:11}}>"Robbin Jack" is spelled with two b's. Whether he keeps them is up to the player.</em></>),sub:true},
           {num:"d.",title:"♠️ The Ace of Spades",text:(<>...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em style={{fontStyle:"italic"}}>Blocks</em> either or both of them (in the same trick) from either Kidnapping or Robbin'! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>. Otherwise, The Ace of Spades will <em style={{fontStyle:"italic"}}>Rescue</em> any one card from any opponent's hand.</>),sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
           {num:"f.",title:"✈️ Aces Low",text:"Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for +18 points, or hold them to push for a bigger set.",sub:true},
@@ -1916,6 +2028,11 @@ function DiamondsGame() {
   const [gameLog, setGameLog] = useState([]);
   const [pendingAF, setPendingAF] = useState(false); // american family detected
   const [showFireworks, setShowFireworks] = useState(false);
+  const [fireworksPlace, setFireworksPlace] = useState(1);
+  const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
+  const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
+  const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
+  const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands, resultObj, gameWon, newTotal }
   const [showAceCelebration, setShowAceCelebration] = useState(false);
   const [pendingFireworks, setPendingFireworks] = useState(false);
   const [diamondsBroken, setDiamondsBroken] = useState(false);
@@ -1939,6 +2056,30 @@ function DiamondsGame() {
     }, 300);
     return () => clearTimeout(timer);
   }, [isPlayerTurn, currentTurn]);
+
+  // THE STEAL: check at the start of any player's turn (no cards played yet in the trick)
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (trickPlays.length > 0) return;
+    const cp = turnOrder[currentTurn];
+    if (theStealOffered[cp]) return;
+    if (!checkTheSteal(hands[cp] || [])) return;
+    // Mark offered so it only fires once per round per player
+    setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    if (cp === 0) {
+      // Human player — show THE STEAL modal
+      setTheStealState({ playerIdx: 0, hands: hands.map(h=>[...h]) });
+      setPhase("thesteal");
+    } else {
+      // AI player — auto Play On (keep going, +21 pts, discard the 3 cards)
+      const stolenCards = hands[cp].filter(c => c.isJoker || isJackDiamond(c) || isBatman(c));
+      const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
+      setHands(newHands);
+      setRoundScores(prev=>{ const n=[...prev]; n[cp]+=THE_STEAL_BONUS; return n; });
+      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${THE_STEAL_BONUS} pts. Playing on…`);
+      soundTheSteal();
+    }
+  }, [phase, currentTurn, trickPlays.length]);
 
   // Auto-claim sweep: if any player (including human) starts a trick alone with cards,
   // they sweep all their remaining cards automatically — no manual play required.
@@ -1975,13 +2116,24 @@ function DiamondsGame() {
     setKidnapState(null);
     setRescueState(null);
     setAcesLowState(null);
+    setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
+    setTheStealOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
+    setDealRevealIdx(-1);
     setDealing(true);
-    setTimeout(()=>setDealing(false), 1150);
+    setTimeout(()=>{
+      setDealing(false);
+      let idx = 0;
+      const flipInterval = setInterval(()=>{
+        idx++;
+        setDealRevealIdx(idx);
+        if (idx >= 13) clearInterval(flipInterval);
+      }, 110);
+    }, 1150);
   }
 
   function startGame() {
@@ -2003,13 +2155,24 @@ function DiamondsGame() {
     setKidnapState(null);
     setRescueState(null);
     setAcesLowState(null);
+    setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
+    setTheStealOffered([false,false,false,false]);
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
     setDiamondsBroken(false);
+    setDealRevealIdx(-1);
     setDealing(true);
-    setTimeout(()=>setDealing(false), 1150);
+    setTimeout(()=>{
+      setDealing(false);
+      let idx = 0;
+      const flipInterval = setInterval(()=>{
+        idx++;
+        setDealRevealIdx(idx);
+        if (idx >= 13) clearInterval(flipInterval);
+      }, 110);
+    }, 1150);
   }
 
   // ---- Play a card ----
@@ -2226,6 +2389,8 @@ function DiamondsGame() {
       batmanBlocked,
       batmanBlockedJoker,
       batmanBlockedRobbin,
+      jackDiamondRob: result.jackDiamondRob,
+      jackDiamondPlayerIdx: result.jackDiamondPlayerIdx,
       plays,
       diamondsCaptured: capturedDiamonds,
     };
@@ -2242,6 +2407,14 @@ function DiamondsGame() {
             if (gameWon) setPendingFireworks(true);
           }
           setPhase("trickresult");
+          return;
+        }
+        // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
+        const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
+        const batmanHolderForSummon = currentHands.findIndex(h => h.some(c => isBatman(c)));
+        if (jackDPlayerForSummon === 0 && batmanHolderForSummon !== -1) {
+          setRobbinSummonState({ jackPlayerIdx: jackDPlayerForSummon, jokerPlayerIdx: winner, batmanHolderIdx: batmanHolderForSummon, hands: currentHands, resultObj, gameWon, newTotal });
+          setPhase("robbinsummon");
           return;
         }
         setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
@@ -2345,6 +2518,23 @@ function DiamondsGame() {
 
     setHands(newHands);
     const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer };
+
+    // If Joker kidnapped AND J♦ was also in same trick, chain Robbin Jack rob choice after
+    const pendingRobbinRob = !isRobbin && kidnapState.resultObj?.jackDiamondRob;
+    const pendingRobbinIdx = kidnapState.resultObj?.jackDiamondPlayerIdx;
+    if (pendingRobbinRob && pendingRobbinIdx !== undefined) {
+      const hasTargets = newHands.some((h,i) => i !== pendingRobbinIdx && h.length > 0);
+      if (hasTargets) {
+        setTrickResult(resultObj);
+        setKidnapState(null);
+        setTimeout(()=>{
+          setKidnapState({ jokerPlayerIdx: pendingRobbinIdx, isRobbinJack: true, hands: newHands, resultObj });
+          setPhase("kidnap");
+        }, 700);
+        return;
+      }
+    }
+
     setTrickResult(resultObj);
     setKidnapState(null);
     setPhase("trickresult");
@@ -2355,6 +2545,116 @@ function DiamondsGame() {
       setTotalScores(newTotal);
       if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
     }
+  }
+
+  function handleKidnapSkip() {
+    if (!kidnapState) return;
+    const isRobbin = !!kidnapState.isRobbinJack;
+    const jackPlayerIdx = kidnapState.jokerPlayerIdx;
+
+    if (!isRobbin) {
+      addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false });
+      setKidnapState(null);
+      setPhase("trickresult");
+      return;
+    }
+
+    // Robbin Jack chose not to rob — Robin Gambit
+    const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin;
+    const currentHands = kidnapState.hands;
+    const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
+    const aceAvailable = batmanHolder !== -1;
+
+    if (aceAvailable && !isChainedAfterJoker) {
+      // Summon A♠ for rescue — A♠ holder rescues, J♦ player gets +1 pt
+      const newHands = currentHands.map((h,i) => i===batmanHolder ? h.filter(c=>!isBatman(c)) : h);
+      addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! ${allNames[batmanHolder]} gets a rescue. +1 pt to Robin.`);
+      soundAceRescue();
+      setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
+      setHands(newHands);
+      setKidnapState(null);
+      const rescueResultObj = { ...kidnapState.resultObj, jokerWin: false, jackDiamondRob: false, robbinSummon: true };
+      const hasRescueTargets = newHands.some((h,i) => i !== batmanHolder && h.length > 0);
+      if (!hasRescueTargets) {
+        addLog(`♠ ${allNames[batmanHolder]} — no cards left to rescue.`);
+        setTrickResult(rescueResultObj);
+        setPhase("trickresult");
+      } else {
+        setRescueState({ acePlayerIdx: batmanHolder, hands: newHands, resultObj: rescueResultObj });
+        setPhase("rescue");
+      }
+    } else {
+      // A♠ already played — +1 pt consolation (unless chained after Joker who already acted)
+      if (!isChainedAfterJoker) {
+        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob. +1 pt for the attempt.`);
+        setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
+      } else {
+        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob.`);
+      }
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false });
+      setKidnapState(null);
+      setPhase("trickresult");
+    }
+  }
+
+  function handleRobbinSummonYes() {
+    if (!robbinSummonState) return;
+    const { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands: currentHands, resultObj, gameWon, newTotal } = robbinSummonState;
+    // Remove A♠ from holder's hand (summoned)
+    const newHands = currentHands.map((h,i) => i===batmanHolderIdx ? h.filter(c=>!isBatman(c)) : h);
+    setHands(newHands);
+    setRoundScores(prev=>{ const n=[...prev]; n[batmanHolderIdx]+=35; return n; });
+    addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! Joker BLOCKED! ${allNames[batmanHolderIdx]} gets +35! ${allNames[jackPlayerIdx]} wins the trick!`);
+    soundBatmanBlocks();
+    const updatedResult = { ...resultObj, winnerIdx: jackPlayerIdx, jokerWin: false, jackDiamondRob: false, batmanBlocked: true, batmanBlockedJoker: true, robbinSummon: true };
+    setTrickResult(updatedResult);
+    setRobbinSummonState(null);
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+    setPhase("trickresult");
+  }
+
+  function handleRobbinSummonNo() {
+    if (!robbinSummonState) return;
+    const { jokerPlayerIdx, hands: currentHands, resultObj } = robbinSummonState;
+    setRobbinSummonState(null);
+    setKidnapState({ jokerPlayerIdx, hands: currentHands, resultObj });
+    setPhase("kidnap");
+  }
+
+  function handleTheStealEndRound() {
+    if (!theStealState) return;
+    const pi = theStealState.playerIdx;
+    const newRound = [...roundScores];
+    newRound[pi] += THE_STEAL_BONUS;
+    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${THE_STEAL_BONUS} pts.`);
+    soundTheSteal();
+    setTheStealState(null);
+    setPhase("playing");
+    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    if (gameOver) {
+      setTotalScores(newTotal);
+      const sorted = [...newTotal].sort((a,b)=>b-a);
+      const place = sorted.indexOf(newTotal[0]) + 1;
+      setFireworksPlace(Math.max(1,Math.min(4,place)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
+    } else {
+      setRoundScores(newRound);
+      setTotalScores(newTotal);
+      soundRoundWin();
+      setPhase("roundover");
+      setRoundNum(r=>r+1);
+    }
+  }
+
+  function handleTheStealPlayOn() {
+    if (!theStealState) return;
+    const pi = theStealState.playerIdx;
+    addLog(`🌇 THE STEAL — ${allNames[pi]} plays on. The trio stays in hand.`);
+    soundTheSteal();
+    setTheStealState(null);
+    setPhase("playing");
   }
 
   // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
@@ -2501,6 +2801,9 @@ function DiamondsGame() {
     if (trickResult?.americanFamily) {
       const gameOver = totalScores.some(s=>s>=WIN_SCORE);
       if (gameOver) {
+        const _sorted = [...totalScores].sort((a,b)=>b-a);
+        const _place = _sorted.indexOf(totalScores[0]) + 1;
+        setFireworksPlace(Math.max(1,Math.min(4,_place)));
         setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       } else {
         soundRoundWin();
@@ -2513,6 +2816,9 @@ function DiamondsGame() {
     // If fireworks were pending (game won mid-trick), fire now after modal dismissed
     if (pendingFireworks) {
       setPendingFireworks(false);
+      const _sorted = [...totalScores].sort((a,b)=>b-a);
+      const _place = _sorted.indexOf(totalScores[0]) + 1;
+      setFireworksPlace(Math.max(1,Math.min(4,_place)));
       setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       return;
     }
@@ -2537,6 +2843,9 @@ function DiamondsGame() {
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s=>s>=WIN_SCORE);
       if (gameOver) {
+        const _sorted = [...newTotal].sort((a,b)=>b-a);
+        const _place = _sorted.indexOf(newTotal[0]) + 1;
+        setFireworksPlace(Math.max(1,Math.min(4,_place)));
         setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       } else {
         soundRoundWin();
@@ -2568,6 +2877,9 @@ function DiamondsGame() {
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s=>s>=WIN_SCORE);
       if (gameOver) {
+        const _sorted = [...newTotal].sort((a,b)=>b-a);
+        const _place = _sorted.indexOf(newTotal[0]) + 1;
+        setFireworksPlace(Math.max(1,Math.min(4,_place)));
         setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       } else {
         soundRoundWin();
@@ -3099,7 +3411,7 @@ function DiamondsGame() {
       }}>
         <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:2,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
         {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
-        <div style={{height:22,marginBottom:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:22,marginBottom:7,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {ledSuit && (
             <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
               Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
@@ -3199,8 +3511,7 @@ function DiamondsGame() {
                 <div
                   key={card.id}
                   onClick={isPlayerTurn ? () => {
-                    // Tap already-selected legal card → play immediately (phone-friendly)
-                    if (isSelected && isLegal) { playCard(card); }
+                    if (isSelected && isLegal && isDesktop) { playCard(card); }
                     else { setSelectedCard(isSelected ? null : card); }
                   } : undefined}
                   style={{
@@ -3218,6 +3529,8 @@ function DiamondsGame() {
                       : "none",
                     animation: dealing
                       ? `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`
+                      : ci === dealRevealIdx - 1
+                      ? "cardFlip 0.18s ease-out"
                       : showGlow ? `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite` : "none",
                     // deck origin: cards fly up from bottom-center
                     "--deal-dx": `${-xPos*0.5}px`,
@@ -3228,6 +3541,7 @@ function DiamondsGame() {
                   <CardComp
                     card={card}
                     selected={isSelected}
+                    faceDown={ci >= dealRevealIdx}
                     dimmed={false}
                     deckTheme={deckTheme}
                   />
@@ -3273,9 +3587,57 @@ function DiamondsGame() {
           jokerPlayerIdx={0}
           allNames={allNames}
           onSteal={handleKidnap}
+          onSkip={kidnapState.isRobbinJack ? handleKidnapSkip : undefined}
           deckTheme={deckTheme}
           isRobbinJack={!!kidnapState.isRobbinJack}
         />
+      )}
+
+      {phase==="thesteal" && theStealState && (
+        <Modal>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:4}}>🌇</div>
+            <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Special Event</div>
+            <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>THE STEAL</h2>
+            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
+              You hold the Joker, Robbin Jack, and Ace of Spades.
+            </p>
+            <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
+              End the Round → +{THE_STEAL_BONUS} pts
+            </p>
+            <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
+              Play On → keep all cards, no bonus
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+              <GoldBtn onClick={handleTheStealEndRound}>
+                End the Round 🏁 (+{THE_STEAL_BONUS} pts)
+              </GoldBtn>
+              <GoldBtn onClick={handleTheStealPlayOn} secondary>
+                Play On — Keep the Cards
+              </GoldBtn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {phase==="robbinsummon" && robbinSummonState && robbinSummonState.jackPlayerIdx === 0 && (
+        <Modal>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:44,marginBottom:4}}>🎴</div>
+            <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robin's Choice</div>
+            <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>Summon The Ace of Spades?</h2>
+            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 4px"}}>
+              Block the Joker and win this trick yourself.
+            </p>
+            <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
+              {allNames[robbinSummonState.batmanHolderIdx]} receives +35 pts. You win the trick.
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+              <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
+              <GoldBtn onClick={handleRobbinSummonNo} secondary>Let the Joker Win</GoldBtn>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&(
@@ -3430,7 +3792,7 @@ function DiamondsGame() {
 
       {/* FIREWORKS */}
       {showFireworks && (
-        <Fireworks onDone={()=>{ setShowFireworks(false); setPhase("gameover"); }}/>
+        <Fireworks onDone={()=>{ setShowFireworks(false); setPhase("gameover"); }} place={fireworksPlace}/>
       )}
 
       <style>{`
@@ -3461,6 +3823,10 @@ function DiamondsGame() {
         @keyframes dealIn {
           from { opacity:0; transform:translate(var(--deal-dx,0), var(--deal-dy,-200px)) scale(0.7) rotate(var(--deal-rot,0deg)); }
           to { opacity:1; transform:translate(0,0) scale(1) rotate(0deg); }
+        }
+        @keyframes cardFlip {
+          0%   { transform: rotateY(90deg) scaleX(0.1); opacity:0.5; }
+          100% { transform: rotateY(0deg)  scaleX(1);   opacity:1; }
         }
         ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
         * { scrollbar-width: none; }
