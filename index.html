@@ -66,8 +66,9 @@ function playTone({ freq=440, type="sine", duration=0.18, volume=0.18, attack=0.
   osc.type = type;
   osc.frequency.value = freq;
   const t = ctx.currentTime + delay;
+  const vol = Math.min(1.0, volume * 1.5); // global +50% boost
   gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(volume, t + attack);
+  gain.gain.linearRampToValueAtTime(vol, t + attack);
   gain.gain.exponentialRampToValueAtTime(0.001, t + attack + decay);
   osc.start(t); osc.stop(t + attack + decay + 0.05);
 }
@@ -1439,7 +1440,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
             {isRobbinJack ? "Rob This Card 🎴" : "Kidnap This Card 🃏"}
           </GoldBtn>
           {isRobbinJack && onSkip && (
-            <GoldBtn onClick={onSkip} secondary small>Don't Rob</GoldBtn>
+            <GoldBtn onClick={onSkip} secondary>⚖️ Don't Rob</GoldBtn>
           )}
         </div>
       </div>
@@ -1594,6 +1595,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   const btnLabel = isGameOver ? "END"
     : result.pendingAmericanFamily ? "PROCEED"
     : result.americanFamily ? "PROCEED"
+    : result.pendingRobbinKidnap ? "PROCEED"
     : isHandOver ? "PROCEED"
     : "NEXT TRICK →";
 
@@ -1660,6 +1662,8 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== ROBBIN JACK ROBS! =====
   if (result.jackDiamondRob) {
     const robbinIdx = result.jackDiamondPlayerIdx ?? result.winnerIdx;
+    const trickWinner = result.winnerIdx;
+    const robbinWonTrick = robbinIdx === trickWinner;
     return (
       <EventBox borderColor="#1f8f4e" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
@@ -1674,12 +1678,19 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.stolenFrom]}</strong>
           </div>
         )}
+        {!robbinWonTrick && (
+          <div style={{color:"#ffffff66",fontSize:12,fontFamily:FONT_UI,marginTop:2}}>
+            Trick won by <strong style={{color:"#ffffffcc"}}>{allNames[trickWinner]}</strong>
+          </div>
+        )}
         {pointsWon > 0 && (
           <div style={{
             background:"#1f8f4e11", border:"1px solid #1f8f4e44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
+              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{!robbinWonTrick ? ` (to ${allNames[trickWinner]})` : ""}
+            </span>
           </div>
         )}
       </EventBox>
@@ -2520,20 +2531,18 @@ function DiamondsGame() {
     setHands(newHands);
     const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer };
 
-    // If Joker kidnapped AND J♦ was also in same trick, chain Robbin Jack rob choice after
+    // If Joker kidnapped AND J♦ was also in same trick, show Joker event first, then PROCEED → J♦ rob
     const pendingRobbinRob = !isRobbin && kidnapState.resultObj?.jackDiamondRob;
     const pendingRobbinIdx = kidnapState.resultObj?.jackDiamondPlayerIdx;
     if (pendingRobbinRob && pendingRobbinIdx !== undefined) {
       const hasTargets = newHands.some((h,i) => i !== pendingRobbinIdx && h.length > 0);
       if (hasTargets) {
-        setTrickResult(resultObj);
+        setTrickResult({ ...resultObj, pendingRobbinKidnap: { jackPlayerIdx: pendingRobbinIdx, hands: newHands } });
         setKidnapState(null);
-        setTimeout(()=>{
-          setKidnapState({ jokerPlayerIdx: pendingRobbinIdx, isRobbinJack: true, hands: newHands, resultObj });
-          setPhase("kidnap");
-        }, 700);
+        setPhase("trickresult");
         return;
       }
+      addLog(`🎴 ${allNames[pendingRobbinIdx]} (Robbin Jack) — no cards left to rob`);
     }
 
     setTrickResult(resultObj);
@@ -2789,6 +2798,15 @@ function DiamondsGame() {
   function afterTrickResult() {
     // Delay before firing fireworks, to let the event's tune finish playing
     const FIREWORKS_DELAY = 1000;
+
+    // Joker kidnapped AND J♦ rob pending — open J♦ modal on PROCEED
+    if (trickResult?.pendingRobbinKidnap) {
+      const { jackPlayerIdx, hands: savedHands } = trickResult.pendingRobbinKidnap;
+      setKidnapState({ jokerPlayerIdx: jackPlayerIdx, isRobbinJack: true, hands: savedHands, resultObj: trickResult });
+      setPhase("kidnap");
+      setTrickResult(null);
+      return;
+    }
 
     // If the Joker Kidnaps event is queued with a pending AF, fire AF now.
     // (User just dismissed the kidnap box; show The American Family Together next.)
