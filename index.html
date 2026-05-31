@@ -1915,8 +1915,9 @@ function RulesPanel({ onClose }) {
             color:"#ffffff88", fontSize:11,
             fontStyle:"italic", lineHeight:1.6,
           }}>
-            <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Note</div>
+            <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Notes</div>
             The "Dimonds" spelling is so for at least 4 secret reasons.
+            <div style={{marginTop:8}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
           </div>
           <div style={{
             marginTop:18, textAlign:"center",
@@ -1947,7 +1948,7 @@ function RulesPanel({ onClose }) {
           {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
           {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
           {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand! Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a Rescue, and Robin earns +1 pt for the attempt. <em style={{color:"#c9a84c77",fontSize:11}}>"Robbin Jack" is spelled with two b's. Whether he keeps them is up to the player.</em></>),sub:true},
+          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<>The Jack of Dimonds has a stealing capability of his own — <em style={{fontStyle:"italic"}}>Robbin'</em> any one card from any opponent's hand! Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a Rescue, and Robin earns +1 pt for the attempt.</>),sub:true},
           {num:"d.",title:"♠️ The Ace of Spades",text:(<>...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em style={{fontStyle:"italic"}}>Blocks</em> either or both of them (in the same trick) from either Kidnapping or Robbin'! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>. Otherwise, The Ace of Spades will <em style={{fontStyle:"italic"}}>Rescue</em> any one card from any opponent's hand.</>),sub:true},
           {num:"e.",title:"🇺🇸 American Family",text:"Hold J♦ Q♦ K♦ A♦ all at once → instant round win, +35 points!",sub:true},
           {num:"f.",title:"✈️ Aces Low",text:"Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for +18 points, or hold them to push for a bigger set.",sub:true},
@@ -2131,7 +2132,7 @@ function DiamondsGame() {
       const flipInterval = setInterval(()=>{
         idx++;
         setDealRevealIdx(idx);
-        if (idx >= 13) clearInterval(flipInterval);
+        if (idx >= newHands[0].length) clearInterval(flipInterval);
       }, 110);
     }, 1150);
   }
@@ -2170,7 +2171,7 @@ function DiamondsGame() {
       const flipInterval = setInterval(()=>{
         idx++;
         setDealRevealIdx(idx);
-        if (idx >= 13) clearInterval(flipInterval);
+        if (idx >= newHands[0].length) clearInterval(flipInterval);
       }, 110);
     }, 1150);
   }
@@ -3480,7 +3481,7 @@ function DiamondsGame() {
             const total = playerHand.length;
             const cardW = 80;
             const SAFETY = 20; // px of breathing room on each side
-            const STARTING_HAND_SIZE = 13;
+            const STARTING_HAND_SIZE = 14;
             const availW = (typeof window !== 'undefined' ? window.innerWidth : 360) - SAFETY * 2;
             // Lock overlap to what it would be at full hand size (13 cards).
             const maxOverlap = Math.floor((availW - cardW) / (STARTING_HAND_SIZE - 1));
