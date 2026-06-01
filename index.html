@@ -2401,13 +2401,26 @@ function DiamondsGame() {
       setTheStealState({ playerIdx: 0, hands: hands.map(h=>[...h]) });
       setPhase("thesteal");
     } else {
-      // AI player — auto Play On (keep going, +21 pts, discard the 3 cards)
-      const stolenCards = hands[cp].filter(c => c.isJoker || isJackDiamond(c) || isBatman(c));
+      // AI player — cash in, then show event box so human sees it
+      const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
       setHands(newHands);
-      setRoundScores(prev=>{ const n=[...prev]; n[cp]+=THE_STEAL_BONUS*(goldenAgeRef.current?2:1); return n; });
-      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${THE_STEAL_BONUS*(goldenAgeRef.current?2:1)} pts. Playing on…`);
+      const newRS = [...roundScores]; newRS[cp] += pts;
+      setRoundScores(newRS);
+      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${pts} pts. Playing on…`);
       soundTheSteal();
+      const newTotal = totalScores.map((s,i) => s + newRS[i]);
+      if (newTotal.some(s => s >= WIN_SCORE)) {
+        setTotalScores(newTotal);
+        const sorted = [...newTotal].sort((a,b)=>b-a);
+        const place = sorted.indexOf(newTotal[cp]) + 1;
+        setFireworksPlace(Math.max(1,Math.min(4,place)));
+        setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+        setScreen("gameover");
+        return;
+      }
+      setTheStealState({ playerIdx: cp, points: pts, aiEvent: true });
+      setPhase("thesteal_event");
     }
   }, [phase, currentTurn, trickPlays.length]);
 
@@ -2640,6 +2653,9 @@ function DiamondsGame() {
           setScreen("gameover");
           return;
         }
+        setRuleOfThreeState({ playerIdx:i, cashed:true, points:pts, continuation:{playerIdx, card, newPlays, newHands} });
+        setPhase("ruleofthree_event");
+        return;
       }
       break;
     }
@@ -2673,6 +2689,9 @@ function DiamondsGame() {
           setScreen("gameover");
           return;
         }
+        setSwingingParadoxState({ playerIdx:i, cashed:true, points:pts, continuation:{playerIdx, card, newPlays, newHands} });
+        setPhase("swingingparadox_event");
+        return;
       }
       break;
     }
@@ -3085,6 +3104,10 @@ function DiamondsGame() {
     const pi = theStealState.playerIdx;
     addLog(`🌇 THE STEAL — ${allNames[pi]} plays on. The trio stays in hand.`);
     soundTheSteal();
+    setTheStealState(null);
+    setPhase("playing");
+  }
+  function dismissTheStealEvent() {
     setTheStealState(null);
     setPhase("playing");
   }
@@ -4182,6 +4205,16 @@ function DiamondsGame() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {phase==="thesteal_event" && theStealState && (
+        <EventBox borderColor="#c9a84c" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Joker, Robbin Jack &amp; Ace of Spades — cashed in!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
+          </div>
+        </EventBox>
       )}
 
       {phase==="robbinsummon" && robbinSummonState && robbinSummonState.jackPlayerIdx === 0 && (
