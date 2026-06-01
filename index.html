@@ -2194,10 +2194,10 @@ function RulesPanel({ onClose }) {
                 {num:"e.",title:"🤖 The Golden Age",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong>, or hold them and push for more.</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
-                  <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
+                  <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
                   <div>
-                    <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?11:13,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
-                    {text&&<div style={{color:"#ffffffaa",fontSize:12,lineHeight:1.6}}>{
+                    <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?13:15,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
+                    {text&&<div style={{color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>{
                       typeof text === "string"
                         ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
                         : text
