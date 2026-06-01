@@ -658,7 +658,7 @@ const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 35;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
 const AI_PERSONAS = [
-  { name:"Gordy", emoji:"🦅", style:"Aggressive",  desc:"plays high, hunts Family" },
+  { name:"Gordy", emoji:"🚨", style:"Aggressive",  desc:"plays high, hunts Family" },
   { name:"Vicky", emoji:"📰", style:"Conservative", desc:"safe, hoards diamonds" },
   { name:"Guy",   emoji:"🌴", style:"Chaotic",      desc:"unpredictable wildcard" },
 ];
@@ -2251,7 +2251,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
-                {num:"b.",title:'🗽 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) → discard all four on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
+                {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) → discard all four on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· Discard them, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
                 {num:"d.",title:"🇺🇸 The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"e.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
@@ -2648,7 +2648,7 @@ function DiamondsGame() {
         const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
         setRoundScores(prev=>{ const n=[...prev]; n[i]+=pts; return n; });
         setHands(newHands);
-        addLog(`🗽 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
+        addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
       }
       break;
     }
@@ -3200,7 +3200,7 @@ function DiamondsGame() {
     setHands(updatedHands);
     const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
     setRoundScores(prev=>{ const n=[...prev]; n[playerIdx]+=pts; return n; });
-    addLog(`🗽 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
     setSwingingParadoxState({ ...swingingParadoxState, cashed:true, points:pts, continuation:{...continuation, newHands:updatedHands} });
     setPhase("swingingparadox_event");
   }
@@ -4288,7 +4288,7 @@ function DiamondsGame() {
       {phase==="swingingparadox_offer" && swingingParadoxState && (
         <div style={{position:"fixed",inset:0,background:"rgba(4,18,15,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🗽</div>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💍</div>
             <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 4 — Swinging Paradox</div>
             <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>Two Dimonded Pairs!</div>
             <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
@@ -4306,11 +4306,11 @@ function DiamondsGame() {
       )}
       {/* Rule of 4 event box */}
       {phase==="swingingparadox_event" && swingingParadoxState && (
-        <EventBox borderColor="#0a0a0a" emoji="🗽" title="Rule of 4 — Swinging Paradox" btnLabel="PROCEED" onContinue={dismissSwingingParadoxEvent}>
+        <EventBox borderColor="#0a0a0a" emoji="💍" title="Rule of 4 — Swinging Paradox" btnLabel="PROCEED" onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs discarded!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
-            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{swingingParadoxState.points} pts 🗽</span>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{swingingParadoxState.points} pts 💍</span>
           </div>
         </EventBox>
       )}
