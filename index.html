@@ -741,6 +741,43 @@ function checkTheSteal(hand) {
 }
 const THE_STEAL_BONUS = 21;
 
+const RULE_OF_THREE_BONUS = 16;
+const SWINGING_PARADOX_BONUS = 18;
+
+// Rule of 3 (Democracy) — any three-of-a-kind
+function checkRuleOfThree(hand) {
+  const byRank = {};
+  for (const c of hand) {
+    if (c.isJoker) continue;
+    if (!byRank[c.rank]) byRank[c.rank] = [];
+    byRank[c.rank].push(c);
+  }
+  for (const cards of Object.values(byRank)) {
+    if (cards.length >= 3) return cards.slice(0, 3);
+  }
+  return null;
+}
+
+// Rule of 4 (Swinging Paradox) — two pairs, each pair containing one dimond
+function checkSwingingParadox(hand) {
+  const byRank = {};
+  for (const c of hand) {
+    if (c.isJoker) continue;
+    if (!byRank[c.rank]) byRank[c.rank] = [];
+    byRank[c.rank].push(c);
+  }
+  const dimondPairs = [];
+  for (const cards of Object.values(byRank)) {
+    if (dimondPairs.length >= 2) break;
+    if (cards.length >= 2) {
+      const d = cards.filter(c => c.suit === "♦");
+      const nd = cards.filter(c => c.suit !== "♦");
+      if (d.length >= 1 && nd.length >= 1) dimondPairs.push([d[0], nd[0]]);
+    }
+  }
+  return dimondPairs.length >= 2 ? [...dimondPairs[0], ...dimondPairs[1]] : null;
+}
+
 // Determine trick winner index (within trick players array)
 function resolveTrick(plays, trumpBroken=true) {
   const ledSuit = plays[0].card.isJoker ? null : plays[0].card.suit;
@@ -2187,11 +2224,11 @@ function RulesPanel({ onClose }) {
                 {num:"b.",title:"⚖️🎴 The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
-                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>New rule — <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong> Coming soon!</>),sub:true},
-                {num:"b.",title:'🗽 Rule of 4 (Swinging Paradox)',text:(<>New rule — <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong> Coming soon!</>),sub:true},
+                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
+                {num:"b.",title:'🗽 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦7+♣7 and ♦Q+♠Q) → discard all four on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three thieves — 🃏 Joker, ⚖️🎴 Robbin Jack, and ♠️ Ace of Spades — in your hand at once, and you can end the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> Or play on and keep the cards.</>),sub:true},
                 {num:"d.",title:"🇺🇸 The American Family",text:(<>Hold J♦ Q♦ K♦ A♦ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
-                {num:"e.",title:"🤖 The Golden Age",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong>, or hold them and push for more.</>),sub:true},
+                {num:"e.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠ A♥ A♣ A♦) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -2293,6 +2330,12 @@ function DiamondsGame() {
   const [fireworksPlace, setFireworksPlace] = useState(1);
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
+  const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
+  const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([false,false,false,false]);
+  const [swingingParadoxState, setSwingingParadoxState] = useState(null);
+  const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([false,false,false,false]);
+  const [goldenAgeActive, setGoldenAgeActive] = useState(false);
+  const goldenAgeRef = useRef(false);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
   const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands, resultObj, gameWon, newTotal }
   const [showAceCelebration, setShowAceCelebration] = useState(false);
@@ -2337,8 +2380,8 @@ function DiamondsGame() {
       const stolenCards = hands[cp].filter(c => c.isJoker || isJackDiamond(c) || isBatman(c));
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
       setHands(newHands);
-      setRoundScores(prev=>{ const n=[...prev]; n[cp]+=THE_STEAL_BONUS; return n; });
-      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${THE_STEAL_BONUS} pts. Playing on…`);
+      setRoundScores(prev=>{ const n=[...prev]; n[cp]+=THE_STEAL_BONUS*(goldenAgeRef.current?2:1); return n; });
+      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${THE_STEAL_BONUS*(goldenAgeRef.current?2:1)} pts. Playing on…`);
       soundTheSteal();
     }
   }, [phase, currentTurn, trickPlays.length]);
@@ -2381,6 +2424,12 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
+    setRuleOfThreeOffered([false,false,false,false]);
+    setSwingingParadoxOffered([false,false,false,false]);
+    setRuleOfThreeState(null);
+    setSwingingParadoxState(null);
+    setGoldenAgeActive(false);
+    goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -2420,6 +2469,12 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
+    setRuleOfThreeOffered([false,false,false,false]);
+    setSwingingParadoxOffered([false,false,false,false]);
+    setRuleOfThreeState(null);
+    setSwingingParadoxState(null);
+    setGoldenAgeActive(false);
+    goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
@@ -2509,9 +2564,13 @@ function DiamondsGame() {
             const newRoundScores = [...roundScores];
             newRoundScores[i] += ACES_LOW_BONUS;
             setRoundScores(newRoundScores);
-            addLog(`✈️ ${allNames[i]} cashes in Aces Low (+${ACES_LOW_BONUS} pts)`);
+            goldenAgeRef.current = true;
+            setGoldenAgeActive(true);
+            const aceIds = new Set(["A♠","A♥","A♣","A♦"]);
+            newHands = newHands.map((h,j) => j===i ? h.filter(c=>!aceIds.has(c.id)) : h);
+            setHands(newHands);
+            addLog(`🤖 ${allNames[i]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
             soundAcesLow();
-            // Stash continuation so dismissing the event resumes the trick
             setAcesLowState({
               playerIdx:i, hands:newHands, plays:newPlays,
               continuation:{playerIdx, card, newPlays, newHands},
@@ -2525,6 +2584,48 @@ function DiamondsGame() {
           }
         }
       }
+    }
+
+    // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
+    for (let i=0; i<4; i++) {
+      if (ruleOfThreeOffered[i]) continue;
+      const trio = checkRuleOfThree(newHands[i]);
+      if (!trio) continue;
+      setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=true; return n; });
+      if (i === 0) {
+        setRuleOfThreeState({ playerIdx:i, cards:trio, continuation:{playerIdx, card, newPlays, newHands} });
+        setPhase("ruleofthree_offer");
+        return;
+      } else {
+        const cardIds = new Set(trio.map(c=>c.id));
+        newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
+        const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
+        setRoundScores(prev=>{ const n=[...prev]; n[i]+=pts; return n; });
+        setHands(newHands);
+        addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
+      }
+      break;
+    }
+
+    // Rule of 4 (Swinging Paradox) — two dimonded pairs → discard for +18 pts
+    for (let i=0; i<4; i++) {
+      if (swingingParadoxOffered[i]) continue;
+      const quad = checkSwingingParadox(newHands[i]);
+      if (!quad) continue;
+      setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=true; return n; });
+      if (i === 0) {
+        setSwingingParadoxState({ playerIdx:i, cards:quad, continuation:{playerIdx, card, newPlays, newHands} });
+        setPhase("swingingparadox_offer");
+        return;
+      } else {
+        const cardIds = new Set(quad.map(c=>c.id));
+        newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
+        const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
+        setRoundScores(prev=>{ const n=[...prev]; n[i]+=pts; return n; });
+        setHands(newHands);
+        addLog(`🗽 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
+      }
+      break;
     }
 
     // AUTO-CLAIM: if everyone but one player is out of cards, that player
@@ -2565,7 +2666,7 @@ function DiamondsGame() {
 
   function handleAmericanFamily(playerIdx, currentHands, currentPlays) {
     const newRoundScores = [...roundScores];
-    newRoundScores[playerIdx] += AMERICAN_FAMILY_BONUS;
+    newRoundScores[playerIdx] += AMERICAN_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1);
 
     const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
     setRoundScores(newRoundScores);
@@ -2598,12 +2699,13 @@ function DiamondsGame() {
     const batmanBlockedRobbin = !!result.batmanBlockedRobbin;
     const batmanBlockedJoker  = !!result.batmanBlockedJoker;
 
+    const GA = goldenAgeRef.current ? 2 : 1;
     const newRoundScores = [...roundScores];
     const pointsWon = capturedDiamonds.reduce((sum,c)=>sum+diamondPoints(c),0);
-    newRoundScores[winner] += pointsWon;
+    newRoundScores[winner] += pointsWon * GA;
 
     // Ace of Spades bonus — +35 for blocking The Joker OR Robbin Jack (or both)
-    const aceBonus = batmanBlocked ? 35 : 0;
+    const aceBonus = batmanBlocked ? 35 * GA : 0;
     if (batmanBlocked) {
       newRoundScores[winner] += aceBonus;
       if (batmanBlockedJoker && batmanBlockedRobbin) soundBlockBoth();
@@ -2907,7 +3009,7 @@ function DiamondsGame() {
     if (!theStealState) return;
     const pi = theStealState.playerIdx;
     const newRound = [...roundScores];
-    newRound[pi] += THE_STEAL_BONUS;
+    newRound[pi] += THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
     const newTotal = totalScores.map((s,i) => s + newRound[i]);
     addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${THE_STEAL_BONUS} pts.`);
     soundTheSteal();
@@ -2999,9 +3101,16 @@ function DiamondsGame() {
     const newRoundScores = [...roundScores];
     newRoundScores[playerIdx] += ACES_LOW_BONUS;
     setRoundScores(newRoundScores);
-    addLog(`✈️ ${allNames[playerIdx]} cashes in Aces Low (+${ACES_LOW_BONUS} pts)`);
+    goldenAgeRef.current = true;
+    setGoldenAgeActive(true);
+    const aceIds = new Set(["A♠","A♥","A♣","A♦"]);
+    const baseHands = continuation ? continuation.newHands : acesLowState.hands;
+    const updatedHands = baseHands.map((h,j) => j===playerIdx ? h.filter(c=>!aceIds.has(c.id)) : [...h]);
+    setHands(updatedHands);
+    addLog(`🤖 ${allNames[playerIdx]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
     soundAcesLow();
-    setAcesLowState({ ...acesLowState, cashed:true, points:ACES_LOW_BONUS });
+    setAcesLowState({ ...acesLowState, cashed:true, points:ACES_LOW_BONUS,
+      continuation: continuation ? {...continuation, newHands: updatedHands} : null });
     setPhase("aceslow_event");
   }
 
@@ -3027,6 +3136,62 @@ function DiamondsGame() {
     if (continuation) {
       continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
     }
+  }
+
+  // ---- Rule of 3: human accepts ----
+  function acceptRuleOfThree() {
+    if (!ruleOfThreeState) return;
+    const { playerIdx, cards, continuation } = ruleOfThreeState;
+    const cardIds = new Set(cards.map(c=>c.id));
+    const updatedHands = continuation.newHands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : [...h]);
+    setHands(updatedHands);
+    const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
+    setRoundScores(prev=>{ const n=[...prev]; n[playerIdx]+=pts; return n; });
+    addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
+    setRuleOfThreeState({ ...ruleOfThreeState, cashed:true, points:pts, continuation:{...continuation, newHands:updatedHands} });
+    setPhase("ruleofthree_event");
+  }
+  function declineRuleOfThree() {
+    if (!ruleOfThreeState) return;
+    const { continuation } = ruleOfThreeState;
+    setRuleOfThreeState(null);
+    setPhase("playing");
+    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+  }
+  function dismissRuleOfThreeEvent() {
+    if (!ruleOfThreeState) return;
+    const { continuation } = ruleOfThreeState;
+    setRuleOfThreeState(null);
+    setPhase("playing");
+    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+  }
+
+  // ---- Rule of 4 (Swinging Paradox): human accepts ----
+  function acceptSwingingParadox() {
+    if (!swingingParadoxState) return;
+    const { playerIdx, cards, continuation } = swingingParadoxState;
+    const cardIds = new Set(cards.map(c=>c.id));
+    const updatedHands = continuation.newHands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : [...h]);
+    setHands(updatedHands);
+    const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
+    setRoundScores(prev=>{ const n=[...prev]; n[playerIdx]+=pts; return n; });
+    addLog(`🗽 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    setSwingingParadoxState({ ...swingingParadoxState, cashed:true, points:pts, continuation:{...continuation, newHands:updatedHands} });
+    setPhase("swingingparadox_event");
+  }
+  function declineSwingingParadox() {
+    if (!swingingParadoxState) return;
+    const { continuation } = swingingParadoxState;
+    setSwingingParadoxState(null);
+    setPhase("playing");
+    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+  }
+  function dismissSwingingParadoxEvent() {
+    if (!swingingParadoxState) return;
+    const { continuation } = swingingParadoxState;
+    setSwingingParadoxState(null);
+    setPhase("playing");
+    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
 
   // AI picks a card to rescue — prioritize American Family completion, else highest value
@@ -3134,9 +3299,10 @@ function DiamondsGame() {
     if (allEmpty) {
       const newRoundScores = [...roundScores];
       let leftoverLog = [];
+      const GAend = goldenAgeRef.current ? 2 : 1;
       for (let i=0; i<4; i++) {
         const leftover = hands[i].filter(c => isDiamond(c));
-        const pts = leftover.reduce((s,c) => s+diamondPoints(c), 0);
+        const pts = leftover.reduce((s,c) => s+diamondPoints(c), 0) * GAend;
         if (pts > 0) {
           newRoundScores[i] += pts;
           leftoverLog.push(`${allNames[i]} +${pts}💎`);
@@ -3989,11 +4155,11 @@ function DiamondsGame() {
               alignItems:"center", gap:12,
             }}>
               <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY}}>
-                You've gathered all four aces.
+                You hold all four aces.
               </div>
               <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5}}>
-                Cash in for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{ACES_LOW_BONUS} pts</strong>,<br/>
-                or hold them for a chance at bigger sets.
+                Discard them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{ACES_LOW_BONUS} pts</strong> and <strong style={{color:VM.gold,fontStyle:"normal"}}>2× all points</strong> for the rest of the round!<br/>
+                Or hold them for a bigger set.
               </div>
             </div>
             <div style={{display:"flex", gap:10, marginTop:20}}>
@@ -4033,13 +4199,75 @@ function DiamondsGame() {
             {allNames[acesLowState.playerIdx]}
           </div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            Four aces gathered — cashed in for the bonus.
+            All four aces discarded — all points doubled for the rest of the round!
           </div>
           <div style={{
             background:"rgba(10,10,10,0.4)", border:"1px solid #ffffff22",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ACES_LOW_BONUS} pts ✈️</span>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ACES_LOW_BONUS} pts 🤖×2</span>
+          </div>
+        </EventBox>
+      )}
+
+      {/* Rule of 3 (Democracy) — offer */}
+      {phase==="ruleofthree_offer" && ruleOfThreeState && (
+        <div style={{position:"fixed",inset:0,background:"rgba(4,18,15,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
+          <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🦅</div>
+            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 3 — Democracy</div>
+            <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>Three of a Kind!</div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
+              {ruleOfThreeState.cards.map(c=>c.id).join(", ")}
+            </div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5,marginBottom:20}}>
+              Discard them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)} pts</strong>, or keep playing.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={declineRuleOfThree} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Keep</button>
+              <button onClick={acceptRuleOfThree} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Discard +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Rule of 3 event box */}
+      {phase==="ruleofthree_event" && ruleOfThreeState && (
+        <EventBox borderColor="#0a0a0a" emoji="🦅" title="Rule of 3 — Democracy" btnLabel="PROCEED" onContinue={dismissRuleOfThreeEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind discarded!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ruleOfThreeState.points} pts 🦅</span>
+          </div>
+        </EventBox>
+      )}
+
+      {/* Rule of 4 (Swinging Paradox) — offer */}
+      {phase==="swingingparadox_offer" && swingingParadoxState && (
+        <div style={{position:"fixed",inset:0,background:"rgba(4,18,15,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
+          <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🗽</div>
+            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 4 — Swinging Paradox</div>
+            <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>Two Dimonded Pairs!</div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
+              {swingingParadoxState.cards.map(c=>c.id).join(", ")}
+            </div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5,marginBottom:20}}>
+              Discard them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)} pts</strong>, or keep playing.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={declineSwingingParadox} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Keep</button>
+              <button onClick={acceptSwingingParadox} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Discard +{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Rule of 4 event box */}
+      {phase==="swingingparadox_event" && swingingParadoxState && (
+        <EventBox borderColor="#0a0a0a" emoji="🗽" title="Rule of 4 — Swinging Paradox" btnLabel="PROCEED" onContinue={dismissSwingingParadoxEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs discarded!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{swingingParadoxState.points} pts 🗽</span>
           </div>
         </EventBox>
       )}
