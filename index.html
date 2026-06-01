@@ -2169,6 +2169,37 @@ function GameOverModal({ scores, allNames, onRestart }) {
 // ============================================================
 // RULES PANEL
 // ============================================================
+function MultiplayerPanel({ onClose }) {
+  const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
+  return (
+    <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
+      display:"flex",alignItems:"flex-start",justifyContent:"center",
+      padding:12,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
+      <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",
+        border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:"100%",
+        maxHeight:Math.min(maxH,740),
+        boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
+        fontFamily:FONT_UI,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"18px 22px 13px",borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Multiplayer</h2>
+            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+          </div>
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"40px 22px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+          <div style={{fontSize:48,lineHeight:1}}>🎮</div>
+          <div style={{color:"#ffffffcc",fontSize:15,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
+            Multiplayer coming soon.
+          </div>
+          <div style={{color:VM.tealLight+"88",fontSize:12,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
+            Online play, local pass-and-play,<br/>and friend lobbies are in development.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RulesPanel({ onClose }) {
   const [view, setView] = useState("rules");
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
@@ -2285,6 +2316,7 @@ function DiamondsGame() {
   const [playerName, setPlayerName] = useState("You");
   const [nameInput, setNameInput] = useState("");
   const [showRules, setShowRules] = useState(false);
+  const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
 
@@ -3583,9 +3615,9 @@ function DiamondsGame() {
         />
       </div>
     );
-    const thumbW = isWide ? 44 : 32;
-    const thumbCardW = isWide ? 28 : 20;
-    const thumbCardH = isWide ? 39 : 28;
+    const thumbW = isWide ? 54 : 32;
+    const thumbCardW = isWide ? 34 : 20;
+    const thumbCardH = isWide ? 48 : 28;
     const previewW = isWide ? 110 : 90;
     const previewH = isWide ? 154 : 126;
     const cardSelector = (
@@ -3638,9 +3670,12 @@ function DiamondsGame() {
       </div>
     );
     const buttons = (
-      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+      <div style={{display:"flex",flexDirection:"column",gap:isWide?14:10}}>
         <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame();}}>
           Deal Me In ◆
+        </GoldBtn>
+        <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>
+          Multiplayer
         </GoldBtn>
         <GoldBtn onClick={()=>setShowRules(true)} secondary small>
           How to Play
@@ -3663,22 +3698,24 @@ function DiamondsGame() {
         {bgDiamonds}
         {isWide ? (
           // ── Desktop: title above, two-column layout below ──
-          <div style={{position:"relative",maxWidth:960,width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
+          <div style={{position:"relative",maxWidth:880,width:"100%",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <h1 style={{
               fontFamily:FONT_DISPLAY,fontSize:68,fontWeight:900,
               background:`linear-gradient(135deg,${VM.tealLight} 0%,${VM.goldBright} 45%,${VM.gold} 70%,${VM.tealLight} 100%)`,
               WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
               margin:"0 0 4px",letterSpacing:10,textShadow:"none",textAlign:"center",
             }}>DIMONDS</h1>
-            <p style={{color:VM.tealLight+"77",fontSize:13,letterSpacing:5,marginBottom:32,textTransform:"uppercase",fontFamily:FONT_UI}}>
+            <p style={{color:VM.tealLight+"77",fontSize:13,letterSpacing:5,marginBottom:28,textTransform:"uppercase",fontFamily:FONT_UI}}>
               Prototype 3 · 4 Players
             </p>
-            <div style={{display:"flex",flexDirection:"row",alignItems:"flex-start",gap:48,width:"100%"}}>
-              <div style={{flex:1}}>
+            <div style={{display:"flex",flexDirection:"row",alignItems:"stretch",gap:36,width:"100%"}}>
+              <div style={{width:260,flexShrink:0,display:"flex",flexDirection:"column",gap:16}}>
                 {nameBox}
-                {buttons}
+                <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-between"}}>
+                  {buttons}
+                </div>
               </div>
-              <div style={{width:380,flexShrink:0}}>
+              <div style={{flex:1,minWidth:0}}>
                 {cardSelector}
               </div>
             </div>
@@ -3704,6 +3741,7 @@ function DiamondsGame() {
           </div>
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
+        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)}/>}
       </div>
     );
   }
