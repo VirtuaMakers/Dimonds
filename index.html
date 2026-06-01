@@ -733,7 +733,7 @@ function checkAcesLow(hand) {
   const needed = ["A♠","A♥","A♣","A♦"];
   return needed.every(id => hand.find(c => c.id===id));
 }
-const ACES_LOW_BONUS = 18;
+const ACES_LOW_BONUS = 35;
 
 // THE STEAL — all three special steal cards in one hand
 function checkTheSteal(hand) {
@@ -2187,11 +2187,11 @@ function RulesPanel({ onClose }) {
                 {num:"b.",title:"⚖️🎴 The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
-                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Gather any 3 of the 4 aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong>, or hold for a bigger set.</>),sub:true},
-                {num:"b.",title:'🗽 Rule of 4 (Swinging Paradox)',text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong>, or hold them to push for a bigger set.</>),sub:true},
+                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>New rule — <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong> Coming soon!</>),sub:true},
+                {num:"b.",title:'🗽 Rule of 4 (Swinging Paradox)',text:(<>New rule — <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong> Coming soon!</>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three thieves — 🃏 Joker, ⚖️🎴 Robbin Jack, and ♠️ Ace of Spades — in your hand at once, and you can end the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> Or play on and keep the cards.</>),sub:true},
                 {num:"d.",title:"🇺🇸 The American Family",text:(<>Hold J♦ Q♦ K♦ A♦ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
-                {num:"e.",title:"🤖 The Golden Age",text:(<>Coming soon — <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong></>),sub:true},
+                {num:"e.",title:"🤖 The Golden Age",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong>, or hold them and push for more.</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -3975,14 +3975,14 @@ function DiamondsGame() {
             textAlign:"center",
             display:"flex", flexDirection:"column", alignItems:"center",
           }}>
-            <div style={{fontSize:40, marginBottom:8, lineHeight:1}}>✈️</div>
+            <div style={{fontSize:40, marginBottom:8, lineHeight:1}}>🤖</div>
             <div style={{
               color:VM.goldBright,
               fontSize:13, fontWeight:900,
               letterSpacing:3, textTransform:"uppercase",
               fontFamily:FONT_DISPLAY, marginBottom:16,
               textShadow:`0 0 12px ${VM.gold}44`,
-            }}>&ldquo;Low&rdquo; Aces</div>
+            }}>The Golden Age</div>
             <div style={{
               width:"100%",
               display:"flex", flexDirection:"column",
@@ -4024,8 +4024,8 @@ function DiamondsGame() {
       {phase==="aceslow_event" && acesLowState && (
         <EventBox
           borderColor="#0a0a0a"
-          emoji="✈️"
-          title='"Low" Aces'
+          emoji="🤖"
+          title="The Golden Age"
           btnLabel="PROCEED"
           onContinue={dismissAcesLowEvent}
         >
