@@ -2625,9 +2625,20 @@ function DiamondsGame() {
         const cardIds = new Set(trio.map(c=>c.id));
         newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
         const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setRoundScores(prev=>{ const n=[...prev]; n[i]+=pts; return n; });
+        const newRS3 = [...roundScores]; newRS3[i] += pts;
+        setRoundScores(newRS3);
         setHands(newHands);
         addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
+        const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
+        if (newTotal3.some(s => s >= WIN_SCORE)) {
+          setTotalScores(newTotal3);
+          const sorted3 = [...newTotal3].sort((a,b)=>b-a);
+          const place3 = sorted3.indexOf(newTotal3[i]) + 1;
+          setFireworksPlace(Math.max(1,Math.min(4,place3)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+          setScreen("gameover");
+          return;
+        }
       }
       break;
     }
@@ -2646,9 +2657,20 @@ function DiamondsGame() {
         const cardIds = new Set(quad.map(c=>c.id));
         newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
         const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setRoundScores(prev=>{ const n=[...prev]; n[i]+=pts; return n; });
+        const newRS4 = [...roundScores]; newRS4[i] += pts;
+        setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
+        const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
+        if (newTotal4.some(s => s >= WIN_SCORE)) {
+          setTotalScores(newTotal4);
+          const sorted4 = [...newTotal4].sort((a,b)=>b-a);
+          const place4 = sorted4.indexOf(newTotal4[i]) + 1;
+          setFireworksPlace(Math.max(1,Math.min(4,place4)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+          setScreen("gameover");
+          return;
+        }
       }
       break;
     }
@@ -3171,8 +3193,19 @@ function DiamondsGame() {
     const updatedHands = continuation.newHands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : [...h]);
     setHands(updatedHands);
     const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
-    setRoundScores(prev=>{ const n=[...prev]; n[playerIdx]+=pts; return n; });
+    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
+    const newTotal = totalScores.map((s,i) => s + newRS[i]);
+    if (newTotal.some(s => s >= WIN_SCORE)) {
+      setTotalScores(newTotal);
+      const sorted = [...newTotal].sort((a,b)=>b-a);
+      const place = sorted.indexOf(newTotal[playerIdx]) + 1;
+      setFireworksPlace(Math.max(1,Math.min(4,place)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+      setScreen("gameover");
+      return;
+    }
     setRuleOfThreeState({ ...ruleOfThreeState, cashed:true, points:pts, continuation:{...continuation, newHands:updatedHands} });
     setPhase("ruleofthree_event");
   }
@@ -3199,8 +3232,19 @@ function DiamondsGame() {
     const updatedHands = continuation.newHands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : [...h]);
     setHands(updatedHands);
     const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
-    setRoundScores(prev=>{ const n=[...prev]; n[playerIdx]+=pts; return n; });
+    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    const newTotal = totalScores.map((s,i) => s + newRS[i]);
+    if (newTotal.some(s => s >= WIN_SCORE)) {
+      setTotalScores(newTotal);
+      const sorted = [...newTotal].sort((a,b)=>b-a);
+      const place = sorted.indexOf(newTotal[playerIdx]) + 1;
+      setFireworksPlace(Math.max(1,Math.min(4,place)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+      setScreen("gameover");
+      return;
+    }
     setSwingingParadoxState({ ...swingingParadoxState, cashed:true, points:pts, continuation:{...continuation, newHands:updatedHands} });
     setPhase("swingingparadox_event");
   }
