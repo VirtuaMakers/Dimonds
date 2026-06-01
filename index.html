@@ -2133,92 +2133,105 @@ function GameOverModal({ scores, allNames, onRestart }) {
 // RULES PANEL
 // ============================================================
 function RulesPanel({ onClose }) {
-  const [view, setView] = useState("rules"); // "rules" | "credits"
-
-  if (view === "credits") {
-    return (
-      <Modal>
-        <div>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Credits</h2>
-            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
-          </div>
-          {[
-            {role:"Director", name:"Chris Bruckmann"},
-            {role:"Coding", name:"Claude (Anthropic)"},
-            {role:"Concepts", name:"ChatGPT (OpenAI)"},
-            {role:"Graphics", name:"Copilot (Microsoft)"},
-            {role:"Playtesting", name:"Donnie Swing, Rob Vasseur"},
-          ].map(({role,name})=>(
-            <div key={role} style={{marginBottom:10, paddingLeft:8}}>
-              <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
-              <div style={{color:"#ffffffcc",fontSize:13,whiteSpace:"nowrap"}}>{name}</div>
-            </div>
-          ))}
-          <div style={{
-            marginTop:20, paddingTop:14,
-            borderTop:"1px solid #c9a84c22",
-            color:"#ffffff88", fontSize:11,
-            fontStyle:"italic", lineHeight:1.6,
-          }}>
-            <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Notes</div>
-            The "Dimonds" spelling is so for at least 4 secret reasons.
-            <div style={{marginTop:8}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
-          </div>
-          <div style={{
-            marginTop:18, textAlign:"center",
-            color:"#c9a84c99", fontSize:11,
-            letterSpacing:1.5, fontFamily:FONT_UI,
-          }}>
-            VirtuaMakers © 2026
-          </div>
-          <div style={{textAlign:"center",marginTop:18}}>
-            <GoldBtn onClick={()=>setView("rules")} small secondary>← How to Play</GoldBtn>
-          </div>
-        </div>
-      </Modal>
-    );
-  }
+  const [view, setView] = useState("rules");
+  const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
 
   return (
-    <Modal>
-      <div>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-          <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>How to Play</h2>
-          <div style={{display:"flex",gap:6}}>
-            <GoldBtn onClick={()=>setView("credits")} small secondary>♦ Credits</GoldBtn>
-            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
-          </div>
-        </div>
-        {[
-          {num:"1.",title:"🎯 Objective",text:"Be first to 80 points across multiple rounds.",sub:false},
-          {num:"2.",title:"🃏 The Deck",text:"53 cards: standard 52 + 1 Joker.\nAces are LOW.",sub:false},
-          {num:"3.",title:"Gameplay",text:"",sub:false},
-          {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
-          {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
-          {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-          {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+1 pt</strong> for the attempt.</div></>),sub:true},
-          {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
-          {num:"e.",title:"🇺🇸 American Family",text:(<>Hold J♦ Q♦ K♦ A♦ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 points!</strong></>),sub:true},
-          {num:"f.",title:"✈️ Aces Low",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+18 points</strong>, or hold them to push for a bigger set.</>),sub:true},
-          {num:"g.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
-          {num:"4.",title:"💎 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e"}}>♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt</strong></>),sub:false},
-        ].map(({num,title,text,sub})=>(
-          <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
-            <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
-            <div>
-              <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?11:13,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
-              {text&&<div style={{color:"#ffffffaa",fontSize:12,lineHeight:1.6}}>{
-                typeof text === "string"
-                  ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
-                  : text
-              }</div>}
+    <div style={{
+      position:"fixed", inset:0, zIndex:200,
+      background:"rgba(4,18,15,0.80)",
+      display:"flex", alignItems:"flex-start", justifyContent:"center",
+      padding:12,
+      backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)",
+    }}>
+      <div style={{
+        background:"linear-gradient(155deg,#0f3c38,#08231f)",
+        border:`1px solid ${VM.tealLight}33`,
+        borderRadius:20, maxWidth:420, width:"100%",
+        maxHeight: Math.min(maxH, 740),
+        boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
+        fontFamily:FONT_UI, display:"flex", flexDirection:"column",
+        overflow:"hidden",
+      }}>
+        {/* ── Pinned header ── */}
+        <div style={{padding:"18px 22px 13px", borderBottom:`1px solid ${VM.tealLight}22`, flexShrink:0}}>
+          {view === "rules" ? (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>How to Play</h2>
+              <div style={{display:"flex",gap:6}}>
+                <GoldBtn onClick={()=>setView("credits")} small secondary>♦ Credits</GoldBtn>
+                <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+              </div>
             </div>
-          </div>
-        ))}
-        <div style={{height:8}}/>
+          ) : (
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Credits</h2>
+              <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+            </div>
+          )}
+        </div>
+        {/* ── Scrollable body ── */}
+        <div style={{flex:1, overflowY:"auto", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch"}}>
+          {view === "rules" ? (
+            <>
+              {[
+                {num:"1.",title:"🎯 Objective",text:"Be first to 80 points across multiple rounds.",sub:false},
+                {num:"2.",title:"🃏 The Deck",text:"53 cards: standard 52 + 1 Joker.\nAces are LOW.",sub:false},
+                {num:"3.",title:"Gameplay",text:"",sub:false},
+                {num:"a.",title:"🔄 Leading",text:"Player holding 2♣ leads the first trick each round.",sub:true},
+                {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
+                {num:"c.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
+                {num:"c2.",title:"🎴 The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: the A♠ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+1 pt</strong> for the attempt.</div></>),sub:true},
+                {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
+                {num:"e.",title:"🇺🇸 American Family",text:(<>Hold J♦ Q♦ K♦ A♦ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 points!</strong></>),sub:true},
+                {num:"f.",title:"✈️ Aces Low",text:(<>Gather all four aces (A♠ A♥ A♣ A♦) in your hand → option to cash in for <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+18 points</strong>, or hold them to push for a bigger set.</>),sub:true},
+                {num:"g.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
+                {num:"4.",title:"💎 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e"}}>♦K 5pts  ♦Q 4pts  ♦J 3pts  ♦A 2pts  ♦#s 1pt</strong></>),sub:false},
+              ].map(({num,title,text,sub})=>(
+                <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
+                  <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?11:13,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
+                  <div>
+                    <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?11:13,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
+                    {text&&<div style={{color:"#ffffffaa",fontSize:12,lineHeight:1.6}}>{
+                      typeof text === "string"
+                        ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
+                        : text
+                    }</div>}
+                  </div>
+                </div>
+              ))}
+              <div style={{height:8}}/>
+            </>
+          ) : (
+            <>
+              {[
+                {role:"Director", name:"Chris Bruckmann"},
+                {role:"Coding", name:"Claude (Anthropic)"},
+                {role:"Concepts", name:"ChatGPT (OpenAI)"},
+                {role:"Graphics", name:"Copilot (Microsoft)"},
+                {role:"Playtesting", name:"Donnie Swing, Rob Vasseur"},
+              ].map(({role,name})=>(
+                <div key={role} style={{marginBottom:10, paddingLeft:8}}>
+                  <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
+                  <div style={{color:"#ffffffcc",fontSize:13,whiteSpace:"nowrap"}}>{name}</div>
+                </div>
+              ))}
+              <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,fontStyle:"italic",lineHeight:1.6}}>
+                <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Notes</div>
+                The "Dimonds" spelling is so for at least 4 secret reasons.
+                <div style={{marginTop:8}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
+              </div>
+              <div style={{marginTop:18,textAlign:"center",color:"#c9a84c99",fontSize:11,letterSpacing:1.5,fontFamily:FONT_UI}}>
+                VirtuaMakers © 2026
+              </div>
+              <div style={{textAlign:"center",marginTop:18}}>
+                <GoldBtn onClick={()=>setView("rules")} small secondary>← How to Play</GoldBtn>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </Modal>
+    </div>
   );
 }
 
