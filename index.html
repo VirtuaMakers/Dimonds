@@ -2629,6 +2629,7 @@ function DiamondsGame() {
         setRoundScores(newRS3);
         setHands(newHands);
         addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
+        setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=false; return n; });
         const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
         if (newTotal3.some(s => s >= WIN_SCORE)) {
           setTotalScores(newTotal3);
@@ -2661,6 +2662,7 @@ function DiamondsGame() {
         setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
+        setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=false; return n; });
         const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
         if (newTotal4.some(s => s >= WIN_SCORE)) {
           setTotalScores(newTotal4);
@@ -3196,6 +3198,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
+    setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
       setTotalScores(newTotal);
@@ -3235,6 +3238,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
       setTotalScores(newTotal);
