@@ -2228,7 +2228,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               {view === "rules" ? "How to Play" : "◆ Credits"}
             </h2>
             <div style={{display:"flex",gap:6}}>
-              {view === "credits" && <GoldBtn onClick={()=>setView("rules")} small secondary>← How to Play</GoldBtn>}
+              {view === "credits" && null}
               <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
             </div>
           </div>
@@ -2291,9 +2291,6 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               </div>
               <div style={{marginTop:18,textAlign:"center",color:"#c9a84c99",fontSize:11,letterSpacing:1.5,fontFamily:FONT_UI}}>
                 VirtuaMakers © 2026
-              </div>
-              <div style={{textAlign:"center",marginTop:18}}>
-                <GoldBtn onClick={()=>setView("rules")} small secondary>← How to Play</GoldBtn>
               </div>
             </>
           )}
