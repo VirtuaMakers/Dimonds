@@ -2950,53 +2950,44 @@ function DiamondsGame() {
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
       if (!effectiveDiamondsBroken) continue;
+      if (i === 0) continue; // human R3 offered by pre-play useEffect at turn start, not mid-trick
       const trio = checkRuleOfThree(newHands[i]);
       if (!trio) continue;
       const rank3cf = trio[0].rank;
       if (ruleOfThreeOffered[i] === rank3cf) continue; // already notified of this rank
       setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=rank3cf; return n; });
-      if (i === 0) {
-        setRuleOfThreeState({ playerIdx:i, cards:trio, continuation:{playerIdx, card, newPlays, newHands} });
-        setPhase("ruleofthree_offer");
-        return;
-      } else {
-        const cardIds = new Set(trio.map(c=>c.id));
-        newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
-        const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
-        const newRS3 = [...roundScores]; newRS3[i] += pts;
-        setRoundScores(newRS3);
-        setHands(newHands);
-        addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
-        setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
-        const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
-        if (newTotal3.some(s => s >= WIN_SCORE)) {
-          setTotalScores(newTotal3);
-          const place3 = 1 + newTotal3.filter((s,j) => s > newTotal3[0] || (s === newTotal3[0] && j !== 0)).length;
-          setFireworksPlace(Math.max(1,Math.min(4,place3)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-          setScreen("gameover");
-          return;
-        }
-        setRuleOfThreeState({ playerIdx:i, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
-        setPhase("ruleofthree_event");
+      const cardIds3 = new Set(trio.map(c=>c.id));
+      newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds3.has(c.id)) : h);
+      const pts3 = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
+      const newRS3 = [...roundScores]; newRS3[i] += pts3;
+      setRoundScores(newRS3);
+      setHands(newHands);
+      addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts3} pts`);
+      setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
+      const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
+      if (newTotal3.some(s => s >= WIN_SCORE)) {
+        setTotalScores(newTotal3);
+        const place3 = 1 + newTotal3.filter((s,j) => s > newTotal3[0] || (s === newTotal3[0] && j !== 0)).length;
+        setFireworksPlace(Math.max(1,Math.min(4,place3)));
+        setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+        setScreen("gameover");
         return;
       }
-      break;
+      setRuleOfThreeState({ playerIdx:i, cashed:true, points:pts3, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
+      setPhase("ruleofthree_event");
+      return;
     }
 
     // Rule of 4 (Swinging Paradox) — two dimonded pairs → discard for +18 pts
     for (let i=0; i<4; i++) {
       if (!effectiveDiamondsBroken) continue;
+      if (i === 0) continue; // human R4 handled by badge/Redeem Set button, not mid-trick
       const quad = checkSwingingParadox(newHands[i]);
       if (!quad) continue;
       const ranks4cf = [...new Set(quad.map(c=>c.rank))].sort().join(',');
       if (swingingParadoxOffered[i] === ranks4cf) continue; // already notified of this pair
       setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=ranks4cf; return n; });
-      if (i === 0) {
-        // Human picks their own pairs freely — continue trick, badge shows on their next turn
-        continuePlayFlow(playerIdx, card, newPlays, newHands);
-        return;
-      } else {
+      {
         const cardIds = new Set(quad.map(c=>c.id));
         newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds.has(c.id)) : h);
         const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -3837,7 +3828,9 @@ function DiamondsGame() {
     setSelectedCards([]);
     setTricksPlayed(t=>t+1);
     setIsFirstTrick(false);
-    // Show Cutting Your Teeth BEFORE resuming play if it was just triggered
+    // Reset per-trick offered flags so Hold means "not this trick" not "never again"
+    setRuleOfThreeOffered([null,null,null,null]);
+    setSwingingParadoxOffered([null,null,null,null]);
     setPhase("playing");
     setTrickResult(null);
   }
