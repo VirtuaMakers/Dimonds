@@ -916,7 +916,7 @@ const THE_STEAL_BONUS = 21;
 const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 18;
 
-// Riot — 10+ cards of the same suit
+// Riot — 9+ cards of the same suit
 function checkRiot(hand) {
   const bySuit = {};
   for (const c of hand) {
@@ -925,7 +925,7 @@ function checkRiot(hand) {
     bySuit[c.suit].push(c);
   }
   for (const cards of Object.values(bySuit)) {
-    if (cards.length >= 10) return cards.slice(0, 10);
+    if (cards.length >= 9) return cards.slice(0, 9);
   }
   return null;
 }
@@ -2441,7 +2441,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· May be discarded at the start of your turn, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
-                {num:"d.",title:"🔥 Riot",text:(<>Any 10 cards of the same suit — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round.</>),sub:true},
+                {num:"d.",title:"🔥 Riot",text:(<>Any 9 cards of the same suit — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round.</>),sub:true},
                 {num:"e.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"f.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
               ].map(({num,title,text,sub})=>(
@@ -4509,7 +4509,7 @@ function DiamondsGame() {
           if (!r3 && !r4 && !riot) return null;
           const showCaveat = !riot && !diamondsBroken && (r3 || r4);
           const label = riot
-            ? `🔥 RIOT ready — 10 ${riot[0].suit}`
+            ? `🔥 RIOT ready — 9 ${riot[0].suit}`
             : (r3 && r4)
             ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready, 💍 Rule of 4 ready`
             : r3 ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
@@ -4752,7 +4752,7 @@ function DiamondsGame() {
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Special Event</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>RIOT</h2>
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
-              You hold 10 {riotState.suit} cards!
+              You hold 9 {riotState.suit} cards!
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
               End the Round → +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
@@ -4775,7 +4775,7 @@ function DiamondsGame() {
       {phase==="riot_event" && riotState && (
         <EventBox borderColor="#ff4400" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>10 {riotState.suit} cards discarded — Round over!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>9 {riotState.suit} cards discarded — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{riotState.points} pts 🔥</span>
           </div>
