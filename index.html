@@ -318,8 +318,8 @@ function setupBridgeWaterfall(canvas, onDone) {
     ctx.fillStyle="#060a16";
     ctx.fillRect(0,WY-10,82,14); ctx.fillRect(cw-82,WY-10,82,14);
     ctx.strokeStyle="#48586e"; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(16,DY-22); ctx.lineTo(LTX,TTY+6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cw-16,DY-22); ctx.lineTo(RTX,TTY+6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0,DY); ctx.lineTo(LTX,TTY+6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cw,DY); ctx.lineTo(RTX,TTY+6); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(LTX,TTY+6); ctx.quadraticCurveTo(CCX,CCY,RTX,TTY+6); ctx.stroke();
     ctx.strokeStyle="rgba(68,86,108,0.58)"; ctx.lineWidth=1;
     for(let hx=SL+8;hx<=SR-8;hx+=19){
@@ -336,9 +336,9 @@ function setupBridgeWaterfall(canvas, onDone) {
     });
     const dk=ctx.createLinearGradient(0,DY,0,DY+DH);
     dk.addColorStop(0,"#26304a"); dk.addColorStop(1,"#111826");
-    ctx.fillStyle=dk; ctx.fillRect(26,DY,cw-52,DH);
-    ctx.fillStyle="rgba(95,120,162,0.16)"; ctx.fillRect(26,DY,cw-52,2);
-    ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.fillRect(SL-8,DY+DH,SW+16,5);
+    ctx.fillStyle=dk; ctx.fillRect(0,DY,cw,DH);
+    ctx.fillStyle="rgba(95,120,162,0.16)"; ctx.fillRect(0,DY,cw,2);
+    ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.fillRect(0,DY+DH,cw,5);
   }
 
   function drawTower(cx) {
@@ -2399,9 +2399,22 @@ function RulesPanel({ onClose, initialView = "rules" }) {
 }
 
 // ============================================================
+// TEST FIREWORKS WRAPPER — renders on ?place=N
+// ============================================================
+function TestFireworks({ place, onDone }) {
+  React.useEffect(() => { soundRoundWin(); }, []);
+  return <Fireworks place={place} onDone={onDone} />;
+}
+
+// ============================================================
 // MAIN GAME COMPONENT
 // ============================================================
 function DiamondsGame() {
+  // ?place=N in URL immediately shows that placement animation (for testing/sharing)
+  const [testPlace, setTestPlace] = useState(() => {
+    const p = parseInt(new URLSearchParams(location.search).get("place") || "0");
+    return p >= 1 && p <= 4 ? p : 0;
+  });
   const [screen, setScreen] = useState("menu"); // menu | game | gameover
   const [playerName, setPlayerName] = useState("You");
   const [nameInput, setNameInput] = useState("");
@@ -3847,6 +3860,11 @@ function DiamondsGame() {
   // ============================================================
   // RENDER: MENU
   // ============================================================
+  if (testPlace) {
+    return (
+      <TestFireworks place={testPlace} onDone={() => setTestPlace(0)} />
+    );
+  }
   if (screen === "menu") {
     const isWide = typeof window !== "undefined" && window.innerWidth >= 700;
     const bgDiamonds = (
