@@ -2649,8 +2649,7 @@ function DiamondsGame() {
         if (swingingParadoxOffered[cp] !== ranks4) {
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=ranks4; return n; });
         if (cp === 0) {
-          setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null });
-          setPhase("swingingparadox_offer");
+          // Human picks their own pairs freely — badge shows, Redeem Set button handles cashout
           return;
         } else {
           const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -2904,8 +2903,8 @@ function DiamondsGame() {
       if (swingingParadoxOffered[i] === ranks4cf) continue; // already notified of this pair
       setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=ranks4cf; return n; });
       if (i === 0) {
-        setSwingingParadoxState({ playerIdx:i, cards:quad, continuation:{playerIdx, card, newPlays, newHands} });
-        setPhase("swingingparadox_offer");
+        // Human picks their own pairs freely — continue trick, badge shows on their next turn
+        continuePlayFlow(playerIdx, card, newPlays, newHands);
         return;
       } else {
         const cardIds = new Set(quad.map(c=>c.id));
@@ -4146,6 +4145,36 @@ function DiamondsGame() {
     }}>
 
       <FlyingCardsOverlay flyers={flyingCards} deckTheme={deckTheme}/>
+
+      {/* DESKTOP SETS SIDEBAR */}
+      {isDesktop && (
+        <div style={{
+          position:"fixed", left:0, top:0, bottom:0, width:190,
+          background:"linear-gradient(180deg,rgba(8,28,24,0.94),rgba(4,14,12,0.94))",
+          borderRight:`1px solid ${VM.tealLight}18`,
+          backdropFilter:"blur(10px)", WebkitBackdropFilter:"blur(10px)",
+          padding:"18px 14px 18px 14px",
+          overflowY:"auto", zIndex:5,
+          display:"flex", flexDirection:"column", gap:0,
+        }}>
+          <div style={{color:VM.gold,fontFamily:FONT_DISPLAY,fontSize:10,letterSpacing:2.5,textTransform:"uppercase",marginBottom:12,opacity:0.8}}>Sets</div>
+          {[
+            { emoji:"🦅", name:"Rule of 3", sub:"Democracy",         desc:"Three of a kind",              pts:"+16" },
+            { emoji:"💍", name:"Rule of 4", sub:"Swinging Paradox",  desc:"Two Dimonded pairs",            pts:"+18" },
+            { emoji:"🌇", name:"The Steal", sub:"",                  desc:"Joker + Robbin Jack + A♠",      pts:"+21" },
+            { emoji:"🏛️", name:"American Family", sub:"",            desc:"A♦ J♦ Q♦ K♦",                  pts:"+35" },
+            { emoji:"🤖", name:"Golden Age", sub:"",                 desc:"All four Aces (+2× pts rest of round)", pts:"+35" },
+          ].map(({emoji,name,sub,desc,pts}) => (
+            <div key={name} style={{borderTop:`1px solid ${VM.tealLight}12`,paddingTop:10,paddingBottom:8}}>
+              <div style={{fontSize:20,lineHeight:1,marginBottom:4}}>{emoji}</div>
+              <div style={{color:VM.goldBright,fontSize:11,fontWeight:800,fontFamily:FONT_DISPLAY,letterSpacing:0.5,lineHeight:1.3}}>{name}</div>
+              {sub && <div style={{color:"#c9a84c55",fontSize:9,fontFamily:FONT_DISPLAY,letterSpacing:1,marginBottom:2}}>{sub}</div>}
+              <div style={{color:"#ffffff66",fontSize:10,lineHeight:1.45,marginTop:2}}>{desc}</div>
+              <div style={{color:VM.tealLight,fontSize:11,fontWeight:800,fontFamily:FONT_DISPLAY,marginTop:4}}>{pts} pts</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* TOP BAR */}
       <div style={{
