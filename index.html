@@ -2356,9 +2356,9 @@ function DiamondsGame() {
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
-  const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([false,false,false,false]);
+  const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([null,null,null,null]); // null = never offered; string = rank last offered
   const [swingingParadoxState, setSwingingParadoxState] = useState(null);
-  const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([false,false,false,false]);
+  const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
@@ -2447,10 +2447,12 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
 
     // Rule of 3
-    if (!ruleOfThreeOffered[cp]) {
+    {
       const trio = checkRuleOfThree(hands[cp] || []);
       if (trio) {
-        setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+        const rank3 = trio[0].rank;
+        if (ruleOfThreeOffered[cp] !== rank3) {
+        setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=rank3; return n; });
         if (cp === 0) {
           setRuleOfThreeState({ playerIdx:0, cards:trio, continuation:null });
           setPhase("ruleofthree_offer");
@@ -2462,7 +2464,7 @@ function DiamondsGame() {
           const newRS = [...roundScores]; newRS[cp] += pts;
           setRoundScores(newRS);
           setHands(newHands);
-          setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=false; return n; });
+          setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`🦅 ${allNames[cp]} cashes in Rule of 3! +${pts} pts`);
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -2476,14 +2478,17 @@ function DiamondsGame() {
           setPhase("ruleofthree_event");
           return;
         }
+        } // end rank3 check
       }
     }
 
     // Rule of 4
-    if (!swingingParadoxOffered[cp]) {
+    {
       const quad = checkSwingingParadox(hands[cp] || []);
       if (quad) {
-        setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+        const ranks4 = [...new Set(quad.map(c=>c.rank))].sort().join(',');
+        if (swingingParadoxOffered[cp] !== ranks4) {
+        setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=ranks4; return n; });
         if (cp === 0) {
           setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null });
           setPhase("swingingparadox_offer");
@@ -2495,7 +2500,7 @@ function DiamondsGame() {
           const newRS = [...roundScores]; newRS[cp] += pts;
           setRoundScores(newRS);
           setHands(newHands);
-          setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=false; return n; });
+          setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`💍 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -2509,6 +2514,7 @@ function DiamondsGame() {
           setPhase("swingingparadox_event");
           return;
         }
+        } // end ranks4 check
       }
     }
   }, [phase, currentTurn, dealing, dealRevealIdx]);
@@ -2537,8 +2543,6 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
-    setRuleOfThreeOffered([false,false,false,false]);
-    setSwingingParadoxOffered([false,false,false,false]);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
     setGoldenAgeActive(false);
@@ -2583,8 +2587,6 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
-    setRuleOfThreeOffered([false,false,false,false]);
-    setSwingingParadoxOffered([false,false,false,false]);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
     setGoldenAgeActive(false);
@@ -2702,10 +2704,11 @@ function DiamondsGame() {
 
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
-      if (ruleOfThreeOffered[i]) continue;
       const trio = checkRuleOfThree(newHands[i]);
       if (!trio) continue;
-      setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=true; return n; });
+      const rank3cf = trio[0].rank;
+      if (ruleOfThreeOffered[i] === rank3cf) continue; // already notified of this rank
+      setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=rank3cf; return n; });
       if (i === 0) {
         setRuleOfThreeState({ playerIdx:i, cards:trio, continuation:{playerIdx, card, newPlays, newHands} });
         setPhase("ruleofthree_offer");
@@ -2718,7 +2721,7 @@ function DiamondsGame() {
         setRoundScores(newRS3);
         setHands(newHands);
         addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
-        setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=false; return n; });
+        setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
         if (newTotal3.some(s => s >= WIN_SCORE)) {
           setTotalScores(newTotal3);
@@ -2738,10 +2741,11 @@ function DiamondsGame() {
 
     // Rule of 4 (Swinging Paradox) — two dimonded pairs → discard for +18 pts
     for (let i=0; i<4; i++) {
-      if (swingingParadoxOffered[i]) continue;
       const quad = checkSwingingParadox(newHands[i]);
       if (!quad) continue;
-      setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=true; return n; });
+      const ranks4cf = [...new Set(quad.map(c=>c.rank))].sort().join(',');
+      if (swingingParadoxOffered[i] === ranks4cf) continue; // already notified of this pair
+      setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=ranks4cf; return n; });
       if (i === 0) {
         setSwingingParadoxState({ playerIdx:i, cards:quad, continuation:{playerIdx, card, newPlays, newHands} });
         setPhase("swingingparadox_offer");
@@ -2754,7 +2758,7 @@ function DiamondsGame() {
         setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
-        setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=false; return n; });
+        setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
         if (newTotal4.some(s => s >= WIN_SCORE)) {
           setTotalScores(newTotal4);
@@ -3298,7 +3302,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
-    setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
+    setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
       setTotalScores(newTotal);
@@ -3340,7 +3344,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
-    setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
+    setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
       setTotalScores(newTotal);
