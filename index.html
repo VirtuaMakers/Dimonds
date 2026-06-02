@@ -2622,7 +2622,6 @@ function DiamondsGame() {
           setHands(newHands);
           setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`🦅 ${allNames[cp]} cashes in Rule of 3! +${pts} pts`);
-          soundRuleOfThree();
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2658,7 +2657,6 @@ function DiamondsGame() {
           setHands(newHands);
           setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`💍 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
-          soundSwingingParadox();
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2877,7 +2875,6 @@ function DiamondsGame() {
         setRoundScores(newRS3);
         setHands(newHands);
         addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
-        soundRuleOfThree();
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
         if (newTotal3.some(s => s >= WIN_SCORE)) {
@@ -2914,7 +2911,6 @@ function DiamondsGame() {
         setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
-        soundSwingingParadox();
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
         if (newTotal4.some(s => s >= WIN_SCORE)) {
@@ -3458,7 +3454,6 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
-    soundRuleOfThree();
     setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -3500,7 +3495,6 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
-    soundSwingingParadox();
     setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -3897,6 +3891,12 @@ function DiamondsGame() {
     }, 900);
     return () => clearTimeout(timer);
   }, [phase, rescueState]);
+
+  // Fire event-box sounds exactly when their phase begins (synced to React render)
+  useEffect(() => {
+    if (phase === "ruleofthree_event") soundRuleOfThree();
+    else if (phase === "swingingparadox_event") soundSwingingParadox();
+  }, [phase]);
 
   // ============================================================
   // RENDER: MENU
@@ -4479,7 +4479,6 @@ function DiamondsGame() {
               setRoundScores(newRS);
               setSelectedCards([]);
               addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 4"}! +${pts} pts`);
-              if (selectedSetType==="r3") soundRuleOfThree(); else soundSwingingParadox();
               const newTotal = totalScores.map((s,i) => s + newRS[i]);
               if (newTotal.some(s => s >= WIN_SCORE)) {
                 setTotalScores(newTotal);
