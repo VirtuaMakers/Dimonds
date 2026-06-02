@@ -4249,6 +4249,22 @@ function DiamondsGame() {
   function isValidRule3sel(cards) {
     return cards.length === 3 && cards.every(c => !c.isJoker && c.rank === cards[0].rank);
   }
+  // Returns true if `cards` could still grow into a valid R3 or R4 selection.
+  // Used on mobile to allow multi-select only when building toward a set.
+  function couldBuildSet(cards) {
+    if (cards.length > 4 || cards.some(c => c.isJoker)) return false;
+    // R3 path: all same rank, max 3
+    if (cards.length <= 3 && cards.every(c => c.rank === cards[0].rank)) return true;
+    // R4 path: at most 2 ranks each with ≤2 cards; completed pairs must be one ♦ + one non-♦
+    const byRank = {};
+    for (const c of cards) { if (!byRank[c.rank]) byRank[c.rank]=[]; byRank[c.rank].push(c); }
+    const pairs = Object.values(byRank);
+    if (pairs.length > 2 || pairs.some(p => p.length > 2)) return false;
+    for (const p of pairs) {
+      if (p.length === 2 && !(p.some(c=>c.suit==="♦") && p.some(c=>c.suit!=="♦"))) return false;
+    }
+    return true;
+  }
   function isValidRule4sel(cards) {
     if (cards.length !== 4) return false;
     const byRank = {};
@@ -4575,7 +4591,14 @@ function DiamondsGame() {
                   key={card.id}
                   onClick={isPlayerTurn ? () => {
                     if (isSelected && isLegal && isDesktop && selectedCards.length === 1) { playCard(card); }
-                    else { setSelectedCards(prev => isSelected ? prev.filter(c=>c.id!==card.id) : [...prev, card]); }
+                    else {
+                      setSelectedCards(prev => {
+                        if (isSelected) return prev.filter(c => c.id !== card.id);
+                        const next = [...prev, card];
+                        // Multi-select only when building toward a valid set; otherwise replace
+                        return couldBuildSet(next) ? next : [card];
+                      });
+                    }
                   } : undefined}
                   style={{
                     position:"absolute",
