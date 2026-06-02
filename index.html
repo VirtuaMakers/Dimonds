@@ -747,9 +747,9 @@ function sortHand(hand) {
   return [...hand].sort((a, b) => {
     if (a.isJoker) return 1;  // Joker always last
     if (b.isJoker) return -1;
-    const suitDiff = HAND_SUIT_ORDER[a.suit] - HAND_SUIT_ORDER[b.suit];
-    if (suitDiff !== 0) return suitDiff;
-    return RANK_VALUE[a.rank] - RANK_VALUE[b.rank]; // low to high within suit
+    const rankDiff = RANK_VALUE[a.rank] - RANK_VALUE[b.rank]; // group same rank together
+    if (rankDiff !== 0) return rankDiff;
+    return HAND_SUIT_ORDER[a.suit] - HAND_SUIT_ORDER[b.suit];
   });
 }
 const WIN_SCORE = 80;
@@ -2348,8 +2348,8 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"b.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
-                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
-                {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) → discard all four on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
+                {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) → discard them <strong style={{fontStyle:"normal",color:"#e2c97e"}}>at any point on your turn</strong> (as long as you still hold them!) for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
+                {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) → discard all four <strong style={{fontStyle:"normal",color:"#e2c97e"}}>at any point on your turn</strong> (as long as you still hold them!) for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· Discard them, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
                 {num:"d.",title:"🇺🇸 The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"e.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
@@ -4273,6 +4273,25 @@ function DiamondsGame() {
         }}>
           {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
         </div>
+
+        {/* SET AVAILABLE BADGE */}
+        {(() => {
+          const r3 = checkRuleOfThree(hands[0] || []);
+          const r4 = checkSwingingParadox(hands[0] || []);
+          if (!r3 && !r4) return null;
+          const label = r3
+            ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
+            : `💍 Rule of 4 ready`;
+          return (
+            <div style={{
+              textAlign:"center", fontSize:10, fontWeight:800, letterSpacing:1.5,
+              color: r3 ? VM.goldBright : VM.tealLight,
+              textTransform:"uppercase", fontFamily:FONT_DISPLAY,
+              flexShrink:0, height:14, lineHeight:"14px", marginBottom:2,
+              animation:"legalRipple 2.4s ease-in-out infinite",
+            }}>{label}</div>
+          );
+        })()}
 
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
