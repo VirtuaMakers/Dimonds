@@ -2332,7 +2332,8 @@ function RulesPanel({ onClose, initialView = "rules" }) {
           </div>
         </div>
         {/* ── Scrollable body ── */}
-        <div style={{flex:1, overflowY:"auto", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch"}}>
+        <div style={{flex:1, minHeight:0, position:"relative"}}>
+          <div style={{height:"100%", overflowY:"scroll", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch", boxSizing:"border-box"}}>
           {view === "rules" ? (
             <>
               {[
@@ -2392,7 +2393,14 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               </div>
             </>
           )}
-        </div>
+          </div>{/* end scroll div */}
+          {/* bottom-fade hint for mobile where native scrollbar is invisible */}
+          <div style={{
+            position:"absolute", bottom:0, left:0, right:0, height:40,
+            background:"linear-gradient(to bottom, transparent, #08231f)",
+            pointerEvents:"none", borderRadius:"0 0 20px 20px",
+          }}/>
+        </div>{/* end wrapper */}
       </div>
     </div>
   );
