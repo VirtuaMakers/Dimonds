@@ -4250,13 +4250,12 @@ function DiamondsGame() {
       )}
 
       {/* Aces Low — offer modal (only when it's the human's choice) */}
-      {phase==="aceslow_offer" && acesLowState && acesLowState.playerIdx === 0 && (
+      {phase==="aceslow_offer" && acesLowState && acesLowState.playerIdx === 0 && dealRevealIdx >= (hands[0]?.length ?? 0) && (
         <div style={{
-          position:"fixed", inset:0,
-          background:"rgba(4,18,15,0.78)",
+          position:"fixed", top:0, left:0, right:0, height:"58%",
+          background:"rgba(4,18,15,0.72)",
           display:"flex", alignItems:"center", justifyContent:"center",
           zIndex:200, padding:16,
-          backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)",
         }}>
           <div style={{
             background:"linear-gradient(155deg,#0f3c38,#08231f)",
@@ -4337,8 +4336,8 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 3 (Democracy) — offer */}
-      {phase==="ruleofthree_offer" && ruleOfThreeState && (
-        <div style={{position:"fixed",inset:0,background:"rgba(4,18,15,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
+      {phase==="ruleofthree_offer" && ruleOfThreeState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+        <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🦅</div>
             <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 3 — Democracy</div>
@@ -4368,8 +4367,8 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 4 (Swinging Paradox) — offer */}
-      {phase==="swingingparadox_offer" && swingingParadoxState && (
-        <div style={{position:"fixed",inset:0,background:"rgba(4,18,15,0.78)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
+      {phase==="swingingparadox_offer" && swingingParadoxState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+        <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💍</div>
             <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 4 — Swinging Paradox</div>
