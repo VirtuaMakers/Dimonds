@@ -3689,12 +3689,35 @@ function DiamondsGame() {
     if (jokerPlayer === 0) return; // human handles it via KidnapModal
 
     const timer = setTimeout(() => {
-      const target = aiChooseKidnapTarget(kidnapState.hands, jokerPlayer);
+      const currentHands = kidnapState.hands;
+      const isRobbin = !!kidnapState.isRobbinJack;
+
+      if (isRobbin) {
+        // Ace of Spades guard: if A♠ is still in play, skipping summons it (helps that player).
+        // Only consider skipping when there's no A♠ left.
+        const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
+        if (batmanHolder === -1) {
+          const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
+          if (!target) {
+            handleKidnapSkip();
+            return;
+          }
+          const targetCard = currentHands[target.fromPlayer][target.cardIdx];
+          const familyIds = ["J♦","Q♦","K♦","A♦"];
+          const isFamily = familyIds.includes(targetCard.id);
+          // Rob if: chasing a family card, or steal yields ≥ 2 diamond pts (better than consolation +1)
+          if (!isFamily && diamondPoints(targetCard) <= 1) {
+            handleKidnapSkip();
+            return;
+          }
+        }
+      }
+
+      const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
       if (target) {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
         // No valid target — show result directly (preserve rob vs kidnap)
-        const isRobbin = !!kidnapState.isRobbinJack;
         setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin });
         setKidnapState(null);
         setPhase("trickresult");
