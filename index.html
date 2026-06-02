@@ -463,6 +463,7 @@ function Fireworks({ onDone, place=1 }) {
     const particles = [];
     let animId, frameCount = 0, finished = false;
     const allTimers = [];
+    let p4PreFrame = null;
 
     const palettes = {
       1: ["#ffd700","#fff8e0","#fceabb","#ffffff","#f4d97a","#fff2c4","#e2c97e"],
@@ -526,11 +527,98 @@ function Fireworks({ onDone, place=1 }) {
 
     let totalDuration;
     if (place === 4) {
-      // 3s sparkler — continuous small silver sparks from center-top
-      totalDuration = 3200;
+      totalDuration = 5200;
       soundPlace4();
-      const iv = setInterval(()=>{ if(!finished) spawnSparkle(cw*0.5, ch*0.28); }, 45);
-      allTimers.push({type:"interval", id:iv});
+      const p4X = Math.round(cw * 0.50);
+      const p4StemTop = Math.round(ch * 0.17);
+      const p4StemBottom = Math.round(ch * 0.60);
+      const p4T0 = performance.now();
+      const p4BurnMs = 3700;
+      p4PreFrame = function() {
+        const elapsed = performance.now() - p4T0;
+        const frac = Math.min(elapsed / p4BurnMs, 1);
+        const burnY = p4StemTop + (p4StemBottom - p4StemTop) * frac;
+        const burned = frac >= 1;
+        ctx.save();
+        ctx.lineCap = "round";
+        // Already-burned wire above burn point — dark, thin
+        if (burnY > p4StemTop) {
+          ctx.strokeStyle = "#1a1a1a";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(p4X, p4StemTop);
+          ctx.lineTo(p4X, burnY);
+          ctx.stroke();
+        }
+        // Unburned sparkler coating below — silver, slightly thicker
+        if (burnY < p4StemBottom) {
+          ctx.strokeStyle = "#c8c8c8";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(p4X, burnY);
+          ctx.lineTo(p4X, p4StemBottom);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // Hand silhouette — very dark, blends with background
+        const hx = p4X, hy = p4StemBottom;
+        ctx.save();
+        ctx.fillStyle = "#090f0c";
+        // Forearm/wrist extending off the bottom of screen
+        ctx.fillRect(hx - 22, hy + 48, 44, ch);
+        // Palm body
+        ctx.beginPath();
+        ctx.roundRect(hx - 24, hy + 5, 48, 52, 10);
+        ctx.fill();
+        // Four finger knuckle bumps (closed fist gripping the stem)
+        for (let fi = 0; fi < 4; fi++) {
+          ctx.beginPath();
+          ctx.arc(hx - 15 + fi * 10, hy + 5, 10, Math.PI, 0);
+          ctx.fill();
+        }
+        // Thumb on left side
+        ctx.beginPath();
+        ctx.ellipse(hx - 30, hy + 25, 11, 18, -0.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        // Burn head glow + sparks, or smoke after fizzle
+        if (!burned) {
+          // Spawn sparks from burn point
+          for (let i = 0; i < 3 + Math.floor(Math.random()*4); i++) {
+            const a = Math.random() * Math.PI * 2;
+            const s = 0.5 + Math.random() * 2.0;
+            particles.push({
+              x: p4X + (Math.random()-0.5)*4, y: burnY,
+              vx: Math.cos(a)*s, vy: Math.sin(a)*s - 0.5,
+              color: colors[Math.floor(Math.random()*colors.length)],
+              life: 0.7+Math.random()*0.5, decay: 0.022+Math.random()*0.028,
+              size: 1+Math.random()*2.5, twinkle: Math.random()*Math.PI*2,
+              grav: 0.03, dragX: 0.97,
+            });
+          }
+          // Radial glow at burn point
+          const g = ctx.createRadialGradient(p4X, burnY, 0, p4X, burnY, 16);
+          g.addColorStop(0, "rgba(255,255,190,0.9)");
+          g.addColorStop(0.35, "rgba(255,155,25,0.55)");
+          g.addColorStop(1, "rgba(255,80,0,0)");
+          ctx.fillStyle = g;
+          ctx.beginPath();
+          ctx.arc(p4X, burnY, 16, 0, Math.PI*2);
+          ctx.fill();
+        } else {
+          // Fizzle — sparse smoke puffs from tip
+          if (Math.random() < 0.22) {
+            particles.push({
+              x: p4X + (Math.random()-0.5)*6, y: p4StemBottom - 4,
+              vx: (Math.random()-0.5)*0.5, vy: -0.6 - Math.random()*0.7,
+              color: ["#666","#777","#888","#999"][Math.floor(Math.random()*4)],
+              life: 0.55+Math.random()*0.35, decay: 0.009+Math.random()*0.007,
+              size: 5+Math.random()*7, twinkle: 0, grav: -0.01, dragX: 0.986,
+              isSmoke: true,
+            });
+          }
+        }
+      };
 
     } else if (place === 3) {
       // 3 big blue F3 bursts
@@ -560,6 +648,7 @@ function Fireworks({ onDone, place=1 }) {
     function animate() {
       ctx.fillStyle = "rgba(0,0,0,0.08)";
       ctx.fillRect(0,0,canvas.width,canvas.height);
+      if (p4PreFrame) p4PreFrame();
       frameCount++;
       for (let i=particles.length-1; i>=0; i--) {
         const p=particles[i];
@@ -568,14 +657,23 @@ function Fireworks({ onDone, place=1 }) {
         p.vx*=p.dragX||0.992;
         p.life-=p.decay;
         if (p.life<=0){particles.splice(i,1);continue;}
-        const tw=0.85+0.15*Math.sin(frameCount*0.18+p.twinkle);
-        ctx.globalAlpha=p.life*tw;
-        ctx.fillStyle=p.color;
-        ctx.shadowColor=p.color;
-        ctx.shadowBlur=place===4?3:8;
-        ctx.beginPath();
-        ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
-        ctx.fill();
+        if (p.isSmoke) {
+          ctx.globalAlpha=p.life*0.45;
+          ctx.fillStyle=p.color;
+          ctx.shadowBlur=0;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.size*(1+(1-p.life)*0.6),0,Math.PI*2);
+          ctx.fill();
+        } else {
+          const tw=0.85+0.15*Math.sin(frameCount*0.18+p.twinkle);
+          ctx.globalAlpha=p.life*tw;
+          ctx.fillStyle=p.color;
+          ctx.shadowColor=p.color;
+          ctx.shadowBlur=place===4?3:8;
+          ctx.beginPath();
+          ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
+          ctx.fill();
+        }
       }
       ctx.globalAlpha=1; ctx.shadowBlur=0;
       if (!finished) animId=requestAnimationFrame(animate);
