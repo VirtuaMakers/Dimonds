@@ -234,6 +234,50 @@ function soundPlace1Mortar() {
   playTone({ freq:600, type:"sine",     volume:0.04, attack:0.001, decay:0.08, delay:0.005 });
 }
 
+// Rule of 3 (Democracy) — three rising bells, a democratic chime
+function soundRuleOfThree() {
+  [523, 659, 784].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.18, attack:0.008, decay:0.35, delay:i*0.10 })
+  );
+  [261, 330].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.12, attack:0.02, decay:0.45, delay:i*0.14 })
+  );
+}
+
+// Rule of 4 (Swinging Paradox) — jazzy dominant-7th sting, D4 F#4 A4 C5
+function soundSwingingParadox() {
+  [293, 370, 440, 523].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.17, attack:0.01, decay:0.38, delay:i*0.09 })
+  );
+  playTone({ freq:147, type:"sawtooth", volume:0.13, attack:0.02, decay:0.55, delay:0 });
+  playTone({ freq:293, type:"sawtooth", volume:0.09, attack:0.015, decay:0.45, delay:0.12 });
+}
+
+// Ace of Spades blocks Joker (via Robbin Jack summon) — heroic rising shield, E minor
+function soundBatmanBlocks() {
+  [164, 196, 246, 329].forEach((f, i) =>
+    playTone({ freq:f, type:"sawtooth", volume:0.16, attack:0.01, decay:0.42, delay:i*0.09 })
+  );
+  [164, 246, 329].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.18, attack:0.01, decay:0.45, delay:i*0.11 })
+  );
+  playTone({ freq:329, type:"sine", volume:0.22, attack:0.005, decay:0.55, delay:0.35 });
+}
+
+// Robbin Jack passes — brief resigned two-note shrug
+function soundRobbinPass() {
+  [311, 233].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.12, attack:0.01, decay:0.20, delay:i*0.11 })
+  );
+}
+
+// Joker releases kidnap — soft descending three-note whoosh
+function soundJokerRelease() {
+  [392, 311, 233].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.12, attack:0.01, decay:0.18, delay:i*0.08 })
+  );
+}
+
 function setupBridgeWaterfall(canvas, onDone) {
   const ctx = canvas.getContext("2d");
   const cw = canvas.width, ch = canvas.height;
@@ -2578,6 +2622,7 @@ function DiamondsGame() {
           setHands(newHands);
           setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`🦅 ${allNames[cp]} cashes in Rule of 3! +${pts} pts`);
+          soundRuleOfThree();
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2613,6 +2658,7 @@ function DiamondsGame() {
           setHands(newHands);
           setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`💍 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
+          soundSwingingParadox();
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2831,6 +2877,7 @@ function DiamondsGame() {
         setRoundScores(newRS3);
         setHands(newHands);
         addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts} pts`);
+        soundRuleOfThree();
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
         if (newTotal3.some(s => s >= WIN_SCORE)) {
@@ -2867,6 +2914,7 @@ function DiamondsGame() {
         setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 4! +${pts} pts`);
+        soundSwingingParadox();
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
         if (newTotal4.some(s => s >= WIN_SCORE)) {
@@ -3216,6 +3264,7 @@ function DiamondsGame() {
     const jackPlayerIdx = kidnapState.jokerPlayerIdx;
 
     if (!isRobbin) {
+      soundJokerRelease();
       addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
       setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false });
       setKidnapState(null);
@@ -3224,6 +3273,7 @@ function DiamondsGame() {
     }
 
     // Robbin Jack passes — always awards consolation +1 diamond, no summoning
+    soundRobbinPass();
     const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin;
     if (!isChainedAfterJoker) {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +1 pt.`);
@@ -3408,6 +3458,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
+    soundRuleOfThree();
     setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -3449,6 +3500,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    soundSwingingParadox();
     setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -4427,6 +4479,7 @@ function DiamondsGame() {
               setRoundScores(newRS);
               setSelectedCards([]);
               addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 4"}! +${pts} pts`);
+              if (selectedSetType==="r3") soundRuleOfThree(); else soundSwingingParadox();
               const newTotal = totalScores.map((s,i) => s + newRS[i]);
               if (newTotal.some(s => s >= WIN_SCORE)) {
                 setTotalScores(newTotal);
