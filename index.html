@@ -1968,9 +1968,9 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const blockedJoker  = !!result.batmanBlockedJoker;
     const blockedRobbin = !!result.batmanBlockedRobbin;
     const blockTitle = blockedJoker && blockedRobbin
-      ? "The Batman Blocks The Joker AND Robbin Jack!"
-      : blockedRobbin ? "The Batman Blocks Robbin Jack!"
-      : "The Batman Blocks The Joker!";
+      ? "The Ace of Spades Blocks The Joker AND Robbin Jack!"
+      : blockedRobbin ? "The Ace of Spades Blocks Robbin Jack!"
+      : "The Ace of Spades Blocks The Joker!";
     const blockEmoji = blockedJoker && blockedRobbin ? "🏙️" : blockedRobbin ? "🎴" : "🌃";
     const blockedCards = (result.plays||[]).filter(p =>
       p.card.isJoker || isJackDiamond(p.card)
@@ -1978,7 +1978,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     return (
       <EventBox borderColor="#4466ff" emoji={blockEmoji} title={blockTitle} btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
-          {allNames[result.winnerIdx]}
+          {allNames[result.batmanHolderIdx ?? result.winnerIdx]}
         </div>
         <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",flexWrap:"wrap"}}>
           {aceCard && <CardComp card={aceCard}/>}
@@ -3119,16 +3119,40 @@ function DiamondsGame() {
   function handleKidnap(fromPlayer, cardIdx) {
     if (!kidnapState) return; // safety guard
     const currentHands = kidnapState.hands; // use snapshot, not stale closure
-    const stolenCard = currentHands[fromPlayer][cardIdx];
     const jokerPlayerIdx = kidnapState.jokerPlayerIdx;
+    const isRobbin = !!kidnapState.isRobbinJack;
+
+    // Robbin Jack tries to rob — check if A♠ is in another player's hand
+    if (isRobbin) {
+      const batmanHolder = currentHands.findIndex((h, i) => i !== jokerPlayerIdx && h.some(c => isBatman(c)));
+      if (batmanHolder !== -1) {
+        const GA = goldenAgeRef.current ? 2 : 1;
+        const aceBonus = 35 * GA;
+        addLog(`♠ ${allNames[batmanHolder]} (Ace of Spades) blocks ${allNames[jokerPlayerIdx]}'s rob! +${aceBonus} pts!`);
+        soundBlockRobbin();
+        setRoundScores(prev=>{ const n=[...prev]; n[batmanHolder]+=aceBonus; return n; });
+        const newHands2 = currentHands.map((h,i) => i===batmanHolder ? h.filter(c=>!isBatman(c)) : h);
+        setHands(newHands2);
+        setKidnapState(null);
+        setTrickResult({
+          ...kidnapState.resultObj,
+          jokerWin: false, jackDiamondRob: false, jackDiamondPassed: true,
+          jackDiamondPlayerIdx: jokerPlayerIdx,
+          batmanBlocked: true, batmanBlockedRobbin: true, batmanBlockedJoker: false,
+          batmanHolderIdx: batmanHolder,
+        });
+        setPhase("trickresult");
+        return;
+      }
+    }
+
+    const stolenCard = currentHands[fromPlayer][cardIdx];
 
     const newHands = currentHands.map((h,i) => {
       if (i === fromPlayer) return h.filter((_,ci)=>ci!==cardIdx);
       if (i === jokerPlayerIdx) return [...h, stolenCard];
       return h;
     });
-
-    const isRobbin = !!kidnapState.isRobbinJack;
     addLog(isRobbin
       ? `🎴 ${allNames[jokerPlayerIdx]} (Robbin Jack) robs from ${allNames[fromPlayer]}!`
       : `🃏 ${allNames[jokerPlayerIdx]} kidnaps from ${allNames[fromPlayer]}!`);
@@ -3202,42 +3226,17 @@ function DiamondsGame() {
       return;
     }
 
-    // Robbin Jack chose not to rob — Robin Gambit
+    // Robbin Jack passes — always awards consolation +1 diamond, no summoning
     const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin;
-    const currentHands = kidnapState.hands;
-    const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
-    const aceAvailable = batmanHolder !== -1;
-
-    if (aceAvailable && !isChainedAfterJoker) {
-      // Summon A♠ for rescue — A♠ holder rescues, J♦ player gets +1 pt
-      const newHands = currentHands.map((h,i) => i===batmanHolder ? h.filter(c=>!isBatman(c)) : h);
-      addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! ${allNames[batmanHolder]} gets a rescue. +1 pt to Robin.`);
-      soundAceRescue();
+    if (!isChainedAfterJoker) {
+      addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +1 pt.`);
       setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
-      setHands(newHands);
-      setKidnapState(null);
-      const rescueResultObj = { ...kidnapState.resultObj, jokerWin: false, jackDiamondRob: false, robbinSummon: true };
-      const hasRescueTargets = newHands.some((h,i) => i !== batmanHolder && h.length > 0);
-      if (!hasRescueTargets) {
-        addLog(`♠ ${allNames[batmanHolder]} — no cards left to rescue.`);
-        setTrickResult(rescueResultObj);
-        setPhase("trickresult");
-      } else {
-        setRescueState({ acePlayerIdx: batmanHolder, hands: newHands, resultObj: rescueResultObj });
-        setPhase("rescue");
-      }
     } else {
-      // A♠ already played — +1 pt consolation (unless chained after Joker who already acted)
-      if (!isChainedAfterJoker) {
-        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob. +1 pt for the attempt.`);
-        setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
-      } else {
-        addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob.`);
-      }
-      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx });
-      setKidnapState(null);
-      setPhase("trickresult");
+      addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
+    setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx });
+    setKidnapState(null);
+    setPhase("trickresult");
   }
 
   function handleRobbinSummonYes() {
@@ -3804,8 +3803,8 @@ function DiamondsGame() {
       const isRobbin = !!kidnapState.isRobbinJack;
 
       if (isRobbin) {
-        // Ace of Spades guard: if A♠ is still in play, skipping summons it (helps that player).
-        // Only consider skipping when there's no A♠ left.
+        // Ace of Spades guard: if A♠ is in play, robbing triggers a block (+35 to A♠ holder).
+        // Skip instead to take the safe consolation +1.
         const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
         if (batmanHolder === -1) {
           const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
