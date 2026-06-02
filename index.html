@@ -4539,14 +4539,14 @@ function DiamondsGame() {
 
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
-          overflowX:"hidden",
-          overflowY:"visible",
+          overflow:"visible",
           paddingTop: isDesktop?52:36, // headroom for the lifted selected card
+          paddingBottom: isDesktop?0:8,
           flexShrink:0,
         }}>
           <div style={{
             position:"relative",
-            height: isDesktop?160:125, // fit card height so tops aren't clipped
+            height: isDesktop?160:132, // fit card height (115px) with margin for borders/shadows
             width:"100%",
             display:"flex",
             alignItems:"flex-end",
