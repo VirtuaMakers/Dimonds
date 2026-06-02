@@ -244,13 +244,17 @@ function soundRuleOfThree() {
   );
 }
 
-// Rule of 4 (Swinging Paradox) — jazzy dominant-7th sting, D4 F#4 A4 C5
+// Rule of 4 (Swinging Paradox) — whimsical music-box bounce, Cmaj7 skip with sparkle trill
 function soundSwingingParadox() {
-  [293, 370, 440, 523].forEach((f, i) =>
-    playTone({ freq:f, type:"triangle", volume:0.17, attack:0.01, decay:0.38, delay:i*0.09 })
+  [523, 659, 784, 988, 784, 1047].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.15, attack:0.004, decay:0.17, delay:i*0.07 })
   );
-  playTone({ freq:147, type:"sawtooth", volume:0.13, attack:0.02, decay:0.55, delay:0 });
-  playTone({ freq:293, type:"sawtooth", volume:0.09, attack:0.015, decay:0.45, delay:0.12 });
+  [523, 659].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.09, attack:0.01, decay:0.25, delay:i*0.12 })
+  );
+  [1568, 1760].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.07, attack:0.003, decay:0.10, delay:0.46 + i*0.05 })
+  );
 }
 
 // Ace of Spades blocks Joker (via Robbin Jack summon) — heroic rising shield, E minor
