@@ -2855,6 +2855,8 @@ function DiamondsGame() {
   // ---- Play a card ----
   function playCard(card) {
     if (!isPlayerTurn) return;
+    // Guard against ghost plays: card must still be in hand
+    if (!card.isJoker && !hands[0].some(c => c.id === card.id)) return;
     // Joker is ALWAYS playable — no restrictions
     if (card.isJoker) { submitPlay(0, card); return; }
     if (mustOpenWith2C && !(card.rank==="2" && card.suit==="♣")) return;
@@ -4652,7 +4654,7 @@ function DiamondsGame() {
             </div>
           )}
           <GoldBtn
-            onClick={()=>{ if(selectedCard&&selectedIsLegal) playCard(selectedCard); }}
+            onClick={()=>{ if(selectedCard&&selectedIsLegal) { setSelectedCards([]); playCard(selectedCard); } }}
             disabled={!canPlay||!selectedIsLegal}
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
