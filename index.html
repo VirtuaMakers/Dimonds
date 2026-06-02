@@ -2482,7 +2482,7 @@ function DiamondsGame() {
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
   const ledSuit = trickPlays.length > 0 && !trickPlays[0].card.isJoker ? trickPlays[0].card.suit : null;
-  const mustOpenWith2C = isFirstTrick && trickPlays.length === 0 && isPlayerTurn;
+  const mustOpenWith2C = isFirstTrick && trickPlays.length === 0 && isPlayerTurn && (hands[0]?.some(c => c.rank==="2" && c.suit==="♣") ?? false);
 
   // Auto-skip human player if their hand is empty
   useEffect(() => {
