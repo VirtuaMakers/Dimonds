@@ -2334,7 +2334,7 @@ function DiamondsGame() {
   const [currentLeader, setCurrentLeader] = useState(0);
   const [currentTurn, setCurrentTurn] = useState(0); // index in turn order
   const [turnOrder, setTurnOrder] = useState([0,1,2,3]);
-  const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedCards, setSelectedCards] = useState([]);
   const [dealing, setDealing] = useState(false); // true briefly at round start for deal-out animation
   const [flyingCards, setFlyingCards] = useState([]); // overlay cards animating between points
   const scorePanelRefs = useRef([null,null,null,null]); // DOM nodes of the 4 score tiles
@@ -2533,7 +2533,7 @@ function DiamondsGame() {
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
-    setSelectedCard(null);
+    setSelectedCards([]);
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
@@ -2577,7 +2577,7 @@ function DiamondsGame() {
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
-    setSelectedCard(null);
+    setSelectedCards([]);
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
@@ -3550,7 +3550,7 @@ function DiamondsGame() {
     setTurnOrder(newOrder);
     setCurrentTurn(0);
     setTrickPlays([]);
-    setSelectedCard(null);
+    setSelectedCards([]);
     setTricksPlayed(t=>t+1);
     setIsFirstTrick(false);
     // Show Cutting Your Teeth BEFORE resuming play if it was just triggered
@@ -3906,7 +3906,8 @@ function DiamondsGame() {
   // ============================================================
   const playerHand = sortHand(hands[0] || []);
   const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768; // big cards + side button
-  const canPlay = isPlayerTurn && selectedCard;
+  const selectedCard = selectedCards.length === 1 ? selectedCards[0] : null; // convenience for single-select checks
+  const canPlay = isPlayerTurn && selectedCards.length === 1;
 
   // Can player lead with a diamond? Only if broken or no other cards
   const canLeadDiamond = diamondsBroken || playerHand.filter(c=>!isDiamond(c)&&!c.isJoker).length===0;
@@ -3925,6 +3926,24 @@ function DiamondsGame() {
           !playerHand.some(c=>!c.isJoker && c.suit===ledSuit)
         )
   );
+
+  // Check if selected cards form a redeemable set
+  function isValidRule3sel(cards) {
+    return cards.length === 3 && cards.every(c => !c.isJoker && c.rank === cards[0].rank);
+  }
+  function isValidRule4sel(cards) {
+    if (cards.length !== 4) return false;
+    const byRank = {};
+    for (const c of cards) { if (!byRank[c.rank]) byRank[c.rank]=[]; byRank[c.rank].push(c); }
+    const pairs = Object.values(byRank);
+    return pairs.length === 2 && pairs.every(p => p.length===2 && p.some(c=>c.suit==="♦") && p.some(c=>c.suit!=="♦"));
+  }
+  const selectedSetType = isValidRule3sel(selectedCards) ? "r3" : isValidRule4sel(selectedCards) ? "r4" : null;
+  const selectedSetBonus = selectedSetType === "r3"
+    ? RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1)
+    : selectedSetType === "r4"
+    ? SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1)
+    : 0;
 
   return (
     <div style={{
@@ -4158,7 +4177,7 @@ function DiamondsGame() {
             const OVERLAP = Math.min(22, Math.max(8, maxOverlap));
             const totalWidth = OVERLAP * (total - 1) + cardW;
             const startX = -totalWidth / 2;
-            const selIdx = playerHand.findIndex(c => c.id === selectedCard?.id);
+            const selIdx = selectedCards.length === 1 ? playerHand.findIndex(c => c.id === selectedCards[0]?.id) : -1;
             return playerHand.map((card, ci) => {
               const isLegal = mustOpenWith2C
                 ? (card.rank==="2" && card.suit==="♣")
@@ -4167,7 +4186,7 @@ function DiamondsGame() {
                 : trickPlays.length === 0
                 ? (!isDiamond(card) || canLeadDiamond)
                 : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit));
-              const isSelected = selectedCard?.id === card.id;
+              const isSelected = selectedCards.some(c => c.id === card.id);
               // Neighbor spread: cards near the selected one ease outward to make room.
               let spread = 0;
               if (selIdx >= 0 && !isSelected) {
@@ -4182,8 +4201,8 @@ function DiamondsGame() {
                 <div
                   key={card.id}
                   onClick={isPlayerTurn ? () => {
-                    if (isSelected && isLegal && isDesktop) { playCard(card); }
-                    else { setSelectedCard(isSelected ? null : card); }
+                    if (isSelected && isLegal && isDesktop && selectedCards.length === 1) { playCard(card); }
+                    else { setSelectedCards(prev => isSelected ? prev.filter(c=>c.id!==card.id) : [...prev, card]); }
                   } : undefined}
                   style={{
                     position:"absolute",
@@ -4229,15 +4248,19 @@ function DiamondsGame() {
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
           : {display:"flex",justifyContent:"center",gap:10,marginTop:6,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
-          {selectedCard && isPlayerTurn && (
+          {selectedCards.length > 0 && isPlayerTurn && (
             <div style={{
               background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
               borderRadius:8,padding:"5px 12px",
               color:VM.tealLight+"aa",fontSize:11,fontWeight:700,fontFamily:FONT_UI,
               display:"flex",alignItems:"center",gap:6,
             }}>
-              Playing: <strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>
-              {!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:10}}>{mustOpenWith2C?" ✗ must open with 2♣":" ✗ must follow "+ledSuit}</span>}
+              {selectedCards.length === 1
+                ? <>Playing: <strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>
+                    {!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:10}}>{mustOpenWith2C?" ✗ must open with 2♣":" ✗ must follow "+ledSuit}</span>}
+                  </>
+                : <><strong style={{color:VM.tealLight}}>{selectedCards.length} cards</strong><span style={{opacity:0.7}}> selected</span>{selectedSetType && <span style={{color:VM.gold,marginLeft:4}}>✓ valid set</span>}</>
+              }
             </div>
           )}
           <GoldBtn
@@ -4246,6 +4269,38 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
+          {selectedSetType && isPlayerTurn && (
+            <GoldBtn onClick={()=>{
+              const cards = selectedCards;
+              const pts = selectedSetBonus;
+              const cardIds = new Set(cards.map(c=>c.id));
+              const newHands = hands.map((h,j) => j===0 ? h.filter(c=>!cardIds.has(c.id)) : h);
+              setHands(newHands);
+              const newRS = [...roundScores]; newRS[0] += pts;
+              setRoundScores(newRS);
+              setSelectedCards([]);
+              addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 4"}! +${pts} pts`);
+              const newTotal = totalScores.map((s,i) => s + newRS[i]);
+              if (newTotal.some(s => s >= WIN_SCORE)) {
+                setTotalScores(newTotal);
+                const sorted=[...newTotal].sort((a,b)=>b-a);
+                setFireworksPlace(Math.max(1,Math.min(4,sorted.indexOf(newTotal[0])+1)));
+                setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+                setScreen("gameover"); return;
+              }
+              if (selectedSetType==="r3") {
+                setRuleOfThreeState({ playerIdx:0, cashed:true, points:pts, continuation:null });
+                setRuleOfThreeOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                setPhase("ruleofthree_event");
+              } else {
+                setSwingingParadoxState({ playerIdx:0, cashed:true, points:pts, continuation:null });
+                setSwingingParadoxOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                setPhase("swingingparadox_event");
+              }
+            }}>
+              Redeem Set +{selectedSetBonus}
+            </GoldBtn>
+          )}
         </div>
         {/* Safe-area spacer — clears iPhone home indicator */}
         <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
@@ -4432,7 +4487,7 @@ function DiamondsGame() {
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={declineRuleOfThree} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
-              <button onClick={acceptRuleOfThree} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Play Set +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}</button>
+              <button onClick={acceptRuleOfThree} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem Set +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}</button>
             </div>
           </div>
         </div>
@@ -4463,7 +4518,7 @@ function DiamondsGame() {
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={declineSwingingParadox} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
-              <button onClick={acceptSwingingParadox} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Play Set +{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)}</button>
+              <button onClick={acceptSwingingParadox} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem Set +{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)}</button>
             </div>
           </div>
         </div>
