@@ -274,6 +274,16 @@ function soundRobbinPass() {
   );
 }
 
+// Riot — chaotic descending sawtooth burst + low rumble
+function soundRiot() {
+  [1319, 1047, 880, 698, 587, 494, 440, 349].forEach((f, i) =>
+    playTone({ freq:f, type:"sawtooth", volume:0.14, attack:0.003, decay:0.18, delay:i*0.045 })
+  );
+  [110, 87].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.20, attack:0.01, decay:0.55, delay:i*0.07 })
+  );
+}
+
 // Joker releases kidnap — soft descending three-note whoosh
 function soundJokerRelease() {
   [392, 311, 233].forEach((f, i) =>
@@ -888,6 +898,21 @@ const THE_STEAL_BONUS = 21;
 
 const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 18;
+
+// Riot — 10+ cards of the same suit
+function checkRiot(hand) {
+  const bySuit = {};
+  for (const c of hand) {
+    if (c.isJoker) continue;
+    if (!bySuit[c.suit]) bySuit[c.suit] = [];
+    bySuit[c.suit].push(c);
+  }
+  for (const cards of Object.values(bySuit)) {
+    if (cards.length >= 10) return cards.slice(0, 10);
+  }
+  return null;
+}
+const RIOT_BONUS = 25;
 
 // Rule of 3 (Democracy) — any three-of-a-kind
 function checkRuleOfThree(hand) {
@@ -2401,7 +2426,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· <strong style={{fontStyle:"normal",color:"#e2c97e"}}>May be discarded at the start of your turn</strong>, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
                 {num:"d.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"e.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) — <strong style={{fontStyle:"normal",color:"#e2c97e"}}>may be discarded at the start of your turn</strong> for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
-                {num:"f.",title:"🔥 Riot",text:(<>Any 10 cards of the same suit — <strong style={{fontStyle:"normal",color:"#e2c97e"}}>may be discarded at the start of your turn</strong> for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>X pts.</strong> This immediately ends the round.</>),sub:true},
+                {num:"f.",title:"🔥 Riot",text:(<>Any 10 cards of the same suit — <strong style={{fontStyle:"normal",color:"#e2c97e"}}>may be discarded at the start of your turn</strong> for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round.</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -2519,6 +2544,8 @@ function DiamondsGame() {
   const [fireworksPlace, setFireworksPlace] = useState(1);
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
+  const [riotState, setRiotState] = useState(null);
+  const [riotOffered, setRiotOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
   const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([null,null,null,null]); // null = never offered; string = rank last offered
   const [swingingParadoxState, setSwingingParadoxState] = useState(null);
@@ -2584,6 +2611,42 @@ function DiamondsGame() {
       }
       setTheStealState({ playerIdx: cp, points: pts, aiEvent: true });
       setPhase("thesteal_event");
+    }
+  }, [phase, currentTurn, trickPlays.length]);
+
+  // Riot detection: fires at the start of each trick before playing
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (trickPlays.length > 0) return;
+    const cp = turnOrder[currentTurn];
+    if (riotOffered[cp]) return;
+    const riotCards = checkRiot(hands[cp] || []);
+    if (!riotCards) return;
+    setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    if (cp === 0) {
+      setRiotState({ playerIdx: 0, cards: riotCards, suit: riotCards[0].suit });
+      setPhase("riot");
+    } else {
+      const cardIds = new Set(riotCards.map(c=>c.id));
+      const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
+      setHands(newHands);
+      const pts = RIOT_BONUS * (goldenAgeRef.current ? 2 : 1);
+      const newRound = [...roundScores]; newRound[cp] += pts;
+      const newTotal = totalScores.map((s,i) => s + newRound[i]);
+      addLog(`🔥 ${allNames[cp]} triggers RIOT! +${pts} pts. Round ends!`);
+      soundRiot();
+      const gameOver = newTotal.some(s => s >= WIN_SCORE);
+      if (gameOver) {
+        setRoundScores(newRound);
+        setTotalScores(newTotal);
+        const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        setFireworksPlace(Math.max(1,Math.min(4,place)));
+        setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+        setScreen("gameover");
+        return;
+      }
+      setRiotState({ playerIdx: cp, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
+      setPhase("riot_event");
     }
   }, [phase, currentTurn, trickPlays.length]);
 
@@ -2705,6 +2768,8 @@ function DiamondsGame() {
     setTheStealOffered([false,false,false,false]);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
+    setRiotState(null);
+    setRiotOffered([false,false,false,false]);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -2749,6 +2814,8 @@ function DiamondsGame() {
     setTheStealOffered([false,false,false,false]);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
+    setRiotState(null);
+    setRiotOffered([false,false,false,false]);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -3348,6 +3415,51 @@ function DiamondsGame() {
   function dismissTheStealEvent() {
     setTheStealState(null);
     setPhase("playing");
+  }
+
+  function handleRiotEndRound() {
+    if (!riotState) return;
+    const { playerIdx, cards } = riotState;
+    const cardIds = new Set(cards.map(c=>c.id));
+    const newHands = hands.map((h,i) => i===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
+    setHands(newHands);
+    const pts = RIOT_BONUS * (goldenAgeRef.current ? 2 : 1);
+    const newRound = [...roundScores]; newRound[playerIdx] += pts;
+    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    addLog(`🔥 RIOT — ${allNames[playerIdx]} ends the round! +${pts} pts.`);
+    soundRiot();
+    setRiotState(null);
+    setPhase("playing");
+    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    if (gameOver) {
+      setRoundScores(newRound);
+      setTotalScores(newTotal);
+      const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+      setFireworksPlace(Math.max(1,Math.min(4,place)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
+    } else {
+      setRoundScores(newRound);
+      setTotalScores(newTotal);
+      soundRoundWin();
+      setPhase("roundover");
+      setRoundNum(r=>r+1);
+    }
+  }
+  function handleRiotPlayOn() {
+    if (!riotState) return;
+    addLog(`🔥 RIOT — ${allNames[riotState.playerIdx]} holds the cards, plays on.`);
+    setRiotState(null);
+    setPhase("playing");
+  }
+  function dismissRiotEvent() {
+    if (!riotState) return;
+    const { pendingRound, pendingTotal } = riotState;
+    setRiotState(null);
+    setRoundScores(pendingRound);
+    setTotalScores(pendingTotal);
+    soundRoundWin();
+    setPhase("roundover");
+    setRoundNum(r=>r+1);
   }
 
   // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
@@ -4167,7 +4279,7 @@ function DiamondsGame() {
             { emoji:"🌇", name:"The Steal", sub:"",                  desc:"Joker + Robbin Jack + A♠",      pts:"+21" },
             { emoji:"🏛️", name:"American Family", sub:"",            desc:"A♦ J♦ Q♦ K♦",                  pts:"+35" },
             { emoji:"🤖", name:"Golden Age", sub:"",                 desc:"All four Aces (+2× pts rest of round)", pts:"+35" },
-            { emoji:"🔥", name:"Riot", sub:"",                       desc:"10 cards, same suit (ends round)", pts:"X" },
+            { emoji:"🔥", name:"Riot", sub:"",                       desc:"10 cards, same suit (ends round)", pts:"+25" },
           ].map(({emoji,name,sub,desc,pts}) => (
             <div key={name} style={{borderTop:`1px solid ${VM.tealLight}12`,paddingTop:10,paddingBottom:8}}>
               <div style={{fontSize:20,lineHeight:1,marginBottom:4}}>{emoji}</div>
@@ -4369,14 +4481,16 @@ function DiamondsGame() {
         {(() => {
           const r3 = checkRuleOfThree(hands[0] || []);
           const r4 = checkSwingingParadox(hands[0] || []);
-          if (!r3 && !r4) return null;
-          const label = r3
-            ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
+          const riot = checkRiot(hands[0] || []);
+          if (!r3 && !r4 && !riot) return null;
+          const label = riot
+            ? `🔥 RIOT ready — 10 ${riot[0].suit}`
+            : r3 ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
             : `💍 Rule of 4 ready`;
           return (
             <div style={{
               textAlign:"center", fontSize:10, fontWeight:800, letterSpacing:1.5,
-              color: r3 ? VM.goldBright : VM.tealLight,
+              color: riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight,
               textTransform:"uppercase", fontFamily:FONT_DISPLAY,
               flexShrink:0, height:14, lineHeight:"14px", marginBottom:2,
               animation:"legalRipple 2.4s ease-in-out infinite",
@@ -4587,6 +4701,43 @@ function DiamondsGame() {
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Joker, Robbin Jack &amp; Ace of Spades — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
+          </div>
+        </EventBox>
+      )}
+
+      {phase==="riot" && riotState && (
+        <Modal>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:4}}>🔥</div>
+            <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Special Event</div>
+            <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>RIOT</h2>
+            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
+              You hold 10 {riotState.suit} cards!
+            </p>
+            <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
+              End the Round → +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
+            </p>
+            <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
+              Play On → keep all cards, no bonus
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+              <GoldBtn onClick={handleRiotEndRound}>
+                End the Round 🔥 (+{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts)
+              </GoldBtn>
+              <GoldBtn onClick={handleRiotPlayOn} secondary>
+                Play On — Keep the Cards
+              </GoldBtn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {phase==="riot_event" && riotState && (
+        <EventBox borderColor="#ff4400" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>10 {riotState.suit} cards discarded — Round over!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{riotState.points} pts 🔥</span>
           </div>
         </EventBox>
       )}
