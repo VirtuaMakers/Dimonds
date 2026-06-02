@@ -4493,6 +4493,7 @@ function DiamondsGame() {
           const r4 = checkSwingingParadox(hands[0] || []);
           const riot = checkRiot(hands[0] || []);
           if (!r3 && !r4 && !riot) return null;
+          const r4Waiting = !!r4 && !r3 && !riot && !diamondsBroken;
           const label = riot
             ? `🔥 RIOT ready — 10 ${riot[0].suit}`
             : r3 ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
@@ -4502,9 +4503,16 @@ function DiamondsGame() {
               textAlign:"center", fontSize:10, fontWeight:800, letterSpacing:1.5,
               color: riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight,
               textTransform:"uppercase", fontFamily:FONT_DISPLAY,
-              flexShrink:0, height:14, lineHeight:"14px", marginBottom:2,
+              flexShrink:0, lineHeight:"14px", marginBottom:2,
               animation:"legalRipple 2.4s ease-in-out infinite",
-            }}>{label}</div>
+            }}>
+              {label}
+              {r4Waiting && (
+                <div style={{color:"#ff4444", fontSize:8, fontWeight:700, letterSpacing:1, lineHeight:"13px", marginTop:1, animation:"none"}}>
+                  When dimonds are broken
+                </div>
+              )}
+            </div>
           );
         })()}
 
@@ -4629,7 +4637,7 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
-          {selectedSetType && isPlayerTurn && (
+          {selectedSetType && isPlayerTurn && (selectedSetType !== "r4" || diamondsBroken) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
               const pts = selectedSetBonus;
