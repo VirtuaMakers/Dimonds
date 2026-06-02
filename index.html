@@ -2333,7 +2333,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
         </div>
         {/* ── Scrollable body ── */}
         <div style={{flex:1, minHeight:0, position:"relative"}}>
-          <div style={{height:"100%", overflowY:"scroll", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch", boxSizing:"border-box"}}>
+          <div style={{position:"absolute",inset:0, overflowY:"scroll", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch", boxSizing:"border-box"}}>
           {view === "rules" ? (
             <>
               {[
