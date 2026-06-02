@@ -2690,7 +2690,7 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
 
     // Rule of 3
-    {
+    if (diamondsBroken) {
       const trio = checkRuleOfThree(hands[cp] || []);
       if (trio) {
         const rank3 = trio[0].rank;
@@ -2725,7 +2725,7 @@ function DiamondsGame() {
     }
 
     // Rule of 4
-    {
+    if (diamondsBroken) {
       const quad = checkSwingingParadox(hands[cp] || []);
       if (quad) {
         const ranks4 = [...new Set(quad.map(c=>c.rank))].sort().join(',');
@@ -2895,6 +2895,7 @@ function DiamondsGame() {
   }
 
   function continuePlayFlow(playerIdx, card, newPlays, newHands) {
+    const effectiveDiamondsBroken = diamondsBroken || isDiamond(card);
     // Check American Family for any player after each play
     for (let i=0; i<4; i++) {
       if (checkAmericanFamily(newHands[i])) {
@@ -2948,6 +2949,7 @@ function DiamondsGame() {
 
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
+      if (!effectiveDiamondsBroken) continue;
       const trio = checkRuleOfThree(newHands[i]);
       if (!trio) continue;
       const rank3cf = trio[0].rank;
@@ -2984,6 +2986,7 @@ function DiamondsGame() {
 
     // Rule of 4 (Swinging Paradox) — two dimonded pairs → discard for +18 pts
     for (let i=0; i<4; i++) {
+      if (!effectiveDiamondsBroken) continue;
       const quad = checkSwingingParadox(newHands[i]);
       if (!quad) continue;
       const ranks4cf = [...new Set(quad.map(c=>c.rank))].sort().join(',');
@@ -4493,21 +4496,23 @@ function DiamondsGame() {
           const r4 = checkSwingingParadox(hands[0] || []);
           const riot = checkRiot(hands[0] || []);
           if (!r3 && !r4 && !riot) return null;
-          const r4Waiting = !!r4 && !r3 && !riot && !diamondsBroken;
+          const showCaveat = !riot && !diamondsBroken && (r3 || r4);
           const label = riot
             ? `🔥 RIOT ready — 10 ${riot[0].suit}`
+            : (r3 && r4)
+            ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready, 💍 Rule of 4 ready`
             : r3 ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
             : `💍 Rule of 4 ready`;
+          const color = riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight;
           return (
             <div style={{
               textAlign:"center", fontSize:10, fontWeight:800, letterSpacing:1.5,
-              color: riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight,
-              textTransform:"uppercase", fontFamily:FONT_DISPLAY,
+              color, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
               flexShrink:0, lineHeight:"14px", marginBottom:2,
               animation:"legalRipple 2.4s ease-in-out infinite",
             }}>
               {label}
-              {r4Waiting && (
+              {showCaveat && (
                 <div style={{color:"#ff4444", fontSize:8, fontWeight:700, letterSpacing:1, lineHeight:"13px", marginTop:1, animation:"none"}}>
                   When dimonds are broken
                 </div>
@@ -4637,7 +4642,7 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
-          {selectedSetType && isPlayerTurn && (selectedSetType !== "r4" || diamondsBroken) && (
+          {selectedSetType && isPlayerTurn && (diamondsBroken || (selectedSetType !== "r3" && selectedSetType !== "r4")) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
               const pts = selectedSetBonus;
