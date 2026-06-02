@@ -2323,7 +2323,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
         <div style={{padding:"18px 22px 13px", borderBottom:`1px solid ${VM.tealLight}22`, flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>
-              {view === "rules" ? "How to Play" : "◆ Credits"}
+              {view === "rules" ? "Rules" : "◆ Credits"}
             </h2>
             <div style={{display:"flex",gap:6}}>
               {view === "credits" && null}
@@ -3952,7 +3952,7 @@ function DiamondsGame() {
           Multiplayer
         </GoldBtn>
         <GoldBtn onClick={()=>setShowRules(true)} secondary small>
-          How to Play
+          Rules
         </GoldBtn>
         <GoldBtn onClick={()=>setShowCredits(true)} secondary small>
           Credits
@@ -3991,7 +3991,7 @@ function DiamondsGame() {
                 <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly",paddingTop:4}}>
                   <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame();}}>Deal Me In ◆</GoldBtn>
                   <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>Multiplayer</GoldBtn>
-                  <GoldBtn onClick={()=>setShowRules(true)} secondary small>How to Play</GoldBtn>
+                  <GoldBtn onClick={()=>setShowRules(true)} secondary small>Rules</GoldBtn>
                   <GoldBtn onClick={()=>setShowCredits(true)} secondary small>Credits</GoldBtn>
                 </div>
               </div>
