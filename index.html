@@ -3123,7 +3123,7 @@ function DiamondsGame() {
       } else {
         addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) chooses not to rob.`);
       }
-      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true });
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx });
       setKidnapState(null);
       setPhase("trickresult");
     }
@@ -3718,7 +3718,7 @@ function DiamondsGame() {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
         // No valid target — show result directly (preserve rob vs kidnap)
-        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin });
+        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin, ...(isRobbin && { jackDiamondPlayerIdx: jokerPlayer }) });
         setKidnapState(null);
         setPhase("trickresult");
       }
