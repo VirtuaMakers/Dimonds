@@ -1946,7 +1946,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== AMERICAN FAMILY =====
   if (result.americanFamily) {
     return (
-      <EventBox borderColor="#ffffff" emoji="🇺🇸" title="The American Family Together!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#ffffff" emoji="🏛️" title="The American Family Together!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -2352,7 +2352,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) → discard them <strong style={{fontStyle:"normal",color:"#e2c97e"}}>at any point on your turn</strong> (as long as you still hold them!) for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) → discard all four <strong style={{fontStyle:"normal",color:"#e2c97e"}}>at any point on your turn</strong> (as long as you still hold them!) for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· Discard them, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
-                {num:"d.",title:"🇺🇸 The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
+                {num:"d.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"e.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) → discard them on your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
@@ -2927,7 +2927,7 @@ function DiamondsGame() {
     const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
     setRoundScores(newRoundScores);
     setTotalScores(newTotal);
-    addLog(`🇺🇸 ${allNames[playerIdx]} completes The American Family! +${AMERICAN_FAMILY_BONUS} pts`);
+    addLog(`🏛️ ${allNames[playerIdx]} completes The American Family! +${AMERICAN_FAMILY_BONUS} pts`);
     soundAmericanFamily();
 
     // Collect the family cards for display
