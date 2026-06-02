@@ -275,13 +275,30 @@ function soundRobbinPass() {
 }
 
 // Riot — chaotic descending sawtooth burst + low rumble
+// Riot — calamitous descending melody: opening tritone crash, chromatic tumble, bass collapse
 function soundRiot() {
-  [1319, 1047, 880, 698, 587, 494, 440, 349].forEach((f, i) =>
-    playTone({ freq:f, type:"sawtooth", volume:0.14, attack:0.003, decay:0.18, delay:i*0.045 })
+  // Melody: D6+Ab5 tritone crash, then irregular chromatic fall with a dissonant stumble mid-way
+  [
+    { f:1175, type:"sawtooth", vol:0.20, dec:0.26, t:0.00 },  // D6  — opening crash
+    { f:831,  type:"sawtooth", vol:0.16, dec:0.22, t:0.02 },  // Ab5 — tritone clash (devil's interval)
+    { f:784,  type:"sawtooth", vol:0.18, dec:0.15, t:0.24 },  // G5
+    { f:698,  type:"sawtooth", vol:0.17, dec:0.14, t:0.36 },  // F5
+    { f:740,  type:"sawtooth", vol:0.15, dec:0.13, t:0.46 },  // F#5 — dissonant stumble (wrong direction)
+    { f:554,  type:"sawtooth", vol:0.16, dec:0.15, t:0.57 },  // Db5 — tritone plunge
+    { f:466,  type:"sawtooth", vol:0.15, dec:0.17, t:0.68 },  // Bb4
+    { f:392,  type:"triangle", vol:0.15, dec:0.20, t:0.80 },  // G4
+    { f:311,  type:"triangle", vol:0.14, dec:0.24, t:0.92 },  // Eb4
+    { f:233,  type:"triangle", vol:0.17, dec:0.40, t:1.05 },  // Bb3 — dark unresolved landing
+  ].forEach(({f,type,vol,dec,t}) =>
+    playTone({ freq:f, type, volume:vol, attack:0.003, decay:dec, delay:t })
   );
-  [110, 87].forEach((f, i) =>
-    playTone({ freq:f, type:"triangle", volume:0.20, attack:0.01, decay:0.55, delay:i*0.07 })
-  );
+  // Bass counter-melody: D3 → A2 → E2 descending in parallel doom
+  playTone({ freq:147, type:"triangle", volume:0.18, attack:0.01, decay:0.45, delay:0.00 });
+  playTone({ freq:110, type:"triangle", volume:0.18, attack:0.01, decay:0.45, delay:0.45 });
+  playTone({ freq: 82, type:"triangle", volume:0.20, attack:0.01, decay:0.50, delay:0.85 });
+  // Sub-bass foundation thud + final doom chord
+  playTone({ freq:55, type:"triangle", volume:0.22, attack:0.02, decay:1.30, delay:0.00 });
+  playTone({ freq:58, type:"triangle", volume:0.18, attack:0.005, decay:0.55, delay:1.10 }); // Bb1
 }
 
 // Joker releases kidnap — soft descending three-note whoosh
