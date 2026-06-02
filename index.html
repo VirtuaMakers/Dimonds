@@ -2512,6 +2512,8 @@ function DiamondsGame() {
   });
   const [screen, setScreen] = useState("menu"); // menu | game | gameover
   const [playerName, setPlayerName] = useState("You");
+  const [gameNum, setGameNum] = useState(0);
+  const sessionNameRef = React.useRef(null); // tracks name in use for current session count
   const [nameInput, setNameInput] = useState("");
   const [showRules, setShowRules] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
@@ -2806,7 +2808,14 @@ function DiamondsGame() {
     }, 1150);
   }
 
-  function startGame() {
+  function startGame(newName) {
+    const name = newName || playerName;
+    if (sessionNameRef.current === name) {
+      setGameNum(n => n + 1);
+    } else {
+      sessionNameRef.current = name;
+      setGameNum(1);
+    }
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
     setGameLog([]);
@@ -4062,7 +4071,7 @@ function DiamondsGame() {
         <input
           value={nameInput}
           onChange={e=>setNameInput(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),startGame())}
+          onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),startGame(nameInput.trim()||"You"))}
           placeholder="Enter your name..."
           maxLength={14}
           style={{
@@ -4132,7 +4141,7 @@ function DiamondsGame() {
     );
     const buttons = (
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
-        <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame();}}>
+        <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
           Deal Me In ◆
         </GoldBtn>
         <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>
@@ -4176,7 +4185,7 @@ function DiamondsGame() {
               <div style={{width:260,flexShrink:0,display:"flex",flexDirection:"column"}}>
                 {nameBox}
                 <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly",paddingTop:4}}>
-                  <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame();}}>Deal Me In ◆</GoldBtn>
+                  <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>Deal Me In ◆</GoldBtn>
                   <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>Multiplayer</GoldBtn>
                   <GoldBtn onClick={()=>setShowRules(true)} secondary small>Rules</GoldBtn>
                   <GoldBtn onClick={()=>setShowCredits(true)} secondary small>Credits</GoldBtn>
@@ -4310,7 +4319,8 @@ function DiamondsGame() {
           letterSpacing:2, flexShrink:0,
         }}>◆ DIMONDS</div>
         <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Rnd <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
+          {gameNum > 0 && <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Game <strong style={{color:VM.tealLight}}>{gameNum}</strong></span>}
+          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Round <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
           <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
         <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
