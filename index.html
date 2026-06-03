@@ -2329,7 +2329,9 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
 
-  const sorted = allNames.map((n,i)=>({n, s:scores[i]||0, rs:roundScores[i]||0, idx:i})).sort((a,b)=>b.s-a.s);
+  // Tie-breaking: AI beats computer beats human (idx 0 = human always loses ties)
+  const tieBreak = (a,b) => (a.idx===0?1:b.idx===0?-1:a.idx-b.idx);
+  const sorted = allNames.map((n,i)=>({n, s:scores[i]||0, rs:roundScores[i]||0, idx:i})).sort((a,b)=>b.s-a.s||tieBreak(a,b));
 
   // ── LEVEL 2: single trick card view ──
   if (drillPlayer !== null && drillEvent !== null) {
@@ -2454,8 +2456,8 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
   // ── LEVEL 0: rankings ──
   const tricksByPlayer = allNames.map((_,i) => eventLog.filter(e => e.type === "trick" && e.playerIdx === i).length);
   const setsByPlayer   = allNames.map((_,i) => eventLog.filter(e => e.type === "set"   && e.playerIdx === i).length);
-  const trickRanked = allNames.map((n,i) => ({ n, idx:i, count:tricksByPlayer[i] })).sort((a,b)=>b.count-a.count);
-  const setRanked   = allNames.map((n,i) => ({ n, idx:i, count:setsByPlayer[i]   })).sort((a,b)=>b.count-a.count);
+  const trickRanked = allNames.map((n,i) => ({ n, idx:i, count:tricksByPlayer[i] })).sort((a,b)=>b.count-a.count||tieBreak(a,b));
+  const setRanked   = allNames.map((n,i) => ({ n, idx:i, count:setsByPlayer[i]   })).sort((a,b)=>b.count-a.count||tieBreak(a,b));
   const MEDALS = ["🥇","🥈","🥉","🎖️"];
 
   const sectionLabel = (text) => (
