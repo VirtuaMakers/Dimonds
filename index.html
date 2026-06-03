@@ -2584,11 +2584,11 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ & 6♦️+6♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
-                {num:"c.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Hold any four of a kind (ex. four 8s) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
+                {num:"c.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"d.",title:"🔥 Riot",text:(<>Any nine cards of the same suit may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
-                {num:"e.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· May be discarded at the start of your turn, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
-                {num:"f.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
-                {num:"g.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
+                {num:"e.",title:"🌇 The Steal",text:(<>All three "steal" cards –🃏 The Joker, 🎴/⚖️ "Robbin Jack", and ♠️ The Ace of Spades may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"f.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"g.",title:"🤖 The Golden Age",text:(<>All four aces (A♦️, A♠️, A♥️, A♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> All points doubled for the rest of the round!</>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -2605,6 +2605,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               <div style={{borderTop:"1px solid #ffffff18",marginTop:6,paddingTop:8,paddingLeft:14,color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>
                 Note: Each card can only be counted toward one set.
               </div>
+              <div style={{height:14}}/>
               {[
                 {num:"6.",title:"✂️ Cutting Your Teeth!",text:(<>
                   <div>When the first Diamond card is played in any trick, the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
