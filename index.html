@@ -2777,9 +2777,7 @@ function DiamondsGame() {
     // Mark offered so it only fires once per round per player
     setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === 0) {
-      // Human player — show THE STEAL modal
-      setTheStealState({ playerIdx: 0, hands: hands.map(h=>[...h]) });
-      setPhase("thesteal");
+      return; // Human player notified via buttons in action area
     } else {
       // AI player — cash in, then show event box so human sees it
       const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -2814,8 +2812,7 @@ function DiamondsGame() {
     if (!riotCards) return;
     setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === 0) {
-      setRiotState({ playerIdx: 0, cards: riotCards, suit: riotCards[0].suit });
-      setPhase("riot");
+      return; // Human player notified via buttons in action area
     } else {
       const cardIds = new Set(riotCards.map(c=>c.id));
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
@@ -2851,8 +2848,7 @@ function DiamondsGame() {
     if (!checkAcesLow(hands[cp] || [])) return;
     setAcesLowOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === 0) {
-      setAcesLowState({ playerIdx: 0, hands: hands.map(h=>[...h]), continuation: null });
-      setPhase("aceslow_offer");
+      return; // Human player notified via buttons in action area
     } else {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
       const familyCount = (hands[cp] || []).filter(c => familyIds.includes(c.id)).length;
@@ -2891,12 +2887,12 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [phase, currentTurn, hands, trickPlays.length]);
 
-  // Pre-play set detection: fires at the start of each player's turn, before they play a card.
-  // Rule of 3, Rule of 4 (Golden Age / Aces Low is handled by its own useEffect above).
+  // Pre-play set detection for AI players (Rule of 3/4/2). Human player is notified via buttons.
   useEffect(() => {
     if (phase !== "playing") return;
     if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
+    if (cp === 0) return; // Human sees buttons in action area
 
     // Rule of 3
     if (diamondsBroken) {
@@ -3017,7 +3013,7 @@ function DiamondsGame() {
     if (!checkAmericanFamily(hands[cp] || [])) return;
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === 0) {
-      setPhase("americanfamily_offer");
+      return; // Human player notified via buttons in action area
     } else {
       const GA = goldenAgeRef.current ? 2 : 1;
       const pts = AMERICAN_FAMILY_BONUS * GA;
@@ -4957,7 +4953,7 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
-          {selectedSetType && isPlayerTurn && (diamondsBroken || (selectedSetType !== "r3" && selectedSetType !== "r4")) && (
+          {selectedSetType && isPlayerTurn && (diamondsBroken || selectedCards.every(c => c.suit !== "♦")) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
               const pts = selectedSetBonus;
@@ -4988,46 +4984,66 @@ function DiamondsGame() {
               Redeem Set +{selectedSetBonus}
             </GoldBtn>
           )}
-          {/* Manual re-trigger buttons for modal-based sets after HOLD (only before playing a card) */}
-          {isPlayerTurn && trickPlays.length === 0 && phase === "playing" && (
-            <>
-              {ruleOfThreeOffered[0] !== null && checkRuleOfThree(hands[0] || []) && (
-                <GoldBtn onClick={()=>{ const trio=checkRuleOfThree(hands[0]||[]); setRuleOfThreeState({ playerIdx:0, cards:trio, continuation:null }); setPhase("ruleofthree_offer"); }}>
-                  🦅 Redeem Rule of 3 +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}
-                </GoldBtn>
-              )}
-              {ruleFourOffered[0] !== null && checkRuleFour(hands[0] || []) && (
-                <GoldBtn onClick={()=>{ const q4=checkRuleFour(hands[0]||[]); setRuleFourState({ playerIdx:0, cards:q4, continuation:null }); setPhase("rulefour_offer"); }}>
-                  💎 Redeem Rule of 4 +{RULE_OF_FOUR_BONUS*(goldenAgeRef.current?2:1)}
-                </GoldBtn>
-              )}
-              {swingingParadoxOffered[0] !== null && checkSwingingParadox(hands[0] || []) && (
-                <GoldBtn onClick={()=>{ const quad=checkSwingingParadox(hands[0]||[]); setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null }); setPhase("swingingparadox_offer"); }}>
-                  💍 Redeem Rule of 2 +{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)}
-                </GoldBtn>
-              )}
-              {acesLowOffered[0] && checkAcesLow(hands[0] || []) && (
-                <GoldBtn onClick={()=>{ setAcesLowState({ playerIdx:0, hands:hands.map(h=>[...h]), continuation:null }); setPhase("aceslow_offer"); }}>
-                  🤖 Redeem Golden Age +{ACES_LOW_BONUS}
-                </GoldBtn>
-              )}
-              {theStealOffered[0] && checkTheSteal(hands[0] || []) && (
-                <GoldBtn onClick={()=>{ setTheStealState({ playerIdx:0, hands:hands.map(h=>[...h]) }); setPhase("thesteal"); }}>
-                  🌇 Redeem The Steal +{THE_STEAL_BONUS}
-                </GoldBtn>
-              )}
-              {riotOffered[0] && checkRiot(hands[0] || [], diamondsBroken) && (
-                <GoldBtn onClick={()=>{ const rc=checkRiot(hands[0]||[],diamondsBroken); setRiotState({ playerIdx:0, cards:rc, suit:rc[0].suit }); setPhase("riot"); }}>
-                  🔥 Redeem Riot +{RIOT_BONUS}
-                </GoldBtn>
-              )}
-              {americanFamilyOffered[0] && checkAmericanFamily(hands[0] || []) && (
-                <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>
-                  🏛️ Redeem The American Family +{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)}
-                </GoldBtn>
-              )}
-            </>
-          )}
+          {/* Set notification buttons — appear at the start of your turn before playing */}
+          {isPlayerTurn && trickPlays.length === 0 && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && (()=>{
+            const h0 = hands[0] || [];
+            const GA = goldenAgeRef.current ? 2 : 1;
+
+            const r3Cards = checkRuleOfThree(h0);
+            const r3HasDia = !!(r3Cards && r3Cards.some(c => c.suit==="♦"));
+            const r3Avail = r3Cards && (!r3HasDia || diamondsBroken) ? r3Cards : null;
+            const r3Locked = r3Cards && r3HasDia && !diamondsBroken;
+
+            const r4Cards = checkRuleFour(h0);
+            const r4HasDia = !!(r4Cards && r4Cards.some(c => c.suit==="♦"));
+            const r4Avail = r4Cards && (!r4HasDia || diamondsBroken) ? r4Cards : null;
+            const r4Locked = r4Cards && r4HasDia && !diamondsBroken;
+
+            const spCards = checkSwingingParadox(h0);
+            const spAvail = spCards && diamondsBroken ? spCards : null;
+            const spLocked = spCards && !diamondsBroken;
+
+            const riotAvail = checkRiot(h0, diamondsBroken);
+            const riotLocked = !diamondsBroken && !riotAvail && checkRiot(h0, true);
+
+            const hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked);
+
+            const stealAvail = checkTheSteal(h0);
+            const afAvail = checkAmericanFamily(h0);
+            const gaAvail = checkAcesLow(h0);
+
+            const lockedBtnStyle = {
+              background:"transparent", color:"#ffffff44",
+              border:"1.5px solid #ffffff1a", borderRadius:10,
+              padding:"9px 16px", fontSize:12, fontWeight:800,
+              cursor:"default", letterSpacing:1, textTransform:"uppercase",
+              fontFamily:FONT_DISPLAY,
+            };
+
+            return (
+              <>
+                {r3Avail && <GoldBtn onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
+                {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
+                {spAvail && <GoldBtn onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:spAvail,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</GoldBtn>}
+                {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
+                {hasLocked && (
+                  <div style={{background:"#ffffff08",border:"1px solid #ffffff18",borderRadius:10,padding:"8px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,width:"100%",boxSizing:"border-box"}}>
+                    <div style={{color:"#ffffff66",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔒 When Dimonds Are Broken</div>
+                    <div style={{color:"#ffffff44",fontSize:10,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.4}}>These sets include ♦ cards — available after Cutting Your Teeth!</div>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:2}}>
+                      {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
+                      {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
+                      {r4Locked && <div style={lockedBtnStyle}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</div>}
+                      {riotLocked && <div style={lockedBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</div>}
+                    </div>
+                  </div>
+                )}
+                {stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
+                {afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
+                {gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
+              </>
+            );
+          })()}
         </div>
         {/* Safe-area spacer — clears iPhone home indicator */}
         <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
