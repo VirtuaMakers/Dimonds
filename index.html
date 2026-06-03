@@ -4875,36 +4875,7 @@ function DiamondsGame() {
           {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
         </div>
 
-        {/* SET AVAILABLE BADGE */}
-        {(() => {
-          const r3 = checkRuleOfThree(hands[0] || []);
-          const r4 = checkSwingingParadox(hands[0] || []);
-          const riot = checkRiot(hands[0] || [], diamondsBroken);
-          if (!r3 && !r4 && !riot) return null;
-          const showCaveat = !riot && !diamondsBroken && (r3 || r4);
-          const label = riot
-            ? `🔥 Riot Ready`
-            : (r3 && r4)
-            ? `💍 Rule of 2 Ready  🦅 Rule of 3 Ready`
-            : r3 ? `🦅 Rule of 3 Ready`
-            : `💍 Rule of 2 Ready`;
-          const color = riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight;
-          return (
-            <div style={{
-              textAlign:"center", fontSize:10, fontWeight:800, letterSpacing:1.5,
-              color, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
-              flexShrink:0, lineHeight:"14px", marginBottom:2,
-              animation:"legalRipple 2.4s ease-in-out infinite",
-            }}>
-              {label}
-              {showCaveat && (
-                <div style={{color:"#ff6644", fontSize:8, fontWeight:700, letterSpacing:1, lineHeight:"13px", marginTop:1, animation:"none"}}>
-                  🔓 Unlock by Breaking Dimonds
-                </div>
-              )}
-            </div>
-          );
-        })()}
+
 
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
