@@ -4719,6 +4719,11 @@ function DiamondsGame() {
           {/* Manual re-trigger buttons for modal-based sets after HOLD (only before playing a card) */}
           {isPlayerTurn && trickPlays.length === 0 && phase === "playing" && (
             <>
+              {ruleOfThreeOffered[0] !== null && checkRuleOfThree(hands[0] || []) && (
+                <GoldBtn onClick={()=>{ const trio=checkRuleOfThree(hands[0]||[]); setRuleOfThreeState({ playerIdx:0, cards:trio, continuation:null }); setPhase("ruleofthree_offer"); }}>
+                  🦅 Redeem Rule of 3 +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}
+                </GoldBtn>
+              )}
               {acesLowOffered[0] && checkAcesLow(hands[0] || []) && (
                 <GoldBtn onClick={()=>{ setAcesLowState({ playerIdx:0, hands:hands.map(h=>[...h]), continuation:null }); setPhase("aceslow_offer"); }}>
                   🤖 Redeem Golden Age +{ACES_LOW_BONUS}
