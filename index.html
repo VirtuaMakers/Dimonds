@@ -921,8 +921,9 @@ function checkTheSteal(hand) {
 }
 const THE_STEAL_BONUS = 25;
 
-const RULE_OF_THREE_BONUS = 18;
+const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 13;
+const RULE_OF_FOUR_BONUS = 18;
 
 // Riot — 9+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
 function checkRiot(hand, diamondsBroken = true) {
@@ -967,7 +968,20 @@ function checkRuleOfThree(hand) {
   return null;
 }
 
-// Rule of 4 (Swinging Paradox) — two pairs, each pair containing one dimond
+function checkRuleFour(hand) {
+  const byRank = {};
+  for (const c of hand) {
+    if (c.isJoker) continue;
+    if (!byRank[c.rank]) byRank[c.rank] = [];
+    byRank[c.rank].push(c);
+  }
+  for (const cards of Object.values(byRank)) {
+    if (cards.length >= 4) return cards.slice(0, 4);
+  }
+  return null;
+}
+
+// Rule of 2 (Swinging Paradox) — two pairs, each pair containing one dimond
 function checkSwingingParadox(hand) {
   const byRank = {};
   for (const c of hand) {
@@ -2595,6 +2609,8 @@ function DiamondsGame() {
   const [riotOffered, setRiotOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
   const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([null,null,null,null]); // null = never offered; string = rank last offered
+  const [ruleFourState, setRuleFourState] = useState(null);
+  const [ruleFourOffered, setRuleFourOffered] = useState([null,null,null,null]);
   const [swingingParadoxState, setSwingingParadoxState] = useState(null);
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
@@ -2788,7 +2804,42 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 4
+    // Rule of 4 (Diamond in the Rough) — four of a kind
+    if (diamondsBroken) {
+      const quad4 = checkRuleFour(hands[cp] || []);
+      if (quad4) {
+        const rank4 = quad4[0].rank;
+        if (ruleFourOffered[cp] !== rank4) {
+        setRuleFourOffered(prev => { const n=[...prev]; n[cp]=rank4; return n; });
+        if (cp === 0) {
+          setRuleFourState({ playerIdx:0, cards:quad4, continuation:null });
+          setPhase("rulefour_offer");
+          return;
+        } else {
+          const pts = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
+          const cardIds = new Set(quad4.map(c=>c.id));
+          const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
+          const newRS = [...roundScores]; newRS[cp] += pts;
+          setRoundScores(newRS);
+          setHands(newHands);
+          setRuleFourOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
+          addLog(`💎 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
+          const newTotal = totalScores.map((s,k) => s + newRS[k]);
+          if (newTotal.some(s => s >= WIN_SCORE)) {
+            setTotalScores(newTotal);
+            setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+            setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+            setScreen("gameover"); return;
+          }
+          setRuleFourState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
+          setPhase("rulefour_event");
+          return;
+        }
+        }
+      }
+    }
+
+    // Rule of 2 (Swinging Paradox)
     if (diamondsBroken) {
       const quad = checkSwingingParadox(hands[cp] || []);
       if (quad) {
@@ -3015,7 +3066,7 @@ function DiamondsGame() {
       return;
     }
 
-    // Rule of 4 (Swinging Paradox) — two dimonded pairs → discard for +18 pts
+    // Rule of 2 (Swinging Paradox) — two dimonded pairs → discard for +13 pts
     for (let i=0; i<4; i++) {
       if (!effectiveDiamondsBroken) continue;
       if (i === 0) continue; // human R4 handled by badge/Redeem Set button, not mid-trick
@@ -3044,6 +3095,40 @@ function DiamondsGame() {
         }
         setSwingingParadoxState({ playerIdx:i, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
         setPhase("swingingparadox_event");
+        return;
+      }
+      break;
+    }
+
+    // Rule of 4 (Diamond in the Rough) — four of a kind
+    for (let i=0; i<4; i++) {
+      if (!effectiveDiamondsBroken) continue;
+      if (i === 0) continue;
+      const quad4 = checkRuleFour(newHands[i]);
+      if (!quad4) continue;
+      const rank4cf = quad4[0].rank;
+      if (ruleFourOffered[i] === rank4cf) continue;
+      setRuleFourOffered(prev => { const n=[...prev]; n[i]=rank4cf; return n; });
+      {
+        const cardIds4 = new Set(quad4.map(c=>c.id));
+        newHands = newHands.map((h,j) => j===i ? h.filter(c=>!cardIds4.has(c.id)) : h);
+        const pts4 = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
+        const newRS4f = [...roundScores]; newRS4f[i] += pts4;
+        setRoundScores(newRS4f);
+        setHands(newHands);
+        addLog(`💎 ${allNames[i]} cashes in Rule of 4! +${pts4} pts`);
+        setRuleFourOffered(prev => { const n=[...prev]; n[i]=null; return n; });
+        const newTotal4f = totalScores.map((s,k) => s + newRS4f[k]);
+        if (newTotal4f.some(s => s >= WIN_SCORE)) {
+          setTotalScores(newTotal4f);
+          const place4f = 1 + newTotal4f.filter((s,j) => s > newTotal4f[0] || (s === newTotal4f[0] && j !== 0)).length;
+          setFireworksPlace(Math.max(1,Math.min(4,place4f)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+          setScreen("gameover");
+          return;
+        }
+        setRuleFourState({ playerIdx:i, cashed:true, points:pts4, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
+        setPhase("rulefour_event");
         return;
       }
       break;
