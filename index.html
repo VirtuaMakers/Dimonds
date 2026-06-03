@@ -4801,6 +4801,20 @@ function DiamondsGame() {
             position:"absolute", left:10, top:"54%", transform:"translateY(-50%)", zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
+            {!diamondsBroken && (() => {
+              const h0 = hands[0] || [];
+              const r3c = checkRuleOfThree(h0);
+              const r4c = checkRuleFour(h0);
+              const spc = checkSwingingParadox(h0);
+              const rc  = checkRiot(h0, true);
+              const anyLocked = (r3c && r3c.some(c=>c.suit==="♦")) || (r4c && r4c.some(c=>c.suit==="♦")) || spc || rc;
+              if (!anyLocked) return null;
+              return (
+                <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:1.5,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:3}}>
+                  🔓 Unlock by Breaking Dimonds
+                </div>
+              );
+            })()}
             <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
             {[
               { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",      pts:"+13" },
@@ -4854,8 +4868,8 @@ function DiamondsGame() {
             }}>
               {label}
               {showCaveat && (
-                <div style={{color:"#ff4444", fontSize:8, fontWeight:700, letterSpacing:1, lineHeight:"13px", marginTop:1, animation:"none"}}>
-                  When dimonds are broken
+                <div style={{color:"#ff6644", fontSize:8, fontWeight:700, letterSpacing:1, lineHeight:"13px", marginTop:1, animation:"none"}}>
+                  🔓 Unlock by Breaking Dimonds
                 </div>
               )}
             </div>
@@ -5063,14 +5077,9 @@ function DiamondsGame() {
 
             return (
               <>
-                {r3Avail && <GoldBtn onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
-                {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
-                {spAvail && <GoldBtn onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:spAvail,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</GoldBtn>}
-                {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
                 {hasLocked && (
-                  <div style={{background:"#ffffff08",border:"1px solid #ffffff18",borderRadius:10,padding:"8px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,width:"100%",boxSizing:"border-box"}}>
-                    <div style={{color:"#ffffff66",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔒 When Dimonds Are Broken</div>
-                    <div style={{color:"#ffffff44",fontSize:10,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.4}}>These sets include ♦ cards — available after Cutting Your Teeth!</div>
+                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:10,padding:"8px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,width:"100%",boxSizing:"border-box"}}>
+                    <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:2}}>
                       {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
                       {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
@@ -5079,6 +5088,10 @@ function DiamondsGame() {
                     </div>
                   </div>
                 )}
+                {r3Avail && <GoldBtn onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
+                {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
+                {spAvail && <GoldBtn onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:spAvail,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</GoldBtn>}
+                {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
                 {stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
                 {afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
                 {gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
