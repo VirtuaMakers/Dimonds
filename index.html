@@ -2054,12 +2054,14 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver }) {
+function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false }) {
   if (!result) return null;
 
   const aceCard = result.plays?.find(p => isBatman(p.card))?.card;
   const winningPlay = result.plays?.find(p => p.playerIdx === result.winnerIdx);
-  const pointsWon = result.diamondsCaptured?.reduce((s,c)=>s+diamondPoints(c),0) || 0;
+  const rawPoints = result.diamondsCaptured?.reduce((s,c)=>s+diamondPoints(c),0) || 0;
+  const multiplier = isGoldenAge ? 2 : 1;
+  const pointsWon = rawPoints * multiplier;
   const btnLabel = isGameOver ? "END"
     : result.pendingAmericanFamily ? "PROCEED"
     : result.americanFamily ? "PROCEED"
@@ -2082,7 +2084,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           background:"#ffffff11", border:"1px solid #ffffff33",
           borderRadius:10, padding:"8px 20px", display:"inline-block",
         }}>
-          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{AMERICAN_FAMILY_BONUS} points! Round Over!</span>
+          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{AMERICAN_FAMILY_BONUS * multiplier} points! Round Over!{isGoldenAge ? " 🤖 2×" : ""}</span>
         </div>
       </EventBox>
     );
@@ -2122,7 +2124,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           background:"#4466ff11", border:"1px solid #4466ff44",
           borderRadius:10, padding:"8px 20px", display:"inline-block",
         }}>
-          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+35 pts bonus!</span>
+          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{35 * multiplier} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
         </div>
       </EventBox>
     );
@@ -2158,7 +2160,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
-              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{!robbinWonTrick ? ` (to ${allNames[trickWinner]})` : ""}
+              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}{!robbinWonTrick ? ` (to ${allNames[trickWinner]})` : ""}
             </span>
           </div>
         )}
@@ -2184,7 +2186,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
-              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{trickWinner !== robbinIdx ? ` (to ${allNames[trickWinner]})` : ""}
+              +{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}{trickWinner !== robbinIdx ? ` (to ${allNames[trickWinner]})` : ""}
             </span>
           </div>
         )}
@@ -2213,7 +2215,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             background:"#7700cc11", border:"1px solid #7700cc44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}</span>
           </div>
         )}
       </EventBox>
@@ -2259,7 +2261,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             background:"#4466ff11", border:"1px solid #4466ff44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎 (to {allNames[result.winnerIdx]})</span>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""} (to {allNames[result.winnerIdx]})</span>
           </div>
         )}
       </EventBox>
@@ -2282,7 +2284,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           background:"#c9a84c11", border:"1px solid #c9a84c44",
           borderRadius:10, padding:"8px 20px", display:"inline-block",
         }}>
-          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎</span>
+          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}</span>
         </div>
       )}
     </EventBox>
@@ -5220,6 +5222,7 @@ function DiamondsGame() {
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
+          isGoldenAge={goldenAgeActive}
         />
       )}
 
