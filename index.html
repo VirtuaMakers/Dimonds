@@ -2325,7 +2325,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[] }) {
+function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0] }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
 
@@ -2477,30 +2477,46 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         </div>
 
         {sectionLabel("Score Ranking")}
-        <div style={{display:"flex",justifyContent:"space-between",padding:"0 16px 6px",marginBottom:8}}>
-          <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>PLAYER</span>
-          <div style={{display:"flex",gap:24}}>
-            <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>THIS ROUND</span>
-            <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>TOTAL</span>
+        {/* Column headers — PTS | 🎩 | 💍 */}
+        <div style={{display:"flex",justifyContent:"space-between",padding:"0 4px 4px",marginBottom:2}}>
+          <span style={{color:"#ffffff33",fontSize:9,letterSpacing:1}}>PLAYER</span>
+          <div style={{display:"flex",gap:8}}>
+            <span style={{color:"#c9a84c55",fontSize:9,letterSpacing:1,minWidth:44,textAlign:"center"}}>PTS</span>
+            <span style={{color:"#7ec8a455",fontSize:9,letterSpacing:1,minWidth:40,textAlign:"center"}}>🎩</span>
+            <span style={{color:"#8a9fe055",fontSize:9,letterSpacing:1,minWidth:36,textAlign:"center"}}>💍</span>
           </div>
         </div>
+        {sectionLabel("Most Points")}
 
         {sorted.map((p,i)=>(
           <div key={p.n} onClick={()=>setDrillPlayer(p.idx)} style={{
             display:"flex",justifyContent:"space-between",alignItems:"center",
             background: i===0?"#c9a84c14":"#ffffff05",
             border:`1px solid ${i===0?"#c9a84c55":"#ffffff0d"}`,
-            borderRadius:12,padding:"14px 16px",marginBottom:8,
+            borderRadius:12,padding:"10px 14px",marginBottom:8,
             cursor:"pointer",
           }}>
-            <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>{MEDALS[i]}</span>
-              <span style={{color:i===0?"#e2c97e":"#ffffffcc",fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <span style={{fontSize:16}}>{MEDALS[i]}</span>
+              <span style={{color:i===0?"#e2c97e":"#ffffffcc",fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
               <span style={{color:"#c9a84c",fontSize:11}}>▶</span>
             </div>
-            <div style={{display:"flex",gap:24,alignItems:"center"}}>
-              <span style={{color:p.rs>0?"#c9a84c":"#ffffff33",fontSize:16,fontWeight:700,minWidth:40,textAlign:"center"}}>+{p.rs}</span>
-              <span style={{color:i===0?"#ffd700":"#ffffffcc",fontSize:22,fontWeight:800,fontFamily:FONT_UI,minWidth:36,textAlign:"right"}}>{p.s}</span>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              {/* Points: big total, small round delta */}
+              <div style={{textAlign:"center",minWidth:44}}>
+                <div style={{color:i===0?"#ffd700":"#ffffffcc",fontSize:20,fontWeight:800,fontFamily:FONT_UI,lineHeight:1}}>{p.s}</div>
+                <div style={{color:"#c9a84c99",fontSize:10,marginTop:2}}>+{p.rs}</div>
+              </div>
+              {/* Tricks: game total (green), round delta */}
+              <div style={{textAlign:"center",minWidth:40}}>
+                <div style={{color:"#7ec8a4",fontSize:16,fontWeight:700,lineHeight:1}}>{gameTricksPerPlayer[p.idx]||0}</div>
+                <div style={{color:"#7ec8a466",fontSize:10,marginTop:2}}>+{tricksByPlayer[p.idx]||0}</div>
+              </div>
+              {/* Sets: game total (blue), round delta */}
+              <div style={{textAlign:"center",minWidth:36}}>
+                <div style={{color:"#8a9fe0",fontSize:16,fontWeight:700,lineHeight:1}}>{gameSetsPerPlayer[p.idx]||0}</div>
+                <div style={{color:"#8a9fe066",fontSize:10,marginTop:2}}>+{setsByPlayer[p.idx]||0}</div>
+              </div>
             </div>
           </div>
         ))}
@@ -2789,6 +2805,8 @@ function DiamondsGame() {
   const [hands, setHands] = useState([[],[],[],[]]);
   const [totalScores, setTotalScores] = useState([0,0,0,0]);
   const [roundScores, setRoundScores] = useState([0,0,0,0]);
+  const [gameTricksPerPlayer, setGameTricksPerPlayer] = useState([0,0,0,0]);
+  const [gameSetsPerPlayer,   setGameSetsPerPlayer]   = useState([0,0,0,0]);
   const [trickPlays, setTrickPlays] = useState([]); // [{playerIdx, card}]
   const [currentLeader, setCurrentLeader] = useState(0);
   const [currentTurn, setCurrentTurn] = useState(0); // index in turn order
@@ -3200,6 +3218,8 @@ function DiamondsGame() {
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
     setGameLog([]);
+    setGameTricksPerPlayer([0,0,0,0]);
+    setGameSetsPerPlayer([0,0,0,0]);
     setScreen("game");
     const newHands = dealCards(initDealer);
     const leader = findLeader(newHands);
@@ -3247,7 +3267,18 @@ function DiamondsGame() {
 
   useEffect(() => {
     if (phase === "roundover" || phase === "gameover") {
-      setRoundEventLog([...roundEventLogRef.current]);
+      const log = [...roundEventLogRef.current];
+      setRoundEventLog(log);
+      // Accumulate game-wide totals only on roundover (gameover skips round-over screen)
+      if (phase === "roundover") {
+        const rt = [0,0,0,0], rs = [0,0,0,0];
+        for (const e of log) {
+          if (e.type === "trick") rt[e.playerIdx]++;
+          if (e.type === "set")   rs[e.playerIdx]++;
+        }
+        setGameTricksPerPlayer(prev => prev.map((v,i) => v + rt[i]));
+        setGameSetsPerPlayer(prev =>   prev.map((v,i) => v + rs[i]));
+      }
     }
   }, [phase]);
 
@@ -5489,6 +5520,8 @@ function DiamondsGame() {
           roundScores={roundScores}
           onContinue={startNextRound}
           eventLog={roundEventLog}
+          gameTricksPerPlayer={gameTricksPerPlayer}
+          gameSetsPerPlayer={gameSetsPerPlayer}
         />
       )}
 
