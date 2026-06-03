@@ -826,6 +826,15 @@ function sortHand(hand) {
     return HAND_SUIT_ORDER[a.suit] - HAND_SUIT_ORDER[b.suit];
   });
 }
+function sortHandBySuit(hand) {
+  return [...hand].sort((a, b) => {
+    if (a.isJoker) return 1;
+    if (b.isJoker) return -1;
+    const suitDiff = HAND_SUIT_ORDER[a.suit] - HAND_SUIT_ORDER[b.suit];
+    if (suitDiff !== 0) return suitDiff;
+    return RANK_VALUE[a.rank] - RANK_VALUE[b.rank];
+  });
+}
 const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 35;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
@@ -878,11 +887,10 @@ function diamondPoints(card) {
   return 1;
 }
 
-function dealCards() {
+function dealCards(dealerIdx = 0) {
   const deck = shuffle(buildDeck()); // 53 cards
-  // Deal: one player gets 14, others get 13. Rotate by round elsewhere.
   const hands = [[],[],[],[]];
-  deck.forEach((c,i) => hands[i%4].push(c));
+  deck.forEach((c,i) => hands[(i + dealerIdx) % 4].push(c));
   return hands;
 }
 
@@ -1811,7 +1819,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
 
-  const displayHand = chosenPlayer !== null ? sortHand(hands[chosenPlayer]) : [];
+  const displayHand = chosenPlayer !== null ? sortHandBySuit(hands[chosenPlayer]) : [];
 
   // Map sorted card back to original index in hands[chosenPlayer]
   function getOriginalIdx(card) {
@@ -1900,7 +1908,7 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme }) {
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
 
-  const displayHand = chosenPlayer !== null ? sortHand(hands[chosenPlayer]) : [];
+  const displayHand = chosenPlayer !== null ? sortHandBySuit(hands[chosenPlayer]) : [];
 
   function getOriginalIdx(card) {
     return hands[chosenPlayer].findIndex(c => c.id === card.id);
@@ -2574,6 +2582,7 @@ function DiamondsGame() {
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [roundNum, setRoundNum] = useState(1);
+  const [dealerIdx, setDealerIdx] = useState(0);
   const [tricksPlayed, setTricksPlayed] = useState(0);
   const [isFirstTrick, setIsFirstTrick] = useState(true);
   const [gameLog, setGameLog] = useState([]);
@@ -2821,7 +2830,9 @@ function DiamondsGame() {
 
   // ---- Start a new round ----
   function startRound(existingScores) {
-    const newHands = dealCards();
+    const nextDealer = (dealerIdx + 1) % 4;
+    setDealerIdx(nextDealer);
+    const newHands = dealCards(nextDealer);
     const leader = findLeader(newHands);
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
@@ -2870,11 +2881,13 @@ function DiamondsGame() {
       sessionNameRef.current = name;
       setGameNum(1);
     }
+    const initDealer = Math.floor(Math.random() * 4);
+    setDealerIdx(initDealer);
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
     setGameLog([]);
     setScreen("game");
-    const newHands = dealCards();
+    const newHands = dealCards(initDealer);
     const leader = findLeader(newHands);
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
