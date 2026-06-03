@@ -2294,26 +2294,140 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue }) {
-  const total = allNames.map((n,i)=>({n,s:scores[i]||0,rs:roundScores[i]||0})).sort((a,b)=>b.s-a.s);
+function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[] }) {
+  const [drillPlayer, setDrillPlayer] = useState(null);
+  const [drillEvent, setDrillEvent] = useState(null);
+
+  const sorted = allNames.map((n,i)=>({n, s:scores[i]||0, rs:roundScores[i]||0, idx:i})).sort((a,b)=>b.s-a.s);
+
+  // ── LEVEL 2: single trick card view ──
+  if (drillPlayer !== null && drillEvent !== null) {
+    const ev = drillEvent;
+    const isDiamond = c => !c.isJoker && c.suit === "♦";
+    const suitColor = s => s==="♦"||s==="♥" ? "#ff6b6b" : "#ffffffcc";
+    return (
+      <Modal>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div onClick={()=>setDrillEvent(null)} style={{color:"#c9a84c",fontSize:22,cursor:"pointer",lineHeight:1,padding:"2px 6px"}}>▲</div>
+            <div style={{color:"#c9a84c",fontSize:13,fontWeight:700,letterSpacing:1,fontFamily:FONT_UI}}>
+              Trick {ev.trickNum} — Cards Played
+            </div>
+          </div>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+            {(ev.plays||[]).map((p,i)=>{
+              const c = p.card;
+              const label = c.isJoker ? "🃏 Joker" : `${c.rank}${c.suit}`;
+              const isWinner = p.playerIdx === ev.playerIdx;
+              const isD = !c.isJoker && isDiamond(c);
+              return (
+                <div key={i} style={{
+                  display:"flex", alignItems:"center", justifyContent:"space-between",
+                  background: isWinner ? "#c9a84c18" : "#ffffff06",
+                  border:`1px solid ${isWinner ? "#c9a84c55" : "#ffffff11"}`,
+                  borderRadius:10, padding:"10px 14px",
+                }}>
+                  <span style={{color: isD ? "#ff6b6b" : suitColor(c.suit), fontSize:18, fontWeight:700}}>{label}</span>
+                  <span style={{color: isWinner ? "#c9a84c" : "#ffffff55", fontSize:12, fontFamily:FONT_UI}}>
+                    {allNames[p.playerIdx]}{isWinner ? " 🏆" : ""}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {ev.diamondsCaptured && ev.diamondsCaptured.length > 0 && (
+            <div style={{background:"#ff6b6b11",border:"1px solid #ff6b6b33",borderRadius:10,padding:"8px 14px",marginBottom:12,textAlign:"center"}}>
+              <span style={{color:"#ff6b6b",fontSize:13,fontWeight:700}}>
+                💎 Captured: {ev.diamondsCaptured.map(c=>`${c.rank}${c.suit}`).join(", ")} = +{ev.points} pts
+              </span>
+            </div>
+          )}
+        </div>
+      </Modal>
+    );
+  }
+
+  // ── LEVEL 1: player event list ──
+  if (drillPlayer !== null) {
+    const playerEvents = eventLog.filter(e => e.playerIdx === drillPlayer);
+    // Group by trickNum
+    const byTrick = {};
+    for (const ev of playerEvents) {
+      if (!byTrick[ev.trickNum]) byTrick[ev.trickNum] = [];
+      byTrick[ev.trickNum].push(ev);
+    }
+    const trickNums = Object.keys(byTrick).map(Number).sort((a,b)=>a-b);
+    const playerName = allNames[drillPlayer];
+    const playerIcon = drillPlayer === 0 ? "😎" : AI_PERSONAS[drillPlayer-1]?.emoji;
+
+    return (
+      <Modal>
+        <div>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:16}}>
+            <div onClick={()=>setDrillPlayer(null)} style={{color:"#c9a84c",fontSize:22,cursor:"pointer",lineHeight:1,padding:"2px 6px"}}>▲</div>
+            <span style={{fontSize:18}}>{playerIcon}</span>
+            <div style={{color:"#c9a84c",fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{playerName}</div>
+          </div>
+
+          {trickNums.length === 0 && (
+            <div style={{color:"#ffffff44",fontSize:13,textAlign:"center",padding:"20px 0"}}>No scored events this round.</div>
+          )}
+
+          {trickNums.map(tn => (
+            <div key={tn} style={{marginBottom:14}}>
+              <div style={{color:"#ffffff33",fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>
+                Trick {tn}
+              </div>
+              {byTrick[tn].map((ev,i) => {
+                const isTrick = ev.type === "trick";
+                const isBatman = ev.type === "batman";
+                const isSet = ev.type === "set";
+                const emoji = isTrick ? "🎩" : isBatman ? "🌃" : ev.setEmoji;
+                const label = isTrick
+                  ? `Won (+${ev.points} pts${ev.diamondsCaptured?.length ? " 💎" : ""})`
+                  : isBatman
+                  ? `A♠ Block +${ev.points} pts`
+                  : `${ev.setName} +${ev.points} pts`;
+                const tappable = isTrick && ev.plays?.length > 0;
+                return (
+                  <div key={i} onClick={tappable ? ()=>setDrillEvent(ev) : undefined} style={{
+                    display:"flex", alignItems:"center", justifyContent:"space-between",
+                    background: tappable ? "#c9a84c0d" : "#ffffff06",
+                    border:`1px solid ${tappable ? "#c9a84c33" : "#ffffff0d"}`,
+                    borderRadius:10, padding:"10px 14px", marginBottom:6,
+                    cursor: tappable ? "pointer" : "default",
+                  }}>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:16}}>{emoji}</span>
+                      <span style={{color:"#ffffffcc",fontSize:13,fontFamily:FONT_UI}}>{label}</span>
+                      {isSet && ev.cards?.length > 0 && (
+                        <span style={{color:"#ffffff55",fontSize:11,fontFamily:FONT_UI}}>
+                          [{ev.cards.map(c=>c.isJoker?"🃏":`${c.rank}${c.suit}`).join(" ")}]
+                        </span>
+                      )}
+                    </div>
+                    {tappable && <span style={{color:"#c9a84c",fontSize:14}}>▶</span>}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </Modal>
+    );
+  }
+
+  // ── LEVEL 0: rankings ──
   return (
     <Modal>
       <div>
         <div style={{textAlign:"center",marginBottom:20}}>
           <div style={{fontSize:40,marginBottom:6}}>🏁</div>
-          <div style={{
-            color:"#c9a84c",fontFamily:FONT_UI,
-            fontSize:20,fontWeight:700,letterSpacing:1,
-          }}>Round Over</div>
-          <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {WIN_SCORE} wins</div>
+          <div style={{color:"#c9a84c",fontFamily:FONT_UI,fontSize:20,fontWeight:700,letterSpacing:1}}>Round Over</div>
+          <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {WIN_SCORE} wins · tap a name to review</div>
         </div>
 
-        {/* Column headers */}
-        <div style={{
-          display:"flex",justifyContent:"space-between",
-          padding:"0 16px 6px",
-          borderBottom:"1px solid #ffffff11",marginBottom:8,
-        }}>
+        <div style={{display:"flex",justifyContent:"space-between",padding:"0 16px 6px",borderBottom:"1px solid #ffffff11",marginBottom:8}}>
           <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>PLAYER</span>
           <div style={{display:"flex",gap:24}}>
             <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>THIS ROUND</span>
@@ -2321,30 +2435,22 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue }) {
           </div>
         </div>
 
-        {total.map((p,i)=>(
-          <div key={p.n} style={{
+        {sorted.map((p,i)=>(
+          <div key={p.n} onClick={()=>setDrillPlayer(p.idx)} style={{
             display:"flex",justifyContent:"space-between",alignItems:"center",
             background: i===0?"#c9a84c14":"#ffffff05",
             border:`1px solid ${i===0?"#c9a84c55":"#ffffff0d"}`,
             borderRadius:12,padding:"14px 16px",marginBottom:8,
+            cursor:"pointer",
           }}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
               <span style={{fontSize:18}}>{["🥇","🥈","🥉",""][i]}</span>
-              <span style={{
-                color:i===0?"#e2c97e":"#ffffffcc",
-                fontSize:16,fontWeight:700,fontFamily:FONT_UI,
-              }}>{p.n}</span>
+              <span style={{color:i===0?"#e2c97e":"#ffffffcc",fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
+              <span style={{color:"#c9a84c",fontSize:11}}>▶</span>
             </div>
             <div style={{display:"flex",gap:24,alignItems:"center"}}>
-              <span style={{
-                color: p.rs>0?"#c9a84c":"#ffffff33",
-                fontSize:16,fontWeight:700,minWidth:40,textAlign:"center",
-              }}>+{p.rs}</span>
-              <span style={{
-                color:i===0?"#ffd700":"#ffffffcc",
-                fontSize:22,fontWeight:800,
-                fontFamily:FONT_UI,minWidth:36,textAlign:"right",
-              }}>{p.s}</span>
+              <span style={{color:p.rs>0?"#c9a84c":"#ffffff33",fontSize:16,fontWeight:700,minWidth:40,textAlign:"center"}}>+{p.rs}</span>
+              <span style={{color:i===0?"#ffd700":"#ffffffcc",fontSize:22,fontWeight:800,fontFamily:FONT_UI,minWidth:36,textAlign:"right"}}>{p.s}</span>
             </div>
           </div>
         ))}
@@ -2681,6 +2787,7 @@ function DiamondsGame() {
       const newRS = [...roundScores]; newRS[cp] += pts;
       setRoundScores(newRS);
       addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${pts} pts. Playing on…`);
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌇", setName:"The Steal", cards:[] });
       soundTheSteal();
       const newTotal = totalScores.map((s,i) => s + newRS[i]);
       if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -2716,6 +2823,7 @@ function DiamondsGame() {
       const newRound = [...roundScores]; newRound[cp] += pts;
       const newTotal = totalScores.map((s,i) => s + newRound[i]);
       addLog(`🔥 ${allNames[cp]} triggers RIOT! +${pts} pts. Round ends!`);
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🔥", setName:"Riot", cards:riotCards||[] });
       soundRiot();
       const gameOver = newTotal.some(s => s >= WIN_SCORE);
       if (gameOver) {
@@ -2757,6 +2865,7 @@ function DiamondsGame() {
         const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!aceIds.has(c.id)) : [...h]);
         setHands(newHands);
         addLog(`🤖 ${allNames[cp]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
+        logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:ACES_LOW_BONUS, setEmoji:"🤖", setName:"Golden Age", cards:[] });
         soundAcesLow();
         setAcesLowState({ playerIdx:cp, cashed:true, points:ACES_LOW_BONUS, continuation:null });
         setPhase("aceslow_event");
@@ -2808,6 +2917,7 @@ function DiamondsGame() {
           setHands(newHands);
           setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`🦅 ${allNames[cp]} cashes in Rule of 3! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🦅", setName:"Rule of 3", cards:trio });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2843,6 +2953,7 @@ function DiamondsGame() {
           setHands(newHands);
           setRuleFourOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`💎 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards:quad4 });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -2878,6 +2989,7 @@ function DiamondsGame() {
           setHands(newHands);
           setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
           addLog(`💍 ${allNames[cp]} cashes in Rule of 2! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards:quad });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= WIN_SCORE)) {
             setTotalScores(newTotal);
@@ -3086,6 +3198,7 @@ function DiamondsGame() {
       setRoundScores(newRS3);
       setHands(newHands);
       addLog(`🦅 ${allNames[i]} cashes in Rule of 3! +${pts3} pts`);
+      logRoundEvent({ type:"set", playerIdx:i, trickNum:tricksPlayed+1, points:pts3, setEmoji:"🦅", setName:"Rule of 3", cards:trio });
       setRuleOfThreeOffered(prev => { const n=[...prev]; n[i]=null; return n; });
       const newTotal3 = totalScores.map((s,k) => s + newRS3[k]);
       if (newTotal3.some(s => s >= WIN_SCORE)) {
@@ -3118,6 +3231,7 @@ function DiamondsGame() {
         setRoundScores(newRS4);
         setHands(newHands);
         addLog(`💍 ${allNames[i]} cashes in Rule of 2! +${pts} pts`);
+        logRoundEvent({ type:"set", playerIdx:i, trickNum:tricksPlayed+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards:quad });
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal4 = totalScores.map((s,k) => s + newRS4[k]);
         if (newTotal4.some(s => s >= WIN_SCORE)) {
@@ -3152,6 +3266,7 @@ function DiamondsGame() {
         setRoundScores(newRS4f);
         setHands(newHands);
         addLog(`💎 ${allNames[i]} cashes in Rule of 4! +${pts4} pts`);
+        logRoundEvent({ type:"set", playerIdx:i, trickNum:tricksPlayed+1, points:pts4, setEmoji:"💎", setName:"Rule of 4", cards:quad4 });
         setRuleFourOffered(prev => { const n=[...prev]; n[i]=null; return n; });
         const newTotal4f = totalScores.map((s,k) => s + newRS4f[k]);
         if (newTotal4f.some(s => s >= WIN_SCORE)) {
@@ -3213,6 +3328,7 @@ function DiamondsGame() {
     setRoundScores(newRoundScores);
     setTotalScores(newTotal);
     addLog(`🏛️ ${allNames[playerIdx]} completes The American Family! +${AMERICAN_FAMILY_BONUS} pts`);
+    logRoundEvent({ type:"set", playerIdx:playerIdx, trickNum:tricksPlayed+1, points:AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🏛️", setName:"The American Family", cards:[] });
     soundAmericanFamily();
 
     // Collect the family cards for display
@@ -3252,6 +3368,13 @@ function DiamondsGame() {
       if (batmanBlockedJoker && batmanBlockedRobbin) soundBlockBoth();
       else if (batmanBlockedRobbin) soundBlockRobbin();
       else soundAceSuccess();
+    }
+
+    // Log trick and batman events
+    logRoundEvent({ type:"trick", playerIdx:winner, trickNum:tricksPlayed+1, points:pointsWon*GA, plays, diamondsCaptured:capturedDiamonds });
+    if (batmanBlocked) {
+      const blockedWhat = batmanBlockedJoker && batmanBlockedRobbin ? "both" : batmanBlockedJoker ? "joker" : "robbin";
+      logRoundEvent({ type:"batman", playerIdx:winner, trickNum:tricksPlayed+1, points:aceBonus, blockedWhat });
     }
 
     // ACE OF SPADES RESCUE: A♠ played and NO Joker AND NO J♦ in trick → rescue fires
@@ -3554,6 +3677,7 @@ function DiamondsGame() {
     newRound[pi] += THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
     const newTotal = totalScores.map((s,i) => s + newRound[i]);
     addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${THE_STEAL_BONUS} pts.`);
+    logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:THE_STEAL_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🌇", setName:"The Steal", cards:[] });
     soundTheSteal();
     setTheStealState(null);
     setPhase("playing");
@@ -3595,6 +3719,7 @@ function DiamondsGame() {
     const newRound = [...roundScores]; newRound[playerIdx] += pts;
     const newTotal = totalScores.map((s,i) => s + newRound[i]);
     addLog(`🔥 RIOT — ${allNames[playerIdx]} ends the round! +${pts} pts.`);
+    logRoundEvent({ type:"set", playerIdx:riotState.playerIdx, trickNum:tricksPlayed+1, points:RIOT_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🔥", setName:"Riot", cards:riotState.cards||[] });
     soundRiot();
     setRiotState(null);
     setPhase("playing");
@@ -3698,6 +3823,7 @@ function DiamondsGame() {
     const updatedHands = baseHands.map((h,j) => j===playerIdx ? h.filter(c=>!aceIds.has(c.id)) : [...h]);
     setHands(updatedHands);
     addLog(`🤖 ${allNames[playerIdx]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:ACES_LOW_BONUS, setEmoji:"🤖", setName:"Golden Age", cards:[] });
     soundAcesLow();
     setAcesLowState({ ...acesLowState, cashed:true, points:ACES_LOW_BONUS,
       continuation: continuation ? {...continuation, newHands: updatedHands} : null });
@@ -3740,6 +3866,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`🦅 ${allNames[playerIdx]} cashes in Rule of 3! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🦅", setName:"Rule of 3", cards });
     setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -3781,6 +3908,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💍 ${allNames[playerIdx]} cashes in Rule of 2! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards });
     setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -3822,6 +3950,7 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     addLog(`💎 ${allNames[playerIdx]} cashes in Rule of 4! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards });
     setRuleFourOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
     if (newTotal.some(s => s >= WIN_SCORE)) {
@@ -5246,6 +5375,7 @@ function DiamondsGame() {
           allNames={allNames}
           roundScores={roundScores}
           onContinue={startNextRound}
+          eventLog={roundEventLog}
         />
       )}
 
