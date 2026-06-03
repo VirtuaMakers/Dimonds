@@ -4429,13 +4429,9 @@ function DiamondsGame() {
       const isRobbin = !!kidnapState.isRobbinJack;
 
       if (isRobbin) {
-        // Only rob if the target is worth stealing (family card or >1 diamond pt)
+        // Always rob the best available card — even a non-diamond (the "silly mistake" is allowed)
         const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
         if (!target) { handleKidnapSkip(); return; }
-        const targetCard = currentHands[target.fromPlayer][target.cardIdx];
-        const familyIds = ["J♦","Q♦","K♦","A♦"];
-        const isFamily = familyIds.includes(targetCard.id);
-        if (!isFamily && diamondPoints(targetCard) <= 1) { handleKidnapSkip(); return; }
         handleKidnap(target.fromPlayer, target.cardIdx);
         return;
       }
