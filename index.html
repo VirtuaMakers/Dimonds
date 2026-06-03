@@ -877,6 +877,7 @@ function cardSuitVal(card) {
 }
 function isBatman(card) { return !card.isJoker && card.rank==="A" && card.suit==="♠"; }
 function isJackDiamond(card) { return !card.isJoker && card.rank==="J" && card.suit==="♦"; }
+function isQueenClubs(card) { return !card.isJoker && card.rank==="Q" && card.suit==="♣"; }
 function isDiamond(card) { return !card.isJoker && card.suit==="♦"; }
 function diamondPoints(card) {
   if (!isDiamond(card)) return 0;
@@ -1031,6 +1032,7 @@ function resolveTrick(plays, trumpBroken=true) {
   const jokerPlay = plays.find(p => p.card.isJoker);
   const batmanPlay = plays.find(p => isBatman(p.card));
   const jackDPlay = plays.find(p => isJackDiamond(p.card));
+  const queenClubsPlay = plays.find(p => isQueenClubs(p.card));
 
   // Batman blocks Joker OR Jack of Dimonds (or both) in the same trick
   if (batmanPlay && (jokerPlay || jackDPlay)) {
@@ -1040,9 +1042,12 @@ function resolveTrick(plays, trumpBroken=true) {
       batmanWin: true,
       batmanBlockedJoker: !!jokerPlay,
       batmanBlockedRobbin: !!jackDPlay,
+      // Q♣ fires even during batman block (batman only counters Joker/J♦)
+      queenClubsThieve: !!queenClubsPlay,
+      queenClubsPlayerIdx: queenClubsPlay?.playerIdx,
     };
   }
-  // Joker wins (no Batman) — Joker kidnaps; if J♦ also in trick, flag for rob afterward
+  // Joker wins (no Batman) — Q♣ silenced (Joker is dominant action this trick)
   if (jokerPlay && !batmanPlay) {
     return {
       winnerIdx: jokerPlay.playerIdx,
@@ -1052,12 +1057,17 @@ function resolveTrick(plays, trumpBroken=true) {
       jackDiamondPlayerIdx: jackDPlay?.playerIdx,
     };
   }
-  // Jack of Dimonds in trick (no Batman) — Robbin' fires after trick resolves normally
+  // Jack of Dimonds in trick (no Batman) — Q♣ silenced when J♦ also fires
   const normalResult = resolveNormal(plays, ledSuit, trumpBroken);
   if (jackDPlay && !batmanPlay) {
     return { ...normalResult, jackDiamondRob: true, jackDiamondPlayerIdx: jackDPlay.playerIdx };
   }
-  return normalResult;
+  // Normal trick — Q♣ fires if present
+  return {
+    ...normalResult,
+    queenClubsThieve: !!queenClubsPlay,
+    queenClubsPlayerIdx: queenClubsPlay?.playerIdx,
+  };
 }
 
 function resolveNormal(plays, ledSuit, trumpBroken=true) {
@@ -1947,6 +1957,156 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
   );
 }
 
+// ===== Queen of Clubs modal — Thievin' or Reallocate =====
+function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme }) {
+  const [mode, setMode] = React.useState("thieve");
+  const others = [0,1,2,3].filter(i => i !== playerIdx && hands[i].length > 0);
+
+  // Thievin' state
+  const [thieveFrom, setThieveFrom] = React.useState(others[0] ?? null);
+  const [thieveCardIdx, setThieveCardIdx] = React.useState(null);
+
+  // Reallocate state
+  const [realFrom, setRealFrom] = React.useState(others[0] ?? null);
+  const [realCardIdx, setRealCardIdx] = React.useState(null);
+  const [realTo, setRealTo] = React.useState(null);
+
+  const thieveHand = thieveFrom !== null ? sortHandBySuit(hands[thieveFrom]) : [];
+  const realHand   = realFrom  !== null ? sortHandBySuit(hands[realFrom])   : [];
+  const realToOptions = others.filter(i => i !== realFrom);
+
+  function getOrigIdx(hand, rawHands, playerI, card) {
+    return rawHands[playerI].findIndex(c => c.id === card.id);
+  }
+
+  const tabStyle = (active) => ({
+    flex:1, textAlign:"center", padding:"9px 6px", borderRadius:10, cursor:"pointer",
+    background: active ? "#c9a84c22" : "#ffffff08",
+    border:`1.5px solid ${active?"#c9a84c":"#ffffff22"}`,
+    color: active ? "#c9a84c" : "#ffffffcc",
+    fontWeight:700, fontSize:13, transition:"all 0.15s",
+  });
+
+  return (
+    <Modal>
+      <div>
+        <div style={{textAlign:"center",marginBottom:14}}>
+          <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Queen of Clubs</div>
+          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose your action.</h2>
+        </div>
+        {/* Mode tabs */}
+        <div style={{display:"flex",gap:6,marginBottom:14}}>
+          <div style={tabStyle(mode==="thieve")} onClick={()=>setMode("thieve")}>🔷 Thievin'</div>
+          <div style={tabStyle(mode==="reallocate")} onClick={()=>setMode("reallocate")}>🔶 Reallocate</div>
+        </div>
+
+        {/* ---- THIEVIN' ---- */}
+        {mode === "thieve" && (<>
+          <div style={{color:"#ffffff55",fontSize:11,marginBottom:10,textAlign:"center"}}>
+            Steal any one card from any opponent's hand.
+          </div>
+          {/* Player tabs */}
+          <div style={{display:"flex",gap:6,marginBottom:12,justifyContent:"center"}}>
+            {others.map(i => (
+              <div key={i} onClick={()=>{ setThieveFrom(i); setThieveCardIdx(null); }} style={{
+                background:thieveFrom===i?"#c9a84c22":"#ffffff08",
+                border:`1.5px solid ${thieveFrom===i?"#c9a84c":"#ffffff22"}`,
+                borderRadius:10,padding:"8px 14px",cursor:"pointer",flex:1,textAlign:"center",
+              }}>
+                <div style={{fontSize:18}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                <div style={{color:thieveFrom===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
+                <div style={{color:"#ffffff44",fontSize:10}}>{hands[i].length} cards</div>
+              </div>
+            ))}
+          </div>
+          {thieveFrom !== null && (
+            <div style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:14,minHeight:80}}>
+              <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[thieveFrom]}'s Hand</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"4px 0"}}>
+                {thieveHand.map(card => {
+                  const origIdx = getOrigIdx(thieveHand, hands, thieveFrom, card);
+                  const isSel = thieveCardIdx === origIdx;
+                  return (
+                    <div key={card.id} onClick={()=>setThieveCardIdx(origIdx)} style={{cursor:"pointer",transform:"scale(1.35)",transformOrigin:"center",margin:"8px 5px"}}>
+                      <CardComp card={card} selected={isSel} tiny deckTheme={deckTheme}/>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+            <GoldBtn onClick={()=>{ if(thieveFrom!==null&&thieveCardIdx!==null) onThieve(thieveFrom,thieveCardIdx); }} disabled={thieveCardIdx===null}>
+              Thieve This Card 🔷
+            </GoldBtn>
+            <div onClick={onSkip} style={{color:"#ffffff55",fontSize:12,cursor:"pointer",padding:"10px 8px",alignSelf:"center"}}>Pass</div>
+          </div>
+        </>)}
+
+        {/* ---- REALLOCATE ---- */}
+        {mode === "reallocate" && (<>
+          <div style={{color:"#ffffff55",fontSize:11,marginBottom:10,textAlign:"center"}}>
+            Take a card from any player and give it to another. (Not from or to yourself.)
+          </div>
+          {/* Step 1: source player */}
+          <div style={{color:"#c9a84c88",fontSize:10,letterSpacing:1,marginBottom:6,textTransform:"uppercase"}}>1. Take from</div>
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            {others.map(i => (
+              <div key={i} onClick={()=>{ setRealFrom(i); setRealCardIdx(null); setRealTo(null); }} style={{
+                background:realFrom===i?"#4466ff22":"#ffffff08",
+                border:`1.5px solid ${realFrom===i?"#4466ff":"#ffffff22"}`,
+                borderRadius:10,padding:"7px 10px",cursor:"pointer",flex:1,textAlign:"center",
+              }}>
+                <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                <div style={{color:realFrom===i?"#8a9fe0":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
+              </div>
+            ))}
+          </div>
+          {/* Step 2: pick card */}
+          {realFrom !== null && (
+            <div style={{background:"#ffffff08",borderRadius:12,padding:"8px 6px",marginBottom:10,minHeight:70}}>
+              <div style={{color:"#4466ff66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:5,textTransform:"uppercase"}}>{allNames[realFrom]}'s Hand</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"center",padding:"2px 0"}}>
+                {realHand.map(card => {
+                  const origIdx = getOrigIdx(realHand, hands, realFrom, card);
+                  const isSel = realCardIdx === origIdx;
+                  return (
+                    <div key={card.id} onClick={()=>setRealCardIdx(origIdx)} style={{cursor:"pointer",transform:"scale(1.3)",transformOrigin:"center",margin:"7px 4px"}}>
+                      <CardComp card={card} selected={isSel} tiny deckTheme={deckTheme}/>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {/* Step 3: destination player */}
+          {realCardIdx !== null && (<>
+            <div style={{color:"#c9a84c88",fontSize:10,letterSpacing:1,marginBottom:6,textTransform:"uppercase"}}>2. Give to</div>
+            <div style={{display:"flex",gap:6,marginBottom:12}}>
+              {realToOptions.map(i => (
+                <div key={i} onClick={()=>setRealTo(i)} style={{
+                  background:realTo===i?"#7ec8a422":"#ffffff08",
+                  border:`1.5px solid ${realTo===i?"#7ec8a4":"#ffffff22"}`,
+                  borderRadius:10,padding:"7px 10px",cursor:"pointer",flex:1,textAlign:"center",
+                }}>
+                  <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                  <div style={{color:realTo===i?"#7ec8a4":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
+                </div>
+              ))}
+            </div>
+          </>)}
+          <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+            <GoldBtn onClick={()=>{ if(realFrom!==null&&realCardIdx!==null&&realTo!==null) onReallocate(realFrom,realCardIdx,realTo); }} disabled={realFrom===null||realCardIdx===null||realTo===null}>
+              Reallocate 🔶
+            </GoldBtn>
+            <div onClick={onSkip} style={{color:"#ffffff55",fontSize:12,cursor:"pointer",padding:"10px 8px",alignSelf:"center"}}>Pass</div>
+          </div>
+        </>)}
+      </div>
+    </Modal>
+  );
+}
+
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
 function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, jokerLockedUp }) {
   const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
@@ -2272,6 +2432,41 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             Claims all remaining cards automatically!
           </span>
         </div>
+      </EventBox>
+    );
+  }
+
+  // ===== QUEEN OF CLUBS — THIEVED =====
+  if (result.queenClubsThieved) {
+    const qcIdx = result.winnerIdx;
+    return (
+      <EventBox borderColor="#1a7a3a" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
+        {result.queenClubsCard && (
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+            Thieves the{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.rank}{result.queenClubsCard.suit}</strong>
+            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
+  // ===== QUEEN OF CLUBS — REALLOCATED =====
+  if (result.queenClubsReallocated) {
+    const qcIdx = result.winnerIdx;
+    return (
+      <EventBox borderColor="#b07030" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
+        {result.queenClubsCard && (
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+            Moves the{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.rank}{result.queenClubsCard.suit}</strong>
+            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
+            {" "}to <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsTo]}</strong>
+          </div>
+        )}
       </EventBox>
     );
   }
@@ -2691,8 +2886,9 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"d.",title:"📝 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e",fontSize:13}}>K♦️+5 pts., Q♦️+4 pts., J♦️+3 pts., A♦️+2 pts., #s♦️1 pt.</strong></>),sub:true},
                 {num:"4.",title:"Special Cards",text:"",sub:false},
                 {num:"a.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
-                {num:"b.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
-                {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div></>),sub:true},
+                {num:"b.",title:"🔷/🔶 The Queen of Clubs",text:(<><div>• The Queen of Clubs has a stealing capability of her own — <em>Thievin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead <em>Reallocate</em> any one card from any other player to another (not from or to herself).</div></>),sub:true},
+                {num:"c.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
+                {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Locks Up/Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ & 6♦️+6♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
@@ -2831,6 +3027,7 @@ function DiamondsGame() {
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
   const [rescueState, setRescueState] = useState(null);
+  const [queenClubsState, setQueenClubsState] = useState(null);
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -3180,6 +3377,7 @@ function DiamondsGame() {
     setTrickResult(null);
     setKidnapState(null);
     setRescueState(null);
+    setQueenClubsState(null);
     setAcesLowState(null);
     setTheStealState(null);
     setRobbinSummonState(null);
@@ -3244,6 +3442,7 @@ function DiamondsGame() {
     setTrickResult(null);
     setKidnapState(null);
     setRescueState(null);
+    setQueenClubsState(null);
     setAcesLowState(null);
     setTheStealState(null);
     setRobbinSummonState(null);
@@ -3571,6 +3770,10 @@ function DiamondsGame() {
     const jackDRobTriggered = !!result.jackDiamondRob && !batmanBlocked;
     const jackDPlayerIdx = jackDRobTriggered ? result.jackDiamondPlayerIdx : null;
 
+    // QUEEN OF CLUBS: fires after normal resolution (also after batman block, silenced on Joker/J♦)
+    const queenClubsTriggered = !!result.queenClubsThieve && !jackDRobTriggered && !result.jokerWin;
+    const queenClubsPlayerIdx2 = queenClubsTriggered ? result.queenClubsPlayerIdx : null;
+
     // Play sound based on outcome
     if (pointsWon > 0 && !batmanBlocked && !aceRescueTriggered && !jackDRobTriggered) soundDiamondTrick();
 
@@ -3584,6 +3787,8 @@ function DiamondsGame() {
       addLog(`🗡️ ${allNames[acePlayerIdx]} played the Ace of Spades — preparing rescue...`);
     } else if (jackDRobTriggered) {
       addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) prepares to rob...`);
+    } else if (queenClubsTriggered) {
+      addLog(`♣ ${allNames[queenClubsPlayerIdx2]} (Queen of Clubs) prepares to thieve...`);
     } else {
       addLog(`${allNames[winner]} wins trick (+${pointsWon}💎)`);
     }
@@ -3666,6 +3871,19 @@ function DiamondsGame() {
         }
         setKidnapState({ jokerPlayerIdx: jackDPlayerIdx, isRobbinJack: true, hands: currentHands, resultObj });
         setPhase("kidnap");
+      }, 600);
+    } else if (queenClubsTriggered) {
+      setTimeout(() => {
+        const hasTargets = currentHands.some((h, i) => i !== queenClubsPlayerIdx2 && h.length > 0);
+        if (!hasTargets) {
+          addLog(`♣ ${allNames[queenClubsPlayerIdx2]} (Queen of Clubs) — no cards to thieve`);
+          setTrickResult(resultObj);
+          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+          setPhase("trickresult");
+          return;
+        }
+        setQueenClubsState({ playerIdx: queenClubsPlayerIdx2, hands: currentHands, resultObj, gameWon, newTotal });
+        setPhase("queenclubs");
       }, 600);
     } else if (aceRescueTriggered) {
       setTimeout(() => {
@@ -3921,6 +4139,55 @@ function DiamondsGame() {
       setTotalScores(newTotal);
       if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
     }
+  }
+
+  // ---- Queen of Clubs: Thieve a card from an opponent ----
+  function handleQueenClubsThieve(fromPlayer, cardIdx) {
+    if (!queenClubsState) return;
+    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = queenClubsState;
+    const stolenCard = currentHands[fromPlayer][cardIdx];
+    const newHands = currentHands.map((h,i) => {
+      if (i === fromPlayer) return h.filter((_,ci) => ci !== cardIdx);
+      if (i === playerIdx) return [...h, stolenCard];
+      return h;
+    });
+    addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) thieves ${stolenCard.rank}${stolenCard.suit} from ${allNames[fromPlayer]}!`);
+    flyCardBetweenPlayers(stolenCard, fromPlayer, playerIdx);
+    setHands(newHands);
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+    setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: stolenCard, queenClubsFrom: fromPlayer });
+    setQueenClubsState(null);
+    setPhase("trickresult");
+  }
+
+  // ---- Queen of Clubs: Reallocate a card from one player to another ----
+  function handleQueenClubsReallocate(fromPlayer, cardIdx, toPlayer) {
+    if (!queenClubsState) return;
+    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = queenClubsState;
+    const movedCard = currentHands[fromPlayer][cardIdx];
+    const newHands = currentHands.map((h,i) => {
+      if (i === fromPlayer) return h.filter((_,ci) => ci !== cardIdx);
+      if (i === toPlayer) return [...h, movedCard];
+      return h;
+    });
+    addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) moves ${movedCard.rank}${movedCard.suit} from ${allNames[fromPlayer]} to ${allNames[toPlayer]}!`);
+    flyCardBetweenPlayers(movedCard, fromPlayer, toPlayer);
+    setHands(newHands);
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+    setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: fromPlayer, queenClubsTo: toPlayer });
+    setQueenClubsState(null);
+    setPhase("trickresult");
+  }
+
+  // ---- Queen of Clubs: Skip / pass ----
+  function handleQueenClubsSkip() {
+    if (!queenClubsState) return;
+    const { resultObj, gameWon, newTotal } = queenClubsState;
+    addLog(`♣ ${allNames[queenClubsState.playerIdx]} (Queen of Clubs) — passes`);
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+    setTrickResult(resultObj);
+    setQueenClubsState(null);
+    setPhase("trickresult");
   }
 
   // ---- Aces Low: human chose CASH IT ----
@@ -4464,6 +4731,24 @@ function DiamondsGame() {
     }, 900);
     return () => clearTimeout(timer);
   }, [phase, kidnapState]);
+
+  // AI Queen of Clubs
+  useEffect(() => {
+    if (phase !== "queenclubs" || !queenClubsState) return;
+    if (queenClubsState.playerIdx === 0) return; // human handles via QueenClubsModal
+
+    const timer = setTimeout(() => {
+      const currentHands = queenClubsState.hands;
+      const playerIdx = queenClubsState.playerIdx;
+      const target = aiChooseKidnapTarget(currentHands, playerIdx);
+      if (target) {
+        handleQueenClubsThieve(target.fromPlayer, target.cardIdx);
+      } else {
+        handleQueenClubsSkip();
+      }
+    }, 900);
+    return () => clearTimeout(timer);
+  }, [phase, queenClubsState]);
 
   // AI rescue (Ace of Spades wins trick without a Joker)
   useEffect(() => {
@@ -5320,6 +5605,18 @@ function DiamondsGame() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&(
+        <QueenClubsModal
+          hands={queenClubsState.hands}
+          playerIdx={0}
+          allNames={allNames}
+          onThieve={handleQueenClubsThieve}
+          onReallocate={handleQueenClubsReallocate}
+          onSkip={handleQueenClubsSkip}
+          deckTheme={deckTheme}
+        />
       )}
 
       {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&(
