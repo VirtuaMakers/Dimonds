@@ -2931,21 +2931,8 @@ function DiamondsGame() {
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
-  // Auto-claim sweep: if any player (including human) starts a trick alone with cards,
-  // they sweep all their remaining cards automatically — no manual play required.
-  useEffect(() => {
-    if (phase !== "playing") return;
-    if (trickPlays.length > 0) return; // only at the start of a trick
-    const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    if (playersWithCards.length !== 1) return;
-    const solo = playersWithCards[0];
-    if (solo === 0) return; // Human is last player — let them play their remaining cards
-    const timer = setTimeout(() => {
-      setTrickResult({ winnerIdx: solo, plays: [], diamondsCaptured: [], autoClaim: true });
-      setPhase("trickresult");
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [phase, currentTurn, hands, trickPlays.length]);
+  // No auto-claim sweep — the last player standing plays their remaining cards out normally.
+  // (AI players with empty hands are skipped in continuePlayFlow; tricks resolve with 1 play.)
 
   // Pre-play set detection for AI players (Rule of 3/4/2). Human player is notified via buttons.
   useEffect(() => {
@@ -4110,44 +4097,6 @@ function DiamondsGame() {
         soundRoundWin();
         setPhase("roundover");
         setRoundNum(r=>r+1);
-      }
-      return;
-    }
-
-    // AUTO-CLAIM: if only one player has cards left, they win all their remaining cards
-    // (each remaining card scores its dimond value to that player; cards are not played out)
-    const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    if (playersWithCards.length === 1 && playersWithCards[0] !== 0) {
-      const soloPlayer = playersWithCards[0];
-      const soloCards = hands[soloPlayer];
-      const GA = goldenAgeRef.current ? 2 : 1;
-      const dimondPts = soloCards.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
-      const newRoundScores = [...roundScores];
-      newRoundScores[soloPlayer] += dimondPts;
-      if (dimondPts > 0) {
-        addLog(`✨ ${allNames[soloPlayer]} sweeps ${soloCards.length} unopposed card${soloCards.length!==1?"s":""} (+${dimondPts}💎)`);
-      } else {
-        addLog(`✨ ${allNames[soloPlayer]} sweeps ${soloCards.length} unopposed card${soloCards.length!==1?"s":""}`);
-      }
-      if (dimondPts > 0) {
-        logRoundEvent({ type:"sweep", playerIdx:soloPlayer, trickNum:tricksPlayed+1, points:dimondPts, cardsSwept:soloCards.length, diamondsCaptured:soloCards.filter(c=>isDiamond(c)) });
-      }
-      setRoundScores(newRoundScores);
-      // Empty all hands — round is functionally over
-      setHands([[],[],[],[]]);
-
-      const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
-      setTotalScores(newTotal);
-      const gameOver = newTotal.some(s=>s>=WIN_SCORE);
-      if (gameOver) {
-        const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
-        setFireworksPlace(Math.max(1,Math.min(4,_place)));
-        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
-      } else {
-        soundRoundWin();
-        setPhase("roundover");
-        setRoundNum(r=>r+1);
-        setTrickResult(null);
       }
       return;
     }
@@ -5467,7 +5416,7 @@ function DiamondsGame() {
           allNames={allNames}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
-          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (hands.filter(h=>h.length>0).length===1 && !hands[0]?.length)}
+          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
           isGoldenAge={goldenAgeActive}
         />
       )}
