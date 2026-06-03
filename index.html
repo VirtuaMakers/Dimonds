@@ -2063,7 +2063,6 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   const multiplier = isGoldenAge ? 2 : 1;
   const pointsWon = rawPoints * multiplier;
   const btnLabel = isGameOver ? "END"
-    : result.pendingAmericanFamily ? "PROCEED"
     : result.americanFamily ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
@@ -2719,6 +2718,7 @@ function DiamondsGame() {
   const [rescueState, setRescueState] = useState(null);
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
+  const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
   const [roundNum, setRoundNum] = useState(1);
   const [dealerIdx, setDealerIdx] = useState(0);
   const [tricksPlayed, setTricksPlayed] = useState(0);
@@ -3007,6 +3007,34 @@ function DiamondsGame() {
     }
   }, [phase, currentTurn, dealing, dealRevealIdx]);
 
+  // American Family: offered at start of turn, like any other set
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (trickPlays.length > 0) return;
+    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    const cp = turnOrder[currentTurn];
+    if (americanFamilyOffered[cp]) return;
+    if (!checkAmericanFamily(hands[cp] || [])) return;
+    setAmericanFamilyOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    if (cp === 0) {
+      setPhase("americanfamily_offer");
+    } else {
+      const GA = goldenAgeRef.current ? 2 : 1;
+      const pts = AMERICAN_FAMILY_BONUS * GA;
+      const newRS = [...roundScores]; newRS[cp] += pts;
+      const newTotal = totalScores.map((s,i)=>s+newRS[i]);
+      setRoundScores(newRS);
+      setTotalScores(newTotal);
+      addLog(`🏛️ ${allNames[cp]} redeems The American Family! +${pts} pts`);
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The American Family", cards:[] });
+      soundAmericanFamily();
+      const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
+      const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
+      setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
+      setPhase("trickresult");
+    }
+  }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
+
   function logRoundEvent(event) {
     roundEventLogRef.current = [...roundEventLogRef.current, event];
   }
@@ -3044,6 +3072,7 @@ function DiamondsGame() {
     setRuleFourOffered([null,null,null,null]);
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
+    setAmericanFamilyOffered([false,false,false,false]);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -3102,6 +3131,7 @@ function DiamondsGame() {
     setRuleFourOffered([null,null,null,null]);
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
+    setAmericanFamilyOffered([false,false,false,false]);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -3173,15 +3203,8 @@ function DiamondsGame() {
 
   function continuePlayFlow(playerIdx, card, newPlays, newHands) {
     const effectiveDiamondsBroken = diamondsBroken || isDiamond(card);
-    // Check American Family for any player after each play
-    for (let i=0; i<4; i++) {
-      if (checkAmericanFamily(newHands[i])) {
-        handleAmericanFamily(i, newHands, newPlays);
-        return;
-      }
-    }
 
-    // (Golden Age / Aces Low is handled by its own pre-play useEffect, like The Steal and Riot)
+    // (American Family / Golden Age / The Steal / Riot all handled by pre-play useEffects)
 
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
@@ -3321,31 +3344,26 @@ function DiamondsGame() {
     }
   }
 
-  function handleAmericanFamily(playerIdx, currentHands, currentPlays) {
-    const newRoundScores = [...roundScores];
-    newRoundScores[playerIdx] += AMERICAN_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1);
-
-    const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
+  function handleAmericanFamily(playerIdx) {
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const pts = AMERICAN_FAMILY_BONUS * GA;
+    const newRoundScores = [...roundScores]; newRoundScores[playerIdx] += pts;
+    const newTotal = totalScores.map((s,i)=>s+newRoundScores[i]);
     setRoundScores(newRoundScores);
     setTotalScores(newTotal);
-    addLog(`🏛️ ${allNames[playerIdx]} completes The American Family! +${AMERICAN_FAMILY_BONUS} pts`);
-    logRoundEvent({ type:"set", playerIdx:playerIdx, trickNum:tricksPlayed+1, points:AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🏛️", setName:"The American Family", cards:[] });
+    addLog(`🏛️ ${allNames[playerIdx]} redeems The American Family! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The American Family", cards:[] });
     soundAmericanFamily();
-
-    // Collect the family cards for display
-    const familyCards = ["A♦","J♦","Q♦","K♦"].map(id =>
-      [...currentHands[playerIdx], ...currentPlays.map(p=>p.card)].find(c=>c.id===id)
-    ).filter(Boolean);
-
-    setTrickResult({
-      winnerIdx: playerIdx,
-      americanFamily: true,
-      familyCards,
-      plays: currentPlays,
-      diamondsCaptured: [],
-    });
+    setAmericanFamilyOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
+    const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
+    const familyCards = (hands[playerIdx]||[]).filter(c=>famIds.has(c.id));
+    setTrickResult({ winnerIdx:playerIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
     setPhase("trickresult");
-    // Note: pendingAF removed — afterTrickResult handles AF via the americanFamily flag
+  }
+
+  function declineAmericanFamily() {
+    addLog(`🏛️ ${allNames[0]} holds The American Family — waiting for a better moment`);
+    setPhase("playing");
   }
 
   function resolveTrickComplete(plays, currentHands) {
@@ -3566,30 +3584,6 @@ function DiamondsGame() {
     // Steal arc — card flies from victim to the thief
     flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
-    for (let i=0; i<4; i++) {
-      if (checkAmericanFamily(newHands[i])) {
-        setHands(newHands);
-        // Show the Joker Kidnaps event box FIRST, then chain to American Family
-        // on PROCEED. The pendingAmericanFamily payload is consumed in afterTrickResult.
-        setTrickResult({
-          ...kidnapState.resultObj,
-          jokerWin: !isRobbin,
-          jackDiamondRob: isRobbin,
-          jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined,
-          stolenCard,
-          stolenFrom: fromPlayer,
-          pendingAmericanFamily: {
-            playerIdx: i,
-            hands: newHands,
-            plays: kidnapState.resultObj.plays,
-          },
-        });
-        setKidnapState(null);
-        setPhase("trickresult");
-        return;
-      }
-    }
-
     setHands(newHands);
     const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer };
 
@@ -3773,28 +3767,6 @@ function DiamondsGame() {
     soundAceRescue();
     // Rescue arc — card flies from the other player to the Ace player
     flyCardBetweenPlayers(rescuedCard, fromPlayer, acePlayerIdx);
-
-    // Check American Family on the Ace player's new hand
-    for (let i=0; i<4; i++) {
-      if (checkAmericanFamily(newHands[i])) {
-        setHands(newHands);
-        setTrickResult({
-          ...rescueState.resultObj,
-          aceRescued: true,
-          aceRescuerIdx: acePlayerIdx,
-          rescuedCard,
-          rescuedFrom: fromPlayer,
-          pendingAmericanFamily: {
-            playerIdx: i,
-            hands: newHands,
-            plays: rescueState.resultObj.plays,
-          },
-        });
-        setRescueState(null);
-        setPhase("trickresult");
-        return;
-      }
-    }
 
     setHands(newHands);
     const resultObj = { ...rescueState.resultObj, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
@@ -4048,14 +4020,6 @@ function DiamondsGame() {
       return;
     }
 
-    // If the Joker Kidnaps event is queued with a pending AF, fire AF now.
-    // (User just dismissed the kidnap box; show The American Family Together next.)
-    if (trickResult?.pendingAmericanFamily) {
-      const af = trickResult.pendingAmericanFamily;
-      handleAmericanFamily(af.playerIdx, af.hands, af.plays);
-      return;
-    }
-
     // American Family win — end round immediately
     if (trickResult?.americanFamily) {
       const gameOver = totalScores.some(s=>s>=WIN_SCORE);
@@ -4163,6 +4127,7 @@ function DiamondsGame() {
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
     setRiotOffered([false,false,false,false]);
+    setAmericanFamilyOffered([false,false,false,false]);
     setPhase("playing");
     setTrickResult(null);
   }
@@ -5056,6 +5021,11 @@ function DiamondsGame() {
                   🔥 Redeem Riot +{RIOT_BONUS}
                 </GoldBtn>
               )}
+              {americanFamilyOffered[0] && checkAmericanFamily(hands[0] || []) && (
+                <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>
+                  🏛️ Redeem The American Family +{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)}
+                </GoldBtn>
+              )}
             </>
           )}
         </div>
@@ -5237,6 +5207,67 @@ function DiamondsGame() {
                 fontFamily:FONT_DISPLAY,
                 boxShadow:`0 4px 14px ${VM.gold}33`,
               }}>Redeem Set +{ACES_LOW_BONUS}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* American Family — offer modal (only human player) */}
+      {phase==="americanfamily_offer" && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+        <div style={{
+          position:"fixed", top:0, left:0, right:0, height:"58%",
+          background:"rgba(4,18,15,0.72)",
+          display:"flex", alignItems:"center", justifyContent:"center",
+          zIndex:200, padding:16,
+        }}>
+          <div style={{
+            background:"linear-gradient(155deg,#0f3c38,#08231f)",
+            border:`2.5px solid #0a0a0a`,
+            borderRadius:20, padding:"28px 32px",
+            maxWidth:400, width:"100%",
+            boxShadow:`0 0 40px #00000088, 0 20px 60px #000000cc`,
+            textAlign:"center",
+            display:"flex", flexDirection:"column", alignItems:"center",
+          }}>
+            <div style={{fontSize:40, marginBottom:8, lineHeight:1}}>🏛️</div>
+            <div style={{
+              color:VM.goldBright,
+              fontSize:13, fontWeight:900,
+              letterSpacing:3, textTransform:"uppercase",
+              fontFamily:FONT_DISPLAY, marginBottom:16,
+              textShadow:`0 0 12px ${VM.gold}44`,
+            }}>The American Family</div>
+            <div style={{
+              width:"100%",
+              display:"flex", flexDirection:"column",
+              alignItems:"center", gap:12,
+            }}>
+              <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY}}>
+                You hold all four diamond face cards.
+              </div>
+              <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5}}>
+                A♦, J♦, Q♦, K♦ — discard them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)} pts</strong>. This ends the round immediately!
+              </div>
+            </div>
+            <div style={{display:"flex", gap:10, marginTop:20}}>
+              <button onClick={declineAmericanFamily} style={{
+                background:"transparent",
+                color:VM.tealLight,
+                border:`1.5px solid ${VM.tealLight}66`,
+                borderRadius:10, padding:"12px 22px",
+                fontSize:13, fontWeight:900, cursor:"pointer",
+                letterSpacing:2, textTransform:"uppercase",
+                fontFamily:FONT_DISPLAY,
+              }}>Hold Cards</button>
+              <button onClick={()=>handleAmericanFamily(0)} style={{
+                background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+                color:"#0a2320", border:"none", borderRadius:10,
+                padding:"12px 28px", fontSize:13,
+                fontWeight:900, cursor:"pointer",
+                letterSpacing:2, textTransform:"uppercase",
+                fontFamily:FONT_DISPLAY,
+                boxShadow:`0 4px 14px ${VM.gold}33`,
+              }}>Redeem Set +{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)}</button>
             </div>
           </div>
         </div>
