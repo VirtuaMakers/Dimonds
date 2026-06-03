@@ -2035,6 +2035,8 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme }) {
 // TRICK RESULT MODAL — 4 distinct event styles
 // ============================================================
 function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue }) {
+  const firedRef = React.useRef(false);
+  const handleContinue = () => { if (firedRef.current) return; firedRef.current = true; onContinue(); };
   return (
     <div style={{
       position:"fixed", inset:0,
@@ -2069,7 +2071,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
         }}>
           {children}
         </div>
-        <button onClick={onContinue} style={{
+        <button onClick={handleContinue} style={{
           background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
           color:"#0a2320", border:"none", borderRadius:10,
           padding:"12px 36px", fontSize:14,
@@ -2547,7 +2549,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // GAME OVER MODAL
 // ============================================================
 function GameOverModal({ scores, allNames, onRestart }) {
-  const sorted = allNames.map((n,i)=>({n,s:scores[i]||0})).sort((a,b)=>b.s-a.s);
+  const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
   return (
     <Modal>
       <div style={{textAlign:"center"}}>
@@ -4419,6 +4421,7 @@ function DiamondsGame() {
           onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),startGame(nameInput.trim()||"You"))}
           placeholder="Enter your name..."
           maxLength={14}
+          autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
           style={{
             background:"rgba(255,255,255,0.06)",border:`1px solid ${VM.tealLight}33`,
             borderRadius:8,color:"#fff",
