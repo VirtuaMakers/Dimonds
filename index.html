@@ -2132,9 +2132,10 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const blockedJoker  = !!result.batmanBlockedJoker;
     const blockedRobbin = !!result.batmanBlockedRobbin;
     const blockTitle = blockedJoker && blockedRobbin
-      ? "The Ace of Spades Blocks The Joker AND Robbin Jack!"
-      : "The Ace of Spades Blocks Robbin Jack!";
-    const blockEmoji = blockedJoker && blockedRobbin ? "🏙️" : "🎴";
+      ? "The Ace of Spades Locks Up The Joker AND Robbin Jack!"
+      : blockedRobbin ? "The Ace of Spades Blocks Robbin Jack!"
+      : "The Ace of Spades Locks Up The Joker!";
+    const blockEmoji = blockedJoker && blockedRobbin ? "🏙️" : blockedRobbin ? "🎴" : "🌃";
     const blockedCards = (result.plays||[]).filter(p =>
       p.card.isJoker || isJackDiamond(p.card)
     ).map(p=>p.card);
@@ -2154,7 +2155,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           {blockedJoker && blockedRobbin
             ? "Neither Kidnapping nor Robbin' goes through!"
             : blockedRobbin ? "Robbin Jack is foiled — no robbing this trick!"
-            : "The Joker is foiled — no kidnapping this trick!"}
+            : "The Joker is Locked Up — no kidnapping this trick!"}
         </div>
         <div style={{
           background:"#4466ff11", border:"1px solid #4466ff44",
@@ -2691,7 +2692,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"4.",title:"Special Cards",text:"",sub:false},
                 {num:"a.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
                 {num:"b.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
-                {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
+                {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ & 6♦️+6♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
@@ -3534,39 +3535,36 @@ function DiamondsGame() {
     const winner = result.winnerIdx;
     const trickCards = plays.map(p=>p.card);
     const capturedDiamonds = trickCards.filter(c=>isDiamond(c));
+    const batmanBlocked = !!result.batmanWin;
     const batmanBlockedRobbin = !!result.batmanBlockedRobbin;
     const batmanBlockedJoker  = !!result.batmanBlockedJoker;
-    // Batman block event: only when J♦ is intercepted; Joker interception uses "Lock Up" + rescue
-    const batmanBlocked = !!result.batmanWin && batmanBlockedRobbin;
-    // Joker Lock-Up: A♠ neutralises Joker (no kidnap) but reward is the rescue, not +35
-    const jokerLockedUp = !!result.batmanWin && batmanBlockedJoker && !batmanBlockedRobbin;
 
     const GA = goldenAgeRef.current ? 2 : 1;
     const newRoundScores = [...roundScores];
     const pointsWon = capturedDiamonds.reduce((sum,c)=>sum+diamondPoints(c),0);
     newRoundScores[winner] += pointsWon * GA;
 
-    // Ace of Spades bonus — +35 for blocking J♦ (Joker lock-up reward is the rescue instead)
+    // Ace of Spades bonus — +35 for locking up The Joker OR blocking Robbin Jack (or both)
     const aceBonus = batmanBlocked ? 35 * GA : 0;
     if (batmanBlocked) {
       newRoundScores[winner] += aceBonus;
       if (batmanBlockedJoker && batmanBlockedRobbin) soundBlockBoth();
-      else soundBlockRobbin();
+      else if (batmanBlockedRobbin) soundBlockRobbin();
+      else soundAceSuccess();
     }
-    if (jokerLockedUp) soundAceSuccess(); // Joker locked, rescue follows
 
     // Log trick and batman events
     logRoundEvent({ type:"trick", playerIdx:winner, trickNum:tricksPlayed+1, points:pointsWon*GA, plays, diamondsCaptured:capturedDiamonds });
     if (batmanBlocked) {
-      const blockedWhat = batmanBlockedJoker && batmanBlockedRobbin ? "both" : "robbin";
+      const blockedWhat = batmanBlockedJoker && batmanBlockedRobbin ? "both" : batmanBlockedJoker ? "joker" : "robbin";
       logRoundEvent({ type:"batman", playerIdx:winner, trickNum:tricksPlayed+1, points:aceBonus, blockedWhat });
     }
 
-    // ACE OF SPADES RESCUE: fires when A♠ played, unless J♦ block takes priority
-    // Joker Lock-Up (A♠ + Joker, no J♦) also triggers rescue — Joker just can't kidnap
+    // ACE OF SPADES RESCUE: A♠ played and NO Joker AND NO J♦ in trick → rescue fires
     const acePlay = plays.find(p => isBatman(p.card));
-    const trickHasJackD = plays.some(p => isJackDiamond(p.card));
-    const aceRescueTriggered = acePlay && !batmanBlocked;
+    const trickHasJoker   = plays.some(p => p.card.isJoker);
+    const trickHasJackD   = plays.some(p => isJackDiamond(p.card));
+    const aceRescueTriggered = acePlay && !trickHasJoker && !trickHasJackD;
     const acePlayerIdx = aceRescueTriggered ? acePlay.playerIdx : null;
 
     // ROBBIN JACK: J♦ in trick, no Batman → rob fires after normal trick resolution
@@ -3578,14 +3576,12 @@ function DiamondsGame() {
 
     // Logging
     if (batmanBlocked) {
-      const what = batmanBlockedJoker && batmanBlockedRobbin ? "The Joker AND Robbin Jack" : "Robbin Jack";
-      addLog(`♠ ${allNames[winner]} (Ace of Spades) blocks ${what}! +${aceBonus} pts bonus!`);
+      const what = batmanBlockedJoker && batmanBlockedRobbin
+        ? "The Joker AND Robbin Jack"
+        : batmanBlockedJoker ? "The Joker" : "Robbin Jack";
+      addLog(`♠ ${allNames[winner]} (Ace of Spades) locks up ${what}! +${aceBonus} pts bonus!`);
     } else if (aceRescueTriggered) {
-      if (jokerLockedUp) {
-        addLog(`🔒 ${allNames[acePlayerIdx]} (Ace of Spades) Locks Up The Joker — preparing rescue!`);
-      } else {
-        addLog(`🗡️ ${allNames[acePlayerIdx]} played the Ace of Spades — preparing rescue...`);
-      }
+      addLog(`🗡️ ${allNames[acePlayerIdx]} played the Ace of Spades — preparing rescue...`);
     } else if (jackDRobTriggered) {
       addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) prepares to rob...`);
     } else {
@@ -3604,7 +3600,6 @@ function DiamondsGame() {
       batmanBlocked,
       batmanBlockedJoker,
       batmanBlockedRobbin,
-      jokerLockedUp,
       jackDiamondRob: result.jackDiamondRob,
       jackDiamondPlayerIdx: result.jackDiamondPlayerIdx,
       plays,
@@ -3685,7 +3680,7 @@ function DiamondsGame() {
           setPhase("trickresult");
           return;
         }
-        setRescueState({ acePlayerIdx, hands: currentHands, resultObj, jokerLockedUp });
+        setRescueState({ acePlayerIdx, hands: currentHands, resultObj });
         setPhase("rescue");
       }, 600);
     } else {
