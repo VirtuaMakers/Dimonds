@@ -4480,22 +4480,23 @@ function DiamondsGame() {
         {/* DESKTOP SETS CHEATSHEET — compact reference in the left margin of the hand area */}
         {isDesktop && (
           <div style={{
-            position:"absolute", left:10, top:8, zIndex:4,
-            display:"flex", flexDirection:"column", gap:4,
+            position:"absolute", left:10, top:"54%", transform:"translateY(-50%)", zIndex:4,
+            display:"flex", flexDirection:"column", gap:5,
           }}>
-            <div style={{color:VM.gold+"88",fontSize:8,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Sets</div>
+            <div style={{color:VM.gold+"99",fontSize:9,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
             {[
-              { emoji:"🦅", name:"Rule of 3",    pts:"+16" },
-              { emoji:"💍", name:"Rule of 4",    pts:"+18" },
-              { emoji:"🌇", name:"The Steal",    pts:"+21" },
-              { emoji:"🔥", name:"Riot",         pts:"+25" },
-              { emoji:"🏛️", name:"Am. Family",   pts:"+35" },
-              { emoji:"🤖", name:"Golden Age",   pts:"+35" },
-            ].map(({emoji,name,pts}) => (
-              <div key={name} style={{display:"flex",alignItems:"center",gap:5}}>
-                <span style={{fontSize:11,lineHeight:1,width:14,textAlign:"center"}}>{emoji}</span>
-                <span style={{color:"#ffffffaa",fontSize:9,fontFamily:FONT_UI,width:70}}>{name}</span>
-                <span style={{color:VM.tealLight,fontSize:9,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+              { emoji:"🦅", name:"Rule of 3",    desc:"Three of a Kind",       pts:"+16" },
+              { emoji:"💍", name:"Rule of 4",    desc:"2 Dimonded Pairs",      pts:"+18" },
+              { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+21" },
+              { emoji:"🔥", name:"Riot",         desc:"9 of a Kind",           pts:"+25" },
+              { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+35" },
+              { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
+            ].map(({emoji,name,desc,pts}) => (
+              <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:12,lineHeight:1,width:16,textAlign:"center"}}>{emoji}</span>
+                <span style={{color:"#ffffffcc",fontSize:10,fontFamily:FONT_UI,width:72,fontWeight:600}}>{name}</span>
+                <span style={{color:"#ffffff66",fontSize:10,fontFamily:FONT_UI,width:90}}>{desc}</span>
+                <span style={{color:VM.tealLight,fontSize:10,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
               </div>
             ))}
           </div>
@@ -4519,11 +4520,11 @@ function DiamondsGame() {
           if (!r3 && !r4 && !riot) return null;
           const showCaveat = !riot && !diamondsBroken && (r3 || r4);
           const label = riot
-            ? `🔥 RIOT ready — 9 ${riot[0].suit}`
+            ? `🔥 Riot Ready`
             : (r3 && r4)
-            ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready, 💍 Rule of 4 ready`
-            : r3 ? `🦅 ${r3[0].rank} × 3 — Rule of 3 ready`
-            : `💍 Rule of 4 ready`;
+            ? `🦅 Rule of 3 Ready  💍 Rule of 4 Ready`
+            : r3 ? `🦅 Rule of 3 Ready`
+            : `💍 Rule of 4 Ready`;
           const color = riot ? "#ff6644" : r3 ? VM.goldBright : VM.tealLight;
           return (
             <div style={{
