@@ -4082,7 +4082,9 @@ function DiamondsGame() {
     // Joker kidnapped AND J♦ rob pending — open J♦ modal on PROCEED
     if (trickResult?.pendingRobbinKidnap) {
       const { jackPlayerIdx, hands: savedHands } = trickResult.pendingRobbinKidnap;
-      setKidnapState({ jokerPlayerIdx: jackPlayerIdx, isRobbinJack: true, hands: savedHands, resultObj: trickResult });
+      // Strip pendingRobbinKidnap + jackDiamondRob from resultObj so Robbin can never re-chain
+      const robbinResultObj = { ...trickResult, pendingRobbinKidnap: undefined, jackDiamondRob: false };
+      setKidnapState({ jokerPlayerIdx: jackPlayerIdx, isRobbinJack: true, hands: savedHands, resultObj: robbinResultObj });
       setPhase("kidnap");
       setTrickResult(null);
       return;
