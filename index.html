@@ -1001,6 +1001,30 @@ function checkSwingingParadox(hand) {
   return dimondPairs.length >= 2 ? [...dimondPairs[0], ...dimondPairs[1]] : null;
 }
 
+// Returns ALL valid 2-pair combos for Rule of 2 (each combo = 4 cards: [d0,nd0,d1,nd1])
+function allSwingingParadoxCombos(hand) {
+  const byRank = {};
+  for (const c of hand) {
+    if (c.isJoker) continue;
+    if (!byRank[c.rank]) byRank[c.rank] = [];
+    byRank[c.rank].push(c);
+  }
+  const validPairs = [];
+  for (const cards of Object.values(byRank)) {
+    if (cards.length >= 2) {
+      const d = cards.filter(c => c.suit === "♦");
+      const nd = cards.filter(c => c.suit !== "♦");
+      if (d.length >= 1 && nd.length >= 1) validPairs.push([d[0], nd[0]]);
+    }
+  }
+  if (validPairs.length < 2) return [];
+  const combos = [];
+  for (let i = 0; i < validPairs.length; i++)
+    for (let j = i + 1; j < validPairs.length; j++)
+      combos.push([...validPairs[i], ...validPairs[j]]);
+  return combos;
+}
+
 // Determine trick winner index (within trick players array)
 function resolveTrick(plays, trumpBroken=true) {
   const ledSuit = plays[0].card.isJoker ? null : plays[0].card.suit;
@@ -3035,6 +3059,7 @@ function DiamondsGame() {
         if (swingingParadoxOffered[cp] !== ranks4) {
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=ranks4; return n; });
         if (cp === 0) {
+          if (allSwingingParadoxCombos(hands[cp] || []).length > 1) return; // Buttons handle multi-combo selection
           setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null });
           setPhase("swingingparadox_offer");
           return;
@@ -5056,7 +5081,7 @@ function DiamondsGame() {
             const r4Locked = r4Cards && r4HasDia && !diamondsBroken;
 
             const spCards = checkSwingingParadox(h0);
-            const spAvail = spCards && diamondsBroken ? spCards : null;
+            const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
             const spLocked = spCards && !diamondsBroken;
 
             const riotAvail = checkRiot(h0, diamondsBroken);
@@ -5091,7 +5116,11 @@ function DiamondsGame() {
                 )}
                 {r3Avail && <GoldBtn onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
                 {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
-                {spAvail && <GoldBtn onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:spAvail,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</GoldBtn>}
+                {spCombos.map((combo, i) => {
+                  const p1 = `${combo[1].id}/${combo[0].id}`;
+                  const p2 = `${combo[3].id}/${combo[2].id}`;
+                  return <GoldBtn key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2: {p1} & {p2}</GoldBtn>;
+                })}
                 {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
