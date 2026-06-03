@@ -911,25 +911,30 @@ const ACES_LOW_BONUS = 35;
 function checkTheSteal(hand) {
   return hand.some(c=>c.isJoker) && hand.some(c=>isJackDiamond(c)) && hand.some(c=>isBatman(c));
 }
-const THE_STEAL_BONUS = 21;
+const THE_STEAL_BONUS = 25;
 
 const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 18;
 
-// Riot — 9+ cards of the same suit
-function checkRiot(hand) {
+// Riot — 9+ cards of the same suit; diamond riot requires diamondsBroken
+function checkRiot(hand, diamondsBroken = true) {
   const bySuit = {};
   for (const c of hand) {
     if (c.isJoker) continue;
     if (!bySuit[c.suit]) bySuit[c.suit] = [];
     bySuit[c.suit].push(c);
   }
-  for (const cards of Object.values(bySuit)) {
-    if (cards.length >= 9) return cards.slice(0, 9);
+  // Non-diamond riots are always available
+  for (const [suit, cards] of Object.entries(bySuit)) {
+    if (suit !== "♦" && cards.length >= 9) return cards.slice(0, 9);
+  }
+  // Diamond riot only when diamonds are broken
+  if (diamondsBroken && bySuit["♦"] && bySuit["♦"].length >= 9) {
+    return bySuit["♦"].slice(0, 9);
   }
   return null;
 }
-const RIOT_BONUS = 25;
+const RIOT_BONUS = 21;
 
 // Rule of 3 (Democracy) — any three-of-a-kind
 function checkRuleOfThree(hand) {
@@ -2440,10 +2445,15 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"b.",title:'💍 Rule of 4 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
-                {num:"c.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· May be discarded at the start of your turn, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
-                {num:"d.",title:"🔥 Riot",text:(<>Any 9 cards of the same suit — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round.</>),sub:true},
+                {num:"c.",title:"🔥 Riot",text:(<>Any 9 cards of the same suit — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round.</>),sub:true},
+                {num:"d.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· May be discarded at the start of your turn, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
                 {num:"e.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"f.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
+                {num:"6.",title:"✂️ Cutting Your Teeth!",text:(<>
+                  <div>When the first Diamond card is played in any trick, the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
+                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Unlocked by this event:</strong> Rule of 3, Rule of 4, and Riot of Dimonds. These Sets cannot be redeemed until Dimonds are broken.</div>
+                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Always available (no restriction):</strong> The Steal, The American Family, The Golden Age — and any Riot of ♠, ♥, or ♣. Only a Riot built from all Dimonds must wait.</div>
+                </>),sub:false},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -2639,7 +2649,7 @@ function DiamondsGame() {
     if (trickPlays.length > 0) return;
     const cp = turnOrder[currentTurn];
     if (riotOffered[cp]) return;
-    const riotCards = checkRiot(hands[cp] || []);
+    const riotCards = checkRiot(hands[cp] || [], diamondsBroken);
     if (!riotCards) return;
     setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === 0) {
@@ -2668,6 +2678,40 @@ function DiamondsGame() {
       setPhase("riot_event");
     }
   }, [phase, currentTurn, trickPlays.length]);
+
+  // Golden Age (Aces Low): fires at the start of each player's turn, before a card is played
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (trickPlays.length > 0) return;
+    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    const cp = turnOrder[currentTurn];
+    if (acesLowOffered[cp]) return;
+    if (!checkAcesLow(hands[cp] || [])) return;
+    setAcesLowOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    if (cp === 0) {
+      setAcesLowState({ playerIdx: 0, hands: hands.map(h=>[...h]), continuation: null });
+      setPhase("aceslow_offer");
+    } else {
+      const familyIds = ["J♦","Q♦","K♦","A♦"];
+      const familyCount = (hands[cp] || []).filter(c => familyIds.includes(c.id)).length;
+      if (familyCount < 3) {
+        const newRoundScores = [...roundScores];
+        newRoundScores[cp] += ACES_LOW_BONUS;
+        setRoundScores(newRoundScores);
+        goldenAgeRef.current = true;
+        setGoldenAgeActive(true);
+        const aceIds = new Set(["A♠","A♥","A♣","A♦"]);
+        const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!aceIds.has(c.id)) : [...h]);
+        setHands(newHands);
+        addLog(`🤖 ${allNames[cp]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
+        soundAcesLow();
+        setAcesLowState({ playerIdx:cp, cashed:true, points:ACES_LOW_BONUS, continuation:null });
+        setPhase("aceslow_event");
+      } else {
+        addLog(`✈️ ${allNames[cp]} HOLDS The Golden Age — pushing for bigger sets`);
+      }
+    }
+  }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
   // Auto-claim sweep: if any player (including human) starts a trick alone with cards,
   // they sweep all their remaining cards automatically — no manual play required.
@@ -2915,48 +2959,7 @@ function DiamondsGame() {
       }
     }
 
-    // Check Aces Low — four aces gathered in one hand → offer cash-in
-    for (let i=0; i<4; i++) {
-      if (!acesLowOffered[i] && checkAcesLow(newHands[i])) {
-        // Mark offered so we don't ask again later in the round
-        setAcesLowOffered(prev => { const next = [...prev]; next[i] = true; return next; });
-        // For AI: auto-decide. For human: open modal.
-        if (i === 0) {
-          // Stash continuation so PROCEED on the offer resumes the trick
-          setAcesLowState({ playerIdx:i, hands:newHands, plays:newPlays, continuation:{playerIdx, card, newPlays, newHands} });
-          setPhase("aceslow_offer");
-          return;
-        } else {
-          // AI: hold if they have 3+ American Family cards in hand (pushing for the bigger 35pt set);
-          // otherwise cash the 10 immediately.
-          const familyIds = ["J♦","Q♦","K♦","A♦"];
-          const familyCount = newHands[i].filter(c => familyIds.includes(c.id)).length;
-          const aiCashesIn = familyCount < 3;
-          if (aiCashesIn) {
-            const newRoundScores = [...roundScores];
-            newRoundScores[i] += ACES_LOW_BONUS;
-            setRoundScores(newRoundScores);
-            goldenAgeRef.current = true;
-            setGoldenAgeActive(true);
-            const aceIds = new Set(["A♠","A♥","A♣","A♦"]);
-            newHands = newHands.map((h,j) => j===i ? h.filter(c=>!aceIds.has(c.id)) : h);
-            setHands(newHands);
-            addLog(`🤖 ${allNames[i]} triggers The Golden Age! +${ACES_LOW_BONUS} pts — all points doubled for rest of round!`);
-            soundAcesLow();
-            setAcesLowState({
-              playerIdx:i, hands:newHands, plays:newPlays,
-              continuation:{playerIdx, card, newPlays, newHands},
-              cashed:true, points:ACES_LOW_BONUS,
-            });
-            setPhase("aceslow_event");
-            return;
-          } else {
-            addLog(`✈️ ${allNames[i]} HOLDS Aces Low — pushing for bigger sets`);
-            // No event box for AI holds — silent decision, play continues
-          }
-        }
-      }
-    }
+    // (Golden Age / Aces Low is handled by its own pre-play useEffect, like The Steal and Riot)
 
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
@@ -3842,6 +3845,9 @@ function DiamondsGame() {
     // Reset per-trick offered flags so Hold means "not this trick" not "never again"
     setRuleOfThreeOffered([null,null,null,null]);
     setSwingingParadoxOffered([null,null,null,null]);
+    setAcesLowOffered([false,false,false,false]);
+    setTheStealOffered([false,false,false,false]);
+    setRiotOffered([false,false,false,false]);
     setPhase("playing");
     setTrickResult(null);
   }
@@ -4487,8 +4493,8 @@ function DiamondsGame() {
             {[
               { emoji:"🦅", name:"Rule of 3",    desc:"Three of a Kind",       pts:"+16" },
               { emoji:"💍", name:"Rule of 4",    desc:"2 Dimonded Pairs",      pts:"+18" },
-              { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+21" },
-              { emoji:"🔥", name:"Riot",         desc:"9 of a Kind",           pts:"+25" },
+              { emoji:"🔥", name:"Riot",         desc:"9 of a Kind",           pts:"+21" },
+              { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+25" },
               { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+35" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
             ].map(({emoji,name,desc,pts}) => (
@@ -4516,7 +4522,7 @@ function DiamondsGame() {
         {(() => {
           const r3 = checkRuleOfThree(hands[0] || []);
           const r4 = checkSwingingParadox(hands[0] || []);
-          const riot = checkRiot(hands[0] || []);
+          const riot = checkRiot(hands[0] || [], diamondsBroken);
           if (!r3 && !r4 && !riot) return null;
           const showCaveat = !riot && !diamondsBroken && (r3 || r4);
           const label = riot
@@ -4701,6 +4707,26 @@ function DiamondsGame() {
               Redeem Set +{selectedSetBonus}
             </GoldBtn>
           )}
+          {/* Manual re-trigger buttons for modal-based sets after HOLD (only before playing a card) */}
+          {isPlayerTurn && trickPlays.length === 0 && phase === "playing" && (
+            <>
+              {acesLowOffered[0] && checkAcesLow(hands[0] || []) && (
+                <GoldBtn onClick={()=>{ setAcesLowState({ playerIdx:0, hands:hands.map(h=>[...h]), continuation:null }); setPhase("aceslow_offer"); }}>
+                  🤖 Redeem Golden Age +{ACES_LOW_BONUS}
+                </GoldBtn>
+              )}
+              {theStealOffered[0] && checkTheSteal(hands[0] || []) && (
+                <GoldBtn onClick={()=>{ setTheStealState({ playerIdx:0, hands:hands.map(h=>[...h]) }); setPhase("thesteal"); }}>
+                  🌇 Redeem The Steal +{THE_STEAL_BONUS}
+                </GoldBtn>
+              )}
+              {riotOffered[0] && checkRiot(hands[0] || [], diamondsBroken) && (
+                <GoldBtn onClick={()=>{ const rc=checkRiot(hands[0]||[],diamondsBroken); setRiotState({ playerIdx:0, cards:rc, suit:rc[0].suit }); setPhase("riot"); }}>
+                  🔥 Redeem Riot +{RIOT_BONUS}
+                </GoldBtn>
+              )}
+            </>
+          )}
         </div>
         {/* Safe-area spacer — clears iPhone home indicator */}
         <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
@@ -4879,7 +4905,7 @@ function DiamondsGame() {
                 letterSpacing:2, textTransform:"uppercase",
                 fontFamily:FONT_DISPLAY,
                 boxShadow:`0 4px 14px ${VM.gold}33`,
-              }}>Cash It +{ACES_LOW_BONUS}</button>
+              }}>Redeem Set +{ACES_LOW_BONUS}</button>
             </div>
           </div>
         </div>
