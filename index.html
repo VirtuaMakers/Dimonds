@@ -2939,6 +2939,7 @@ function DiamondsGame() {
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
     if (playersWithCards.length !== 1) return;
     const solo = playersWithCards[0];
+    if (solo === 0) return; // Human is last player — let them play their remaining cards
     const timer = setTimeout(() => {
       setTrickResult({ winnerIdx: solo, plays: [], diamondsCaptured: [], autoClaim: true });
       setPhase("trickresult");
@@ -4116,7 +4117,7 @@ function DiamondsGame() {
     // AUTO-CLAIM: if only one player has cards left, they win all their remaining cards
     // (each remaining card scores its dimond value to that player; cards are not played out)
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    if (playersWithCards.length === 1) {
+    if (playersWithCards.length === 1 && playersWithCards[0] !== 0) {
       const soloPlayer = playersWithCards[0];
       const soloCards = hands[soloPlayer];
       const GA = goldenAgeRef.current ? 2 : 1;
@@ -5466,7 +5467,7 @@ function DiamondsGame() {
           allNames={allNames}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
-          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || hands.filter(h=>h.length>0).length===1}
+          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (hands.filter(h=>h.length>0).length===1 && !hands[0]?.length)}
           isGoldenAge={goldenAgeActive}
         />
       )}
