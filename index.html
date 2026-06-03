@@ -2474,13 +2474,30 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"b.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"c.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played on either (or both) The Joker or The Jack of Dimonds' trick, which <em>Blocks</em> either or both of them (in the same trick) from either <em>Kidnapping</em> or <em>Robbin'</em>! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
-                {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Hold two "Dimonded" pairs — two pairs where each pair contains a ♦️ (ex. ♦️7+♣️7 and ♦️Q+♠️Q) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
-                {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Hold any three of a kind (ex. three 7s) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
+                {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ & 6♦️+6♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
+                {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"c.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Hold any four of a kind (ex. four 8s) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
-                {num:"d.",title:"🔥 Riot",text:(<>Any 9 cards of the same suit — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round.</>),sub:true},
+                {num:"d.",title:"🔥 Riot",text:(<>Any nine cards of the same suit may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {num:"e.",title:"🌇 The Steal",text:(<>Hold all three "steal" cards –🃏 The Joker, 🎴/⚖️ Robbin Jack, and ♠️ Ace of Spades– in your hand at once:<div style={{marginTop:4}}>· May be discarded at the start of your turn, ending the round early for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong></div><div style={{marginTop:2}}>· Or, play on and keep the cards.</div></>),sub:true},
                 {num:"f.",title:"🏛️ The American Family",text:(<>Hold A♦️, J♦️, Q♦️, K♦️ all at once → instant round win, <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 points!</strong></>),sub:true},
                 {num:"g.",title:"🤖 The Golden Age",text:(<>Hold all four aces (A♠️ A♥️ A♣️ A♦️) — may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> and <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>all points doubled</strong> for the rest of the round!</>),sub:true},
+              ].map(({num,title,text,sub})=>(
+                <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
+                  <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
+                  <div>
+                    <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?13:15,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
+                    {text&&<div style={{color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>{
+                      typeof text === "string"
+                        ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
+                        : text
+                    }</div>}
+                  </div>
+                </div>
+              ))}
+              <div style={{borderTop:"1px solid #ffffff18",marginTop:6,paddingTop:8,paddingLeft:14,color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>
+                Note: Each card can only be counted toward one set.
+              </div>
+              {[
                 {num:"6.",title:"✂️ Cutting Your Teeth!",text:(<>
                   <div>When the first Diamond card is played in any trick, the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
                   <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Unlocked by this event:</strong> Rule of 2, Rule of 3, Rule of 4, and Riot of Dimonds. These Sets cannot be redeemed until Dimonds are broken.</div>
@@ -2499,9 +2516,6 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                   </div>
                 </div>
               ))}
-              <div style={{borderTop:"1px solid #ffffff18",marginTop:6,paddingTop:8,paddingLeft:14,color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>
-                Note: Each card can only be counted toward one set.
-              </div>
               <div style={{height:8}}/>
             </>
           ) : (
