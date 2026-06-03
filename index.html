@@ -5040,7 +5040,7 @@ function DiamondsGame() {
             </GoldBtn>
           )}
           {/* Set notification buttons — appear at the start of your turn before playing */}
-          {isPlayerTurn && trickPlays.length === 0 && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && (()=>{
+          {isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && (()=>{
             const h0 = hands[0] || [];
             const GA = goldenAgeRef.current ? 2 : 1;
 
@@ -5092,9 +5092,9 @@ function DiamondsGame() {
                 {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
                 {spAvail && <GoldBtn onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:spAvail,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</GoldBtn>}
                 {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
-                {stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
-                {afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
-                {gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
               </>
             );
           })()}
