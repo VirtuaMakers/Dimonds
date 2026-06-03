@@ -2770,6 +2770,7 @@ function DiamondsGame() {
   // THE STEAL: check at the start of any player's turn (no cards played yet in the trick)
   useEffect(() => {
     if (phase !== "playing") return;
+    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
     if (trickPlays.length > 0) return;
     const cp = turnOrder[currentTurn];
     if (theStealOffered[cp]) return;
@@ -2800,7 +2801,7 @@ function DiamondsGame() {
       setTheStealState({ playerIdx: cp, points: pts, aiEvent: true });
       setPhase("thesteal_event");
     }
-  }, [phase, currentTurn, trickPlays.length]);
+  }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
   // Riot detection: fires at the start of each trick before playing
   useEffect(() => {
@@ -5095,7 +5096,7 @@ function DiamondsGame() {
       {phase==="thesteal_event" && theStealState && (
         <EventBox borderColor="#c9a84c" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Joker, Robbin Jack &amp; Ace of Spades — cashed in!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Joker, Robbin Jack, &amp; Ace of Spades — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
           </div>
