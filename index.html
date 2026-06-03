@@ -2740,6 +2740,7 @@ function DiamondsGame() {
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
   const roundEventLogRef = useRef([]); // accumulates events during the round
+  const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
   const [roundEventLog, setRoundEventLog] = useState([]);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
   const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands, resultObj, gameWon, newTotal }
@@ -4883,8 +4884,13 @@ function DiamondsGame() {
                 <div
                   key={card.id}
                   onClick={isPlayerTurn ? () => {
-                    if (isSelected && isLegal && isDesktop && selectedCards.length === 1) { playCard(card); }
-                    else {
+                    const now = Date.now();
+                    const last = lastCardClickRef.current;
+                    const isDoubleClick = last.cardId === card.id && (now - last.time) < 300;
+                    lastCardClickRef.current = { cardId: card.id, time: now };
+                    if (isSelected && isLegal && isDesktop && selectedCards.length === 1 && isDoubleClick) {
+                      playCard(card);
+                    } else {
                       setSelectedCards(prev => {
                         if (isSelected) return prev.filter(c => c.id !== card.id);
                         const next = [...prev, card];
