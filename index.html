@@ -2381,11 +2381,14 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
                 const isTrick = ev.type === "trick";
                 const isBatman = ev.type === "batman";
                 const isSet = ev.type === "set";
-                const emoji = isTrick ? "🎩" : isBatman ? "🌃" : ev.setEmoji;
+                const isSweep = ev.type === "sweep";
+                const emoji = isTrick ? "🎩" : isBatman ? "🌃" : isSweep ? "✨" : ev.setEmoji;
                 const label = isTrick
                   ? `Won (+${ev.points} pts${ev.diamondsCaptured?.length ? " 💎" : ""})`
                   : isBatman
                   ? `A♠ Block +${ev.points} pts`
+                  : isSweep
+                  ? `Swept ${ev.cardsSwept ?? ev.diamondsCaptured?.length ?? "?"} cards +${ev.points} pts 💎`
                   : `${ev.setName} +${ev.points} pts`;
                 const tappable = isTrick && ev.plays?.length > 0;
                 return (
@@ -2417,16 +2420,30 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
   }
 
   // ── LEVEL 0: rankings ──
+  const tricksByPlayer = allNames.map((_,i) => eventLog.filter(e => e.type === "trick" && e.playerIdx === i).length);
+  const setsByPlayer   = allNames.map((_,i) => eventLog.filter(e => e.type === "set"   && e.playerIdx === i).length);
+  const trickRanked = allNames.map((n,i) => ({ n, idx:i, count:tricksByPlayer[i] })).sort((a,b)=>b.count-a.count);
+  const setRanked   = allNames.map((n,i) => ({ n, idx:i, count:setsByPlayer[i]   })).sort((a,b)=>b.count-a.count);
+  const MEDALS = ["🥇","🥈","🥉","🎖️"];
+
+  const sectionLabel = (text) => (
+    <div style={{color:"#ffffff55",fontSize:10,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:8,marginTop:4,paddingBottom:4,borderBottom:"1px solid #ffffff11"}}>{text}</div>
+  );
+  const noteText = (text) => (
+    <div style={{color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,fontStyle:"italic",textAlign:"center",marginBottom:10,lineHeight:1.4}}>{text}</div>
+  );
+
   return (
     <Modal>
       <div>
-        <div style={{textAlign:"center",marginBottom:20}}>
+        <div style={{textAlign:"center",marginBottom:16}}>
           <div style={{fontSize:40,marginBottom:6}}>🏁</div>
           <div style={{color:"#c9a84c",fontFamily:FONT_UI,fontSize:20,fontWeight:700,letterSpacing:1}}>Round Over</div>
           <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {WIN_SCORE} wins · tap a name to review</div>
         </div>
 
-        <div style={{display:"flex",justifyContent:"space-between",padding:"0 16px 6px",borderBottom:"1px solid #ffffff11",marginBottom:8}}>
+        {sectionLabel("Score Ranking")}
+        <div style={{display:"flex",justifyContent:"space-between",padding:"0 16px 6px",marginBottom:8}}>
           <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>PLAYER</span>
           <div style={{display:"flex",gap:24}}>
             <span style={{color:"#ffffff33",fontSize:10,letterSpacing:1}}>THIS ROUND</span>
@@ -2443,7 +2460,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
             cursor:"pointer",
           }}>
             <div style={{display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>{["🥇","🥈","🥉",""][i]}</span>
+              <span style={{fontSize:18}}>{MEDALS[i]}</span>
               <span style={{color:i===0?"#e2c97e":"#ffffffcc",fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
               <span style={{color:"#c9a84c",fontSize:11}}>▶</span>
             </div>
@@ -2451,6 +2468,42 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
               <span style={{color:p.rs>0?"#c9a84c":"#ffffff33",fontSize:16,fontWeight:700,minWidth:40,textAlign:"center"}}>+{p.rs}</span>
               <span style={{color:i===0?"#ffd700":"#ffffffcc",fontSize:22,fontWeight:800,fontFamily:FONT_UI,minWidth:36,textAlign:"right"}}>{p.s}</span>
             </div>
+          </div>
+        ))}
+
+        <div style={{height:12}}/>
+        {noteText("Note: Winning the most tricks does not necessarily win the most points!")}
+        {sectionLabel("Most Tricks")}
+        {trickRanked.map((p,i)=>(
+          <div key={p.n} style={{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            background: i===0&&p.count>0?"#1f8f4e18":"#ffffff05",
+            border:`1px solid ${i===0&&p.count>0?"#1f8f4e55":"#ffffff0d"}`,
+            borderRadius:12,padding:"10px 16px",marginBottom:6,
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:16}}>{p.count>0?MEDALS[i]:""}</span>
+              <span style={{color:i===0&&p.count>0?"#7ec8a4":"#ffffffcc",fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
+            </div>
+            <span style={{color:p.count>0?"#7ec8a4":"#ffffff33",fontSize:15,fontWeight:700}}>{p.count} trick{p.count!==1?"s":""}</span>
+          </div>
+        ))}
+
+        <div style={{height:12}}/>
+        {noteText("Note: Redeeming the most sets does not necessarily make you win the most points!")}
+        {sectionLabel("Most Sets")}
+        {setRanked.map((p,i)=>(
+          <div key={p.n} style={{
+            display:"flex",justifyContent:"space-between",alignItems:"center",
+            background: i===0&&p.count>0?"#4a2a8a18":"#ffffff05",
+            border:`1px solid ${i===0&&p.count>0?"#8a5ad555":"#ffffff0d"}`,
+            borderRadius:12,padding:"10px 16px",marginBottom:6,
+          }}>
+            <div style={{display:"flex",alignItems:"center",gap:10}}>
+              <span style={{fontSize:16}}>{p.count>0?MEDALS[i]:""}</span>
+              <span style={{color:i===0&&p.count>0?"#c9a4e0":"#ffffffcc",fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{p.n}</span>
+            </div>
+            <span style={{color:p.count>0?"#c9a4e0":"#ffffff33",fontSize:15,fontWeight:700}}>{p.count} set{p.count!==1?"s":""}</span>
           </div>
         ))}
 
@@ -3544,31 +3597,6 @@ function DiamondsGame() {
     const jokerPlayerIdx = kidnapState.jokerPlayerIdx;
     const isRobbin = !!kidnapState.isRobbinJack;
 
-    // Robbin Jack tries to rob — check if A♠ is in another player's hand
-    if (isRobbin) {
-      const batmanHolder = currentHands.findIndex((h, i) => i !== jokerPlayerIdx && h.some(c => isBatman(c)));
-      if (batmanHolder !== -1) {
-        const GA = goldenAgeRef.current ? 2 : 1;
-        const aceBonus = 35 * GA;
-        addLog(`♠ ${allNames[batmanHolder]} (Ace of Spades) blocks ${allNames[jokerPlayerIdx]}'s rob! +${aceBonus} pts!`);
-        soundBlockRobbin();
-        setRoundScores(prev=>{ const n=[...prev]; n[batmanHolder]+=aceBonus; return n; });
-        const newHands2 = currentHands.map((h,i) => i===batmanHolder ? h.filter(c=>!isBatman(c)) : h);
-        setHands(newHands2);
-        setKidnapState(null);
-        setTrickResult({
-          ...kidnapState.resultObj,
-          jokerWin: false, jackDiamondRob: false, jackDiamondPassed: true,
-          jackDiamondPlayerIdx: jokerPlayerIdx,
-          batmanBlocked: true, batmanBlockedRobbin: true, batmanBlockedJoker: false,
-          batmanHolderIdx: batmanHolder,
-          pendingRobbinKidnap: undefined,
-        });
-        setPhase("trickresult");
-        return;
-      }
-    }
-
     const stolenCard = currentHands[fromPlayer][cardIdx];
 
     const newHands = currentHands.map((h,i) => {
@@ -4090,7 +4118,7 @@ function DiamondsGame() {
         addLog(`✨ ${allNames[soloPlayer]} sweeps ${soloCards.length} unopposed card${soloCards.length!==1?"s":""}`);
       }
       if (dimondPts > 0) {
-        logRoundEvent({ type:"trick", playerIdx:soloPlayer, trickNum:tricksPlayed+1, points:dimondPts, plays:[], diamondsCaptured:soloCards.filter(c=>isDiamond(c)) });
+        logRoundEvent({ type:"sweep", playerIdx:soloPlayer, trickNum:tricksPlayed+1, points:dimondPts, cardsSwept:soloCards.length, diamondsCaptured:soloCards.filter(c=>isDiamond(c)) });
       }
       setRoundScores(newRoundScores);
       // Empty all hands — round is functionally over
@@ -4269,24 +4297,15 @@ function DiamondsGame() {
       const isRobbin = !!kidnapState.isRobbinJack;
 
       if (isRobbin) {
-        // Ace of Spades guard: if A♠ is in play, robbing triggers a block (+35 to A♠ holder).
-        // Skip instead to take the safe consolation +1.
-        const batmanHolder = currentHands.findIndex(h => h.some(c => isBatman(c)));
-        if (batmanHolder === -1) {
-          const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
-          if (!target) {
-            handleKidnapSkip();
-            return;
-          }
-          const targetCard = currentHands[target.fromPlayer][target.cardIdx];
-          const familyIds = ["J♦","Q♦","K♦","A♦"];
-          const isFamily = familyIds.includes(targetCard.id);
-          // Rob if: chasing a family card, or steal yields ≥ 2 diamond pts (better than consolation +1)
-          if (!isFamily && diamondPoints(targetCard) <= 1) {
-            handleKidnapSkip();
-            return;
-          }
-        }
+        // Only rob if the target is worth stealing (family card or >1 diamond pt)
+        const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
+        if (!target) { handleKidnapSkip(); return; }
+        const targetCard = currentHands[target.fromPlayer][target.cardIdx];
+        const familyIds = ["J♦","Q♦","K♦","A♦"];
+        const isFamily = familyIds.includes(targetCard.id);
+        if (!isFamily && diamondPoints(targetCard) <= 1) { handleKidnapSkip(); return; }
+        handleKidnap(target.fromPlayer, target.cardIdx);
+        return;
       }
 
       const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
