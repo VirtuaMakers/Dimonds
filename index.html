@@ -2632,6 +2632,8 @@ function DiamondsGame() {
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
+  const roundEventLogRef = useRef([]); // accumulates events during the round
+  const [roundEventLog, setRoundEventLog] = useState([]);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
   const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands, resultObj, gameWon, newTotal }
   const [showAceCelebration, setShowAceCelebration] = useState(false);
@@ -2892,6 +2894,10 @@ function DiamondsGame() {
     }
   }, [phase, currentTurn, dealing, dealRevealIdx]);
 
+  function logRoundEvent(event) {
+    roundEventLogRef.current = [...roundEventLogRef.current, event];
+  }
+
   function addLog(msg) {
     setGameLog(prev => [msg, ...prev].slice(0,30));
   }
@@ -2899,6 +2905,7 @@ function DiamondsGame() {
   // ---- Start a new round ----
   function startRound(existingScores) {
     const nextDealer = (dealerIdx + 1) % 4;
+    roundEventLogRef.current = [];
     setDealerIdx(nextDealer);
     const newHands = dealCards(nextDealer);
     const leader = findLeader(newHands);
@@ -2952,6 +2959,7 @@ function DiamondsGame() {
       setGameNum(1);
     }
     const initDealer = Math.floor(Math.random() * 4);
+    roundEventLogRef.current = [];
     setDealerIdx(initDealer);
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
@@ -2999,6 +3007,12 @@ function DiamondsGame() {
       }, 110);
     }, 1150);
   }
+
+  useEffect(() => {
+    if (phase === "roundover" || phase === "gameover") {
+      setRoundEventLog([...roundEventLogRef.current]);
+    }
+  }, [phase]);
 
   // ---- Play a card ----
   function playCard(card) {
