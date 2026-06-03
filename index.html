@@ -1169,6 +1169,10 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
 
   const safe = hand.filter(c => !isDiamond(c) && !familyIds.includes(c.id) && !c.isJoker && !isBatman(c));
   if (safe.length > 0) return safe.sort((a,b) => cardScore(a) - cardScore(b))[0];
+  if (trickPlays.length === 0 && !gameState.trumpBroken) {
+    const nonDia = hand.filter(c => !isDiamond(c));
+    if (nonDia.length > 0) return nonDia.sort((a,b) => cardScore(a)-cardScore(b))[0];
+  }
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker);
   if (dimonds.length > 0) return dimonds.sort((a,b) => diamondPoints(a) - diamondPoints(b))[0];
   return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
@@ -2063,7 +2067,6 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   const multiplier = isGoldenAge ? 2 : 1;
   const pointsWon = rawPoints * multiplier;
   const btnLabel = isGameOver ? "END"
-    : result.americanFamily ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
     : isHandOver ? "PROCEED"
@@ -2130,7 +2133,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   }
 
   // ===== ROBBIN JACK ROBS! =====
-  if (result.jackDiamondRob) {
+  if (result.jackDiamondRob && result.stolenCard) {
     const robbinIdx = result.jackDiamondPlayerIdx ?? result.winnerIdx;
     const trickWinner = result.winnerIdx;
     const robbinWonTrick = robbinIdx === trickWinner;
@@ -2861,6 +2864,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "playing") return;
     if (trickPlays.length > 0) return;
+    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (riotOffered[cp]) return;
     const riotCards = checkRiot(hands[cp] || [], diamondsBroken);
@@ -2891,7 +2895,7 @@ function DiamondsGame() {
       setRiotState({ playerIdx: cp, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
       setPhase("riot_event");
     }
-  }, [phase, currentTurn, trickPlays.length]);
+  }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx, diamondsBroken]);
 
   // Golden Age (Aces Low): fires at the start of each player's turn, before a card is played
   useEffect(() => {
@@ -2945,9 +2949,46 @@ function DiamondsGame() {
   // Pre-play set detection for AI players (Rule of 3/4/2). Human player is notified via buttons.
   useEffect(() => {
     if (phase !== "playing") return;
+    if (trickPlays.length > 0) return;
     if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (cp === 0) return; // Human sees buttons in action area
+
+    // Rule of 4 (Diamond in the Rough) — four of a kind (checked first; rarer and higher value)
+    if (diamondsBroken) {
+      const quad4 = checkRuleFour(hands[cp] || []);
+      if (quad4) {
+        const rank4 = quad4[0].rank;
+        if (ruleFourOffered[cp] !== rank4) {
+        setRuleFourOffered(prev => { const n=[...prev]; n[cp]=rank4; return n; });
+        if (cp === 0) {
+          setRuleFourState({ playerIdx:0, cards:quad4, continuation:null });
+          setPhase("rulefour_offer");
+          return;
+        } else {
+          const pts = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
+          const cardIds = new Set(quad4.map(c=>c.id));
+          const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
+          const newRS = [...roundScores]; newRS[cp] += pts;
+          setRoundScores(newRS);
+          setHands(newHands);
+          setRuleFourOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
+          addLog(`💎 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards:quad4 });
+          const newTotal = totalScores.map((s,k) => s + newRS[k]);
+          if (newTotal.some(s => s >= WIN_SCORE)) {
+            setTotalScores(newTotal);
+            setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+            setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+            setScreen("gameover"); return;
+          }
+          setRuleFourState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
+          setPhase("rulefour_event");
+          return;
+        }
+        }
+      }
+    }
 
     // Rule of 3
     if (diamondsBroken) {
@@ -2982,42 +3023,6 @@ function DiamondsGame() {
           return;
         }
         } // end rank3 check
-      }
-    }
-
-    // Rule of 4 (Diamond in the Rough) — four of a kind
-    if (diamondsBroken) {
-      const quad4 = checkRuleFour(hands[cp] || []);
-      if (quad4) {
-        const rank4 = quad4[0].rank;
-        if (ruleFourOffered[cp] !== rank4) {
-        setRuleFourOffered(prev => { const n=[...prev]; n[cp]=rank4; return n; });
-        if (cp === 0) {
-          setRuleFourState({ playerIdx:0, cards:quad4, continuation:null });
-          setPhase("rulefour_offer");
-          return;
-        } else {
-          const pts = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
-          const cardIds = new Set(quad4.map(c=>c.id));
-          const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
-          const newRS = [...roundScores]; newRS[cp] += pts;
-          setRoundScores(newRS);
-          setHands(newHands);
-          setRuleFourOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
-          addLog(`💎 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
-          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards:quad4 });
-          const newTotal = totalScores.map((s,k) => s + newRS[k]);
-          if (newTotal.some(s => s >= WIN_SCORE)) {
-            setTotalScores(newTotal);
-            setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
-            setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
-          }
-          setRuleFourState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
-          setPhase("rulefour_event");
-          return;
-        }
-        }
       }
     }
 
@@ -3056,7 +3061,7 @@ function DiamondsGame() {
         } // end ranks4 check
       }
     }
-  }, [phase, currentTurn, dealing, dealRevealIdx]);
+  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length]);
 
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
@@ -3124,6 +3129,9 @@ function DiamondsGame() {
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
+    setRuleOfThreeOffered([null,null,null,null]);
+    setSwingingParadoxOffered([null,null,null,null]);
+    setPendingFireworks(false);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -3213,9 +3221,9 @@ function DiamondsGame() {
     if (!isPlayerTurn) return;
     // Guard against ghost plays: card must still be in hand
     if (!card.isJoker && !hands[0].some(c => c.id === card.id)) return;
-    // Joker is ALWAYS playable — no restrictions
-    if (card.isJoker) { submitPlay(0, card); return; }
     if (mustOpenWith2C && !(card.rank==="2" && card.suit==="♣")) return;
+    // Joker is ALWAYS playable — no other restrictions
+    if (card.isJoker) { submitPlay(0, card); return; }
     // Trump rule: can't lead with a diamond until diamonds are broken
     if (!diamondsBroken && trickPlays.length === 0 && isDiamond(card)) {
       const nonDiamonds = hands[0].filter(c => !isDiamond(c) && !c.isJoker);
@@ -3499,10 +3507,9 @@ function DiamondsGame() {
         if (!hasTargets) {
           addLog(`🃏 ${allNames[winner]} wins with the Joker (no cards left to kidnap)`);
           setTrickResult({ ...resultObj, jokerWin: true });
-          const allEmpty = currentHands.every(h=>h.length===0);
-          if (allEmpty || gameWon) {
+          if (gameWon) {
             setTotalScores(newTotal);
-            if (gameWon) setPendingFireworks(true);
+            setPendingFireworks(true);
           }
           setPhase("trickresult");
           return;
@@ -3518,8 +3525,7 @@ function DiamondsGame() {
             if (!jackFirstHasTargets) {
               addLog(`🎴 ${allNames[jackDIdx]} (Robbin Jack) — no cards left to rob`);
               setTrickResult(jackFirstResultObj);
-              const allEmpty2 = currentHands.every(h=>h.length===0);
-              if (allEmpty2 || gameWon) { setTotalScores(newTotal); if (gameWon) setPendingFireworks(true); }
+              if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
               setPhase("trickresult");
               return;
             }
@@ -3546,10 +3552,9 @@ function DiamondsGame() {
         if (!hasTargets) {
           addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) — no cards left to rob`);
           setTrickResult({ ...resultObj, jackDiamondRob: false, jackDiamondPassed: true });
-          const allEmpty = currentHands.every(h=>h.length===0);
-          if (allEmpty || gameWon) {
+          if (gameWon) {
             setTotalScores(newTotal);
-            if (gameWon) setPendingFireworks(true);
+            setPendingFireworks(true);
           }
           setPhase("trickresult");
           return;
@@ -3563,10 +3568,9 @@ function DiamondsGame() {
         if (!hasTargets) {
           addLog(`♠ ${allNames[acePlayerIdx]} played the Ace of Spades (no cards left to rescue)`);
           setTrickResult(resultObj);
-          const allEmpty = currentHands.every(h=>h.length===0);
-          if (allEmpty || gameWon) {
+          if (gameWon) {
             setTotalScores(newTotal);
-            if (gameWon) setPendingFireworks(true);
+            setPendingFireworks(true);
           }
           setPhase("trickresult");
           return;
@@ -3577,10 +3581,9 @@ function DiamondsGame() {
     } else {
       setTimeout(() => {
         setTrickResult(resultObj);
-        const allEmpty = currentHands.every(h=>h.length===0);
-        if (allEmpty || gameWon) {
+        if (gameWon) {
           setTotalScores(newTotal);
-          if (gameWon) setPendingFireworks(true);
+          setPendingFireworks(true);
         }
         setPhase("trickresult");
       }, 600);
@@ -3635,8 +3638,7 @@ function DiamondsGame() {
     const allEmpty = newHands.every(h=>h.length===0);
     if (allEmpty) {
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
-      setTotalScores(newTotal);
-      if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
+      if (newTotal.some(s=>s>=WIN_SCORE)) { setTotalScores(newTotal); setPendingFireworks(true); }
     }
   }
 
@@ -3656,7 +3658,7 @@ function DiamondsGame() {
 
     // Robbin Jack passes — always awards consolation +1 diamond, no summoning
     soundRobbinPass();
-    const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin;
+    const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin || !!kidnapState.resultObj.pendingJokerKidnap;
     if (!isChainedAfterJoker) {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +1 pt.`);
       setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
@@ -3670,17 +3672,22 @@ function DiamondsGame() {
 
   function handleRobbinSummonYes() {
     if (!robbinSummonState) return;
-    const { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands: currentHands, resultObj, gameWon, newTotal } = robbinSummonState;
-    // Remove A♠ from holder's hand (summoned)
+    const { jackPlayerIdx, jokerPlayerIdx, batmanHolderIdx, hands: currentHands, resultObj } = robbinSummonState;
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const bonus = 35 * GA;
     const newHands = currentHands.map((h,i) => i===batmanHolderIdx ? h.filter(c=>!isBatman(c)) : h);
     setHands(newHands);
-    setRoundScores(prev=>{ const n=[...prev]; n[batmanHolderIdx]+=35; return n; });
-    addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! Joker BLOCKED! ${allNames[batmanHolderIdx]} gets +35! ${allNames[jackPlayerIdx]} wins the trick!`);
+    const newRound = [...roundScores]; newRound[batmanHolderIdx] += bonus;
+    setRoundScores(newRound);
+    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    setTotalScores(newTotal);
+    const gameWon = newTotal.some(s=>s>=WIN_SCORE);
+    addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! Joker BLOCKED! ${allNames[batmanHolderIdx]} gets +${bonus}! ${allNames[jackPlayerIdx]} wins the trick!`);
     soundBatmanBlocks();
     const updatedResult = { ...resultObj, winnerIdx: jackPlayerIdx, jokerWin: false, jackDiamondRob: false, batmanBlocked: true, batmanBlockedJoker: true, robbinSummon: true };
     setTrickResult(updatedResult);
     setRobbinSummonState(null);
-    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+    if (gameWon) setPendingFireworks(true);
     setPhase("trickresult");
   }
 
@@ -3695,23 +3702,25 @@ function DiamondsGame() {
   function handleTheStealEndRound() {
     if (!theStealState) return;
     const pi = theStealState.playerIdx;
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const bonus = THE_STEAL_BONUS * GA;
     const newRound = [...roundScores];
-    newRound[pi] += THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
+    newRound[pi] += bonus;
     const newTotal = totalScores.map((s,i) => s + newRound[i]);
-    addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${THE_STEAL_BONUS} pts.`);
-    logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:THE_STEAL_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🌇", setName:"The Steal", cards:[] });
+    addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${bonus} pts.`);
+    logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:bonus, setEmoji:"🌇", setName:"The Steal", cards:[] });
     soundTheSteal();
     setTheStealState(null);
-    setPhase("playing");
+    const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
+    setHands(newHands);
+    setRoundScores(newRound);
+    setTotalScores(newTotal);
     const gameOver = newTotal.some(s=>s>=WIN_SCORE);
     if (gameOver) {
-      setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
     } else {
-      setRoundScores(newRound);
-      setTotalScores(newTotal);
       soundRoundWin();
       setPhase("roundover");
       setRoundNum(r=>r+1);
@@ -4049,6 +4058,7 @@ function DiamondsGame() {
 
     // American Family win — end round immediately
     if (trickResult?.americanFamily) {
+      setTrickResult(null);
       const gameOver = totalScores.some(s=>s>=WIN_SCORE);
       if (gameOver) {
         const _place = 1 + totalScores.filter((s,i) => s > totalScores[0] || (s === totalScores[0] && i !== 0)).length;
@@ -4109,7 +4119,8 @@ function DiamondsGame() {
     if (playersWithCards.length === 1) {
       const soloPlayer = playersWithCards[0];
       const soloCards = hands[soloPlayer];
-      const dimondPts = soloCards.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0);
+      const GA = goldenAgeRef.current ? 2 : 1;
+      const dimondPts = soloCards.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
       const newRoundScores = [...roundScores];
       newRoundScores[soloPlayer] += dimondPts;
       if (dimondPts > 0) {
@@ -4158,8 +4169,8 @@ function DiamondsGame() {
     setTheStealOffered([false,false,false,false]);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
-    setPhase("playing");
     setTrickResult(null);
+    setPhase("playing");
   }
 
   // Animate the trick's cards gathering toward the winner's score panel, then fading.
