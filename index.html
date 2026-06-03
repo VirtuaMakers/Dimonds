@@ -4086,6 +4086,9 @@ function DiamondsGame() {
       } else {
         addLog(`✨ ${allNames[soloPlayer]} sweeps ${soloCards.length} unopposed card${soloCards.length!==1?"s":""}`);
       }
+      if (dimondPts > 0) {
+        logRoundEvent({ type:"trick", playerIdx:soloPlayer, trickNum:tricksPlayed+1, points:dimondPts, plays:[], diamondsCaptured:soloCards.filter(c=>isDiamond(c)) });
+      }
       setRoundScores(newRoundScores);
       // Empty all hands — round is functionally over
       setHands([[],[],[],[]]);
@@ -5412,7 +5415,7 @@ function DiamondsGame() {
           allNames={allNames}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
-          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
+          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || hands.filter(h=>h.length>0).length===1}
           isGoldenAge={goldenAgeActive}
         />
       )}
