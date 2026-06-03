@@ -3279,6 +3279,30 @@ function DiamondsGame() {
         setGameTricksPerPlayer(prev => prev.map((v,i) => v + rt[i]));
         setGameSetsPerPlayer(prev =>   prev.map((v,i) => v + rs[i]));
       }
+      if (phase === "gameover") {
+        // Record game stats to localStorage for future player profile system
+        const lastRoundTricks = log.filter(e => e.type === "trick" && e.playerIdx === 0).length;
+        const lastRoundSets   = log.filter(e => e.type === "set"   && e.playerIdx === 0).length;
+        const finalScores = totalScores;
+        const ranking = [0,1,2,3].sort((a,b) => finalScores[b]-finalScores[a] || (a===0?1:b===0?-1:a-b));
+        const placement = ranking.indexOf(0) + 1;
+        const stat = {
+          v: 1,
+          name: playerName || allNames[0],
+          date: new Date().toISOString(),
+          placement,
+          score: finalScores[0] || 0,
+          tricks: (gameTricksPerPlayer[0] || 0) + lastRoundTricks,
+          sets:   (gameSetsPerPlayer[0]   || 0) + lastRoundSets,
+          rounds: roundNum,
+          won: placement === 1,
+        };
+        try {
+          const prev = JSON.parse(localStorage.getItem("dimonds_stats") || "[]");
+          prev.push(stat);
+          localStorage.setItem("dimonds_stats", JSON.stringify(prev));
+        } catch(e) {}
+      }
     }
   }, [phase]);
 
@@ -4362,6 +4386,37 @@ function DiamondsGame() {
 
     return () => clearTimeout(timer);
   }, [phase, currentTurn, turnOrder]);
+
+  // Auto-play human's remaining cards when all opponents are out and no scoring moves remain
+  useEffect(() => {
+    if (phase !== "playing" || dealing) return;
+    if (turnOrder[currentTurn] !== 0) return;
+    const h0 = hands[0] || [];
+    if (h0.length === 0) return;
+    if (!hands.slice(1).every(h => h.length === 0)) return; // opponents still have cards
+
+    // Check for any unlocked scoring opportunities the human should decide on first
+    const r3 = checkRuleOfThree(h0);
+    const r3Avail = r3 && (diamondsBroken || !r3.some(c => isDiamond(c)));
+    const r4 = checkRuleFour(h0);
+    const r4Avail = r4 && (diamondsBroken || !r4.some(c => isDiamond(c)));
+    const riotAvail = checkRiot(h0, diamondsBroken);
+    const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
+    const stealAvail = trickPlays.length === 0 && checkTheSteal(h0);
+    const afAvail   = trickPlays.length === 0 && checkAmericanFamily(h0);
+    const gaAvail   = trickPlays.length === 0 && checkAcesLow(h0);
+    if (r3Avail || r4Avail || riotAvail || spCombos.length > 0 || stealAvail || afAvail || gaAvail) return;
+
+    // Play a non-Joker card automatically (skip Joker to avoid empty kidnap modal)
+    const autoCard = h0.find(c => !c.isJoker);
+    if (!autoCard) return;
+
+    const timer = setTimeout(() => {
+      addLog(`⚡ No opponents remain — auto-played ${autoCard.rank}${autoCard.suit}`);
+      submitPlay(0, autoCard);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [phase, hands, currentTurn, turnOrder, trickPlays, dealing, diamondsBroken]);
 
   // AI kidnap
   useEffect(() => {
