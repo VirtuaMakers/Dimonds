@@ -4348,6 +4348,7 @@ function DiamondsGame() {
         // Find next player in turn order who has cards
         let nextTurn = currentTurn + 1;
         while (nextTurn < 4 && (hands[turnOrder[nextTurn]]?.length || 0) === 0) {
+          if (turnOrder[nextTurn] === 0 && (hands[0]?.length ?? 0) > 0) break; // never skip human with cards
           nextTurn++;
         }
         if (nextTurn >= 4) {
@@ -4391,6 +4392,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "playing" || dealing) return;
     if (turnOrder[currentTurn] !== 0) return;
+    if (trickPlays.length > 0) return; // trick already in progress — human must play manually
     const h0 = hands[0] || [];
     if (h0.length === 0) return;
     if (!hands.slice(1).every(h => h.length === 0)) return; // opponents still have cards
