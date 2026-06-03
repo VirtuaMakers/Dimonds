@@ -3087,8 +3087,10 @@ function DiamondsGame() {
       soundAmericanFamily();
       const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
-      setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
-      setPhase("trickresult");
+      setTimeout(() => {
+        setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
+        setPhase("trickresult");
+      }, 700);
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
