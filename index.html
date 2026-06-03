@@ -3561,6 +3561,7 @@ function DiamondsGame() {
           jackDiamondPlayerIdx: jokerPlayerIdx,
           batmanBlocked: true, batmanBlockedRobbin: true, batmanBlockedJoker: false,
           batmanHolderIdx: batmanHolder,
+          pendingRobbinKidnap: undefined,
         });
         setPhase("trickresult");
         return;
@@ -3582,7 +3583,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer };
+    const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer, pendingRobbinKidnap: undefined };
 
     // If Joker kidnapped AND J♦ was also in same trick, show Joker event first, then PROCEED → J♦ rob
     const pendingRobbinRob = !isRobbin && kidnapState.resultObj?.jackDiamondRob;
@@ -3618,7 +3619,7 @@ function DiamondsGame() {
     if (!isRobbin) {
       soundJokerRelease();
       addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
-      setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false });
+      setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false, pendingRobbinKidnap: undefined });
       setKidnapState(null);
       setPhase("trickresult");
       return;
@@ -3633,7 +3634,7 @@ function DiamondsGame() {
     } else {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
-    setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx });
+    setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined });
     setKidnapState(null);
     setPhase("trickresult");
   }
@@ -3994,7 +3995,7 @@ function DiamondsGame() {
     // J♦ acted first — now open Joker kidnap modal
     if (trickResult?.pendingJokerKidnap) {
       const { jokerPlayerIdx } = trickResult.pendingJokerKidnap;
-      const cleanResult = { ...trickResult, pendingJokerKidnap: undefined, jackDiamondRob: false };
+      const cleanResult = { ...trickResult, pendingJokerKidnap: undefined, pendingRobbinKidnap: undefined, jackDiamondRob: false };
       const hasTargets = hands.some((h, i) => i !== jokerPlayerIdx && h.length > 0);
       if (!hasTargets) {
         addLog(`🃏 ${allNames[jokerPlayerIdx]} wins with the Joker (no cards left to kidnap)`);
@@ -4292,7 +4293,7 @@ function DiamondsGame() {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
         // No valid target — show result directly (preserve rob vs kidnap)
-        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin, ...(isRobbin && { jackDiamondPlayerIdx: jokerPlayer }) });
+        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin, pendingRobbinKidnap: undefined, ...(isRobbin && { jackDiamondPlayerIdx: jokerPlayer }) });
         setKidnapState(null);
         setPhase("trickresult");
       }
