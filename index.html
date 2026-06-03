@@ -2787,7 +2787,8 @@ function DiamondsGame() {
         if (swingingParadoxOffered[cp] !== ranks4) {
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=ranks4; return n; });
         if (cp === 0) {
-          // Human picks their own pairs freely — badge shows, Redeem Set button handles cashout
+          setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null });
+          setPhase("swingingparadox_offer");
           return;
         } else {
           const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -4722,6 +4723,11 @@ function DiamondsGame() {
               {ruleOfThreeOffered[0] !== null && checkRuleOfThree(hands[0] || []) && (
                 <GoldBtn onClick={()=>{ const trio=checkRuleOfThree(hands[0]||[]); setRuleOfThreeState({ playerIdx:0, cards:trio, continuation:null }); setPhase("ruleofthree_offer"); }}>
                   🦅 Redeem Rule of 3 +{RULE_OF_THREE_BONUS*(goldenAgeRef.current?2:1)}
+                </GoldBtn>
+              )}
+              {swingingParadoxOffered[0] !== null && checkSwingingParadox(hands[0] || []) && (
+                <GoldBtn onClick={()=>{ const quad=checkSwingingParadox(hands[0]||[]); setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null }); setPhase("swingingparadox_offer"); }}>
+                  💍 Redeem Rule of 2 +{SWINGING_PARADOX_BONUS*(goldenAgeRef.current?2:1)}
                 </GoldBtn>
               )}
               {acesLowOffered[0] && checkAcesLow(hands[0] || []) && (
