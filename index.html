@@ -4822,8 +4822,8 @@ function DiamondsGame() {
       <div style={{
         flexShrink:0,
         display:"flex",flexDirection:"column",
-        padding: isDesktop ? "4px 10px 8px" : "4px 10px 16px",
-        height: isDesktop ? 236 : 250,
+        padding: isDesktop ? "4px 10px 8px" : "4px 10px 8px",
+        height: isDesktop ? 236 : "auto",
         position:"relative",
         boxSizing:"border-box",
       }}>
@@ -4989,7 +4989,7 @@ function DiamondsGame() {
 
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
-          : {display:"flex",justifyContent:"center",gap:10,marginTop:6,alignItems:"center",flexShrink:0,flexWrap:"wrap"}}>
+          : {display:"flex",justifyContent:"center",gap:8,marginTop:4,alignItems:"center",flexShrink:0,flexWrap:"wrap",overflowY:"auto",maxHeight:130,WebkitOverflowScrolling:"touch"}}>
           {selectedCards.length > 0 && isPlayerTurn && (
             <div style={{
               background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
@@ -5106,9 +5106,9 @@ function DiamondsGame() {
             );
           })()}
         </div>
-        {/* Safe-area spacer — clears iPhone home indicator */}
-        <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
       </div>
+      {/* Safe-area spacer — clears iPhone home indicator */}
+      <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* MODALS */}
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&(
