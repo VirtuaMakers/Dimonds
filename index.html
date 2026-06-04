@@ -2984,7 +2984,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"a.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
                 {num:"b.",title:"🔷/🔶 The Queen of Clubs",text:(<><div>• The Queen of Clubs has a stealing capability of her own — <em>Thievin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead <em>Reallocate</em> any one card from any other player to another (not from or to herself).</div></>),sub:true},
                 {num:"c.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
-                {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played in any one, two, or three of the other special cards' (The Joker, The Queen of Clubs, and The Jack of Dimonds) trick, which <em>Locks Up/Blocks</em> any or all of them (in the same trick)! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div></>),sub:true},
+                {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played in any one, two, or three of the other special cards' (The Joker, The Queen of Clubs, and The Jack of Dimonds) trick, which <em>Locks Up/Blocks</em> any or all of them (in the same trick)! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+30/35/40 bonus pts</strong> for one, two, or all three blocked.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div><div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> The Jack of Dimonds may still choose to rob or pass even when The Ace of Spades is present. If he robs, The Ace of Spades blocks the attempt. If he passes (+1 pt), The Ace of Spades rescues instead. When The Joker or The Queen of Clubs are also in the trick, The Ace of Spades blocks and rescues in the same move.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
                 {num:"a.",title:"💠 Rule of 1 (Girl's Best Friend)",text:(<>Put one of any Dimond card you have into another player's hand at the start of your turn. This is one way to break Dimonds (also known as <em>Cutting Your Teeth!</em>). This can only be done once per turn.</>),sub:true},
                 {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
@@ -3898,11 +3898,11 @@ function DiamondsGame() {
     newRoundScores[winner] += pointsWon * GA;
 
     // Ace of Spades bonus — only apply now if J♦ choice is NOT pending (Joker/Q♣ auto-block only)
-    const aceBonus = (aceBlocked && !jackDPendingRobChoice) ? 35 * GA : 0;
+    const nAutoBlocked = [aceBlockedJoker,aceBlockedQueenClubs].filter(Boolean).length;
+    const aceBonus = (aceBlocked && !jackDPendingRobChoice) ? (nAutoBlocked === 2 ? 35 : 30) * GA : 0;
     if (aceBlocked && !jackDPendingRobChoice) {
       newRoundScores[winner] += aceBonus;
-      const nBlocked = [aceBlockedJoker,aceBlockedQueenClubs].filter(Boolean).length;
-      if (nBlocked >= 2) soundBlockBoth();
+      if (nAutoBlocked >= 2) soundBlockBoth();
       else if (aceBlockedQueenClubs) soundBlockRobbin();
       else soundAceSuccess();
     }
@@ -3981,11 +3981,12 @@ function DiamondsGame() {
             aceBlockedQueenClubs,
             baseRoundScores: newRoundScores,
             baseResultObj: resultObj,
+            currentHands,
           });
           setPhase("acerobchoice");
         } else {
           // AI always passes — preserves J♦'s +1 and denies A♠ the block bonus
-          finalizeAceRobResolution(false, jdIdx, winner, aceBlockedJoker, aceBlockedQueenClubs, newRoundScores, resultObj);
+          finalizeAceRobResolution(false, jdIdx, winner, aceBlockedJoker, aceBlockedQueenClubs, newRoundScores, resultObj, currentHands);
         }
       }, 600);
       return;
@@ -4079,6 +4080,19 @@ function DiamondsGame() {
           return;
         }
         setRescueState({ acePlayerIdx, hands: currentHands, resultObj });
+        setPhase("rescue");
+      }, 600);
+    } else if (aceBlocked && !jackDPendingRobChoice) {
+      // Auto-block (Joker/Q♣ only, no J♦ pending) — A♠ also rescues after blocking
+      setTimeout(() => {
+        const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
+        if (!hasTargets) {
+          setTrickResult(resultObj);
+          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+          setPhase("trickresult");
+          return;
+        }
+        setRescueState({ acePlayerIdx: winner, hands: currentHands, resultObj, jokerLockedUp: aceBlockedJoker });
         setPhase("rescue");
       }, 600);
     } else {
@@ -4177,7 +4191,7 @@ function DiamondsGame() {
     if (!robbinSummonState) return;
     const { jackPlayerIdx, jokerPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = robbinSummonState;
     const GA = goldenAgeRef.current ? 2 : 1;
-    const bonus = 35 * GA;
+    const bonus = 30 * GA; // blocking 1 card (the Joker)
     const newHands = currentHands.map((h,i) => i===aceHolderIdx ? h.filter(c=>!isAceSpades(c)) : h);
     setHands(newHands);
     const newRound = [...roundScores]; newRound[aceHolderIdx] += bonus;
@@ -4203,7 +4217,7 @@ function DiamondsGame() {
   }
 
   // Shared resolution for J♦ rob/pass choice when A♠ is in the trick
-  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj) {
+  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj, currentHands) {
     const GA = goldenAgeRef.current ? 2 : 1;
     const finalRound = [...baseRoundScores];
     if (!jackRobbed) {
@@ -4213,7 +4227,7 @@ function DiamondsGame() {
     }
     const totalBlocked = (jackRobbed ? 1 : 0) + (autoBlockedJoker ? 1 : 0) + (autoBlockedQC ? 1 : 0);
     if (totalBlocked > 0) {
-      const bonus = 35 * GA;
+      const bonus = (totalBlocked === 1 ? 30 : totalBlocked === 2 ? 35 : 40) * GA;
       finalRound[aceWinnerIdx] += bonus;
       if (totalBlocked >= 2) soundBlockBoth();
       else if (jackRobbed || autoBlockedQC) soundBlockRobbin();
@@ -4238,6 +4252,18 @@ function DiamondsGame() {
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
     };
+    // Rescue fires unless J♦ is the only special card and chose to rob
+    const rescueFires = autoBlockedJoker || autoBlockedQC || !jackRobbed;
+    if (rescueFires && currentHands) {
+      const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && h.length > 0);
+      if (hasTargets) {
+        setAceRobChoiceState(null);
+        setRescueState({ acePlayerIdx: aceWinnerIdx, hands: currentHands, resultObj: finalResult, jokerLockedUp: autoBlockedJoker });
+        if (gameWon) setPendingFireworks(true);
+        setPhase("rescue");
+        return;
+      }
+    }
     setTrickResult(finalResult);
     setAceRobChoiceState(null);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
@@ -4246,14 +4272,14 @@ function DiamondsGame() {
 
   function handleAceRobChoiceRob() {
     if (!aceRobChoiceState) return;
-    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj } = aceRobChoiceState;
-    finalizeAceRobResolution(true, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj);
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = aceRobChoiceState;
+    finalizeAceRobResolution(true, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands);
   }
 
   function handleAceRobChoiceNoRob() {
     if (!aceRobChoiceState) return;
-    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj } = aceRobChoiceState;
-    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj);
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = aceRobChoiceState;
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands);
   }
 
   function handleTheStealEndRound() {
@@ -6006,7 +6032,7 @@ function DiamondsGame() {
               Block the Joker and win this trick yourself.
             </p>
             <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
-              {allNames[robbinSummonState.aceHolderIdx]} receives +35 pts. You win the trick.
+              {allNames[robbinSummonState.aceHolderIdx]} receives +30 pts. You win the trick.
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
