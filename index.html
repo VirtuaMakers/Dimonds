@@ -836,7 +836,7 @@ function sortHandBySuit(hand) {
   });
 }
 const WIN_SCORE = 80;
-const AMERICAN_FAMILY_BONUS = 35;
+const AMERICAN_FAMILY_BONUS = 30;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
 const AI_PERSONAS = [
   { name:"Gordy", emoji:"🚨", style:"Aggressive",  desc:"plays high, hunts Family" },
@@ -916,11 +916,18 @@ function checkAcesLow(hand) {
 }
 const ACES_LOW_BONUS = 35;
 
-// THE STEAL — all three special steal cards in one hand
+// THE STEAL — any 3 of the 4 special steal cards in one hand
 function checkTheSteal(hand) {
-  return hand.some(c=>c.isJoker) && hand.some(c=>isJackDiamond(c)) && hand.some(c=>isBatman(c));
+  const count = [hand.some(c=>c.isJoker), hand.some(c=>isQueenClubs(c)), hand.some(c=>isJackDiamond(c)), hand.some(c=>isBatman(c))].filter(Boolean).length;
+  return count >= 3;
 }
 const THE_STEAL_BONUS = 25;
+
+// SHOWDOWN — all four special steal cards in one hand
+function checkShowdown(hand) {
+  return hand.some(c=>c.isJoker) && hand.some(c=>isQueenClubs(c)) && hand.some(c=>isJackDiamond(c)) && hand.some(c=>isBatman(c));
+}
+const SHOWDOWN_BONUS = 40;
 
 const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 13;
@@ -3046,6 +3053,9 @@ function DiamondsGame() {
   const [fireworksPlace, setFireworksPlace] = useState(1);
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
+  const [showdownState, setShowdownState] = useState(null);
+  const [showdownOffered, setShowdownOffered] = useState([false,false,false,false]);
+  const [rule1State, setRule1State] = useState(null);
   const [riotState, setRiotState] = useState(null);
   const [riotOffered, setRiotOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
@@ -3085,6 +3095,41 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [isPlayerTurn, currentTurn]);
 
+  // SHOWDOWN: check at the start of any player's turn — must fire BEFORE The Steal (superset)
+  useEffect(() => {
+    if (phase !== "playing") return;
+    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (trickPlays.length > 0) return;
+    const cp = turnOrder[currentTurn];
+    if (showdownOffered[cp]) return;
+    if (!checkShowdown(hands[cp] || [])) return;
+    setShowdownOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    if (cp === 0) {
+      return; // Human notified via buttons in action area
+    } else {
+      const pts = SHOWDOWN_BONUS * (goldenAgeRef.current ? 2 : 1);
+      const stealIds = new Set((hands[cp]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isBatman(c)).map(c=>c.id));
+      const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!stealIds.has(c.id)) : h);
+      setHands(newHands);
+      const newRS = [...roundScores]; newRS[cp] += pts;
+      setRoundScores(newRS);
+      addLog(`🌆 ${allNames[cp]} triggers SHOWDOWN! +${pts} pts. Round ends!`);
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌆", setName:"Showdown", cards:[] });
+      soundTheSteal();
+      const newTotal = totalScores.map((s,i) => s + newRS[i]);
+      if (newTotal.some(s => s >= WIN_SCORE)) {
+        setTotalScores(newTotal);
+        const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        setFireworksPlace(Math.max(1,Math.min(4,place)));
+        setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
+        setScreen("gameover");
+        return;
+      }
+      setShowdownState({ playerIdx: cp, points: pts, aiEvent: true });
+      setPhase("showdown_event");
+    }
+  }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
+
   // THE STEAL: check at the start of any player's turn (no cards played yet in the trick)
   useEffect(() => {
     if (phase !== "playing") return;
@@ -3092,6 +3137,7 @@ function DiamondsGame() {
     if (trickPlays.length > 0) return;
     const cp = turnOrder[currentTurn];
     if (theStealOffered[cp]) return;
+    if (checkShowdown(hands[cp] || [])) return; // Showdown takes priority
     if (!checkTheSteal(hands[cp] || [])) return;
     // Mark offered so it only fires once per round per player
     setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
@@ -3100,7 +3146,7 @@ function DiamondsGame() {
     } else {
       // AI player — cash in, then show event box so human sees it
       const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
-      const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
+      const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isBatman(c)) : h);
       setHands(newHands);
       const newRS = [...roundScores]; newRS[cp] += pts;
       setRoundScores(newRS);
@@ -3252,10 +3298,11 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 3
-    if (diamondsBroken) {
+    // Rule of 3 — available always unless the set contains a Dimond and Dimonds not yet broken
+    {
       const trio = checkRuleOfThree(hands[cp] || []);
-      if (trio) {
+      const trioDiaOK = trio && (diamondsBroken || !trio.some(c => isDiamond(c)));
+      if (trioDiaOK) {
         const rank3 = trio[0].rank;
         if (ruleOfThreeOffered[cp] !== rank3) {
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=rank3; return n; });
@@ -3388,6 +3435,9 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
+    setShowdownState(null);
+    setShowdownOffered([false,false,false,false]);
+    setRule1State(null);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
     setRuleFourState(null);
@@ -3453,6 +3503,9 @@ function DiamondsGame() {
     setRobbinSummonState(null);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
+    setShowdownState(null);
+    setShowdownOffered([false,false,false,false]);
+    setRule1State(null);
     setRuleOfThreeState(null);
     setSwingingParadoxState(null);
     setRuleFourState(null);
@@ -3575,9 +3628,9 @@ function DiamondsGame() {
 
     // Rule of 3 (Democracy) — three of a kind → discard for +16 pts
     for (let i=0; i<4; i++) {
-      if (!effectiveDiamondsBroken) continue;
       if (i === 0) continue; // human R3 offered by pre-play useEffect at turn start, not mid-trick
       const trio = checkRuleOfThree(newHands[i]);
+      if (trio && !effectiveDiamondsBroken && trio.some(c => isDiamond(c))) continue; // trio contains Dimond but Dimonds not yet broken
       if (!trio) continue;
       const rank3cf = trio[0].rank;
       if (ruleOfThreeOffered[i] === rank3cf) continue; // already notified of this rank
