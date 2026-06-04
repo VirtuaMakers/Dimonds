@@ -3513,6 +3513,7 @@ function DiamondsGame() {
     setCurrentTurn(0);
     setTurnOrder(order);
     setSelectedCards([]);
+    setHandSortMode('rank');
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
@@ -5655,6 +5656,7 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
+          {isDesktop && (
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
             <GoldBtn secondary small onClick={toggleHandSort}>
               ⇅ Re-Sort Hand
@@ -5663,6 +5665,7 @@ function DiamondsGame() {
               {handSortMode === 'rank' ? 'by rank' : 'by suit'}
             </div>
           </div>
+          )}
           {selectedSetType && isPlayerTurn && (diamondsBroken || selectedCards.every(c => c.suit !== "♦")) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
