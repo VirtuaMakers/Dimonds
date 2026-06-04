@@ -5981,10 +5981,11 @@ function DiamondsGame() {
               alignItems:"center", gap:12,
             }}>
               <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY}}>
-                You hold all four diamond face cards.
+                You hold all four Honor Cards.
               </div>
               <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5}}>
-                A♦, J♦, Q♦, K♦ — discard them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)} pts</strong>. This ends the round immediately!
+                <div>A♦, J♦, Q♦, K♦ — redeem them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{AMERICAN_FAMILY_BONUS*(goldenAgeRef.current?2:1)} pts</strong>.</div>
+                <div>This ends the round immediately!</div>
               </div>
             </div>
             <div style={{display:"flex", gap:10, marginTop:20}}>
@@ -6024,7 +6025,7 @@ function DiamondsGame() {
             {allNames[acesLowState.playerIdx]}
           </div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            All four aces discarded — all points doubled for the rest of the round!
+            All four aces redeemed — all points doubled for the rest of the round!
           </div>
           <div style={{
             background:"rgba(10,10,10,0.4)", border:"1px solid #ffffff22",
@@ -6059,7 +6060,7 @@ function DiamondsGame() {
       {phase==="ruleofthree_event" && ruleOfThreeState && (
         <EventBox borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind discarded!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ruleOfThreeState.points} pts 🦅</span>
           </div>
@@ -6090,7 +6091,7 @@ function DiamondsGame() {
       {phase==="swingingparadox_event" && swingingParadoxState && (
         <EventBox borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs discarded!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{swingingParadoxState.points} pts 💍</span>
           </div>
@@ -6121,7 +6122,7 @@ function DiamondsGame() {
       {phase==="rulefour_event" && ruleFourState && (
         <EventBox borderColor="#dd77aa" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind discarded!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ruleFourState.points} pts 💎</span>
           </div>
