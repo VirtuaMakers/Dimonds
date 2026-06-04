@@ -2113,6 +2113,56 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
   );
 }
 
+function Rule1Modal({ hand, allNames, onGive, onSkip, deckTheme }) {
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [selectedTarget, setSelectedTarget] = useState(null);
+  const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker);
+  return (
+    <Modal>
+      <div>
+        <div style={{textAlign:"center",marginBottom:16}}>
+          <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Girl's Best Friend</div>
+          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>💠 Rule of 1</h2>
+          <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Give one Dimond card to another player.</p>
+        </div>
+        <div style={{marginBottom:14}}>
+          <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>Your Dimond cards — tap to select</div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:13,justifyContent:"center",padding:"6px 0"}}>
+            {dimonds.map(card => (
+              <div key={card.id} onClick={()=>{setSelectedCard(card);setSelectedTarget(null);}} style={{cursor:"pointer",transform:"scale(1.4)",transformOrigin:"center",margin:"10px 6px"}}>
+                <CardComp card={card} selected={selectedCard?.id===card.id} tiny deckTheme={deckTheme}/>
+              </div>
+            ))}
+          </div>
+        </div>
+        {selectedCard && (
+          <div style={{marginBottom:14}}>
+            <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>Give to which player?</div>
+            <div style={{display:"flex",gap:6,justifyContent:"center"}}>
+              {[1,2,3].map(i => (
+                <div key={i} onClick={()=>setSelectedTarget(i)} style={{
+                  background:selectedTarget===i?"#c9a84c22":"#ffffff08",
+                  border:`1.5px solid ${selectedTarget===i?"#c9a84c":"#ffffff22"}`,
+                  borderRadius:10,padding:"8px 14px",cursor:"pointer",transition:"all 0.15s",textAlign:"center",flex:1,
+                }}>
+                  <div style={{fontSize:18}}>{AI_PERSONAS[i-1]?.emoji}</div>
+                  <div style={{color:selectedTarget===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={{textAlign:"center",display:"flex",gap:10,justifyContent:"center"}}>
+          <GoldBtn onClick={()=>onGive(selectedTarget, selectedCard)} disabled={!selectedCard||selectedTarget===null}>
+            Give Card 💠
+          </GoldBtn>
+          <GoldBtn secondary onClick={onSkip}>Skip</GoldBtn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
 function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, jokerLockedUp }) {
   const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
@@ -2902,13 +2952,15 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"c.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played in any one, two, or three of the other special cards' (The Joker, The Queen of Clubs, and The Jack of Dimonds) trick, which <em>Locks Up/Blocks</em> any or all of them (in the same trick)! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+35 bonus pts</strong>.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
-                {num:"a.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ & 6♦️+6♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
-                {num:"b.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
-                {num:"c.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
-                {num:"d.",title:"🔥 Riot",text:(<>Any nine cards of the same suit may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
-                {num:"e.",title:"🌇 The Steal",text:(<>All three "steal" cards –🃏 The Joker, 🎴/⚖️ "Robbin Jack", and ♠️ The Ace of Spades may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
-                {num:"f.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
-                {num:"g.",title:"🤖 The Golden Age",text:(<>All four aces (A♦️, A♠️, A♥️, A♣️) may be discarded at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> All points doubled for the rest of the round!</>),sub:true},
+                {num:"a.",title:"💠 Rule of 1 (Girl's Best Friend)",text:(<>Put one of any Dimond card you have into another player's hand at the start of your turn. This is one way to break Dimonds (also known as <em>Cutting Your Teeth!</em>). This can only be done once per turn.</>),sub:true},
+                {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
+                {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
+                {num:"d.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
+                {num:"e.",title:"🔥 Riot",text:(<>Any nine cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"f.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
+                {num:"g.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"h.",title:"🤖 The Golden Age",text:(<>All four aces (A♦️, A♠️, A♥️, A♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> All points doubled for the rest of the round!</>),sub:true},
+                {num:"i.",title:"🌆 Showdown",text:(<><div>All four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+40 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
                   <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
@@ -2927,10 +2979,12 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               </div>
               <div style={{height:14}}/>
               {[
-                {num:"6.",title:"✂️ Cutting Your Teeth!",text:(<>
-                  <div>When the first Diamond card is played in any trick, the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
-                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Unlocked by this event:</strong> Rule of 2, Rule of 3, Rule of 4, and Riot of Dimonds. These Sets cannot be redeemed until Dimonds are broken.</div>
-                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Always available (no restriction):</strong> The Steal, The American Family, The Golden Age — and any Riot of ♠, ♥, or ♣. Only a Riot built from all Dimonds must wait.</div>
+                {num:"6.",title:"🦷 Cutting Your Teeth!",text:(<>
+                  <div>When the first Dimond card is played in any trick (or given via Rule of 1), the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
+                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Sets This Event Unlocks:</strong></div>
+                  <div style={{marginTop:2,paddingLeft:8}}>· Rule of 2<br/>· Rule of 3** (in some cases)<br/>· Rule of 4<br/>· (Dimond) Riot</div>
+                  <div style={{marginTop:5,color:"#ffffff77",fontSize:13}}>The rest of the sets are always available for redemption, even if they contain Dimonds.</div>
+                  <div style={{marginTop:4,color:"#ffffff55",fontSize:12}}>**Most of the time you don't need a Dimond for a Rule of 3 set to be redeemed.</div>
                 </>),sub:false},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
@@ -4095,7 +4149,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:bonus, setEmoji:"🌇", setName:"The Steal", cards:[] });
     soundTheSteal();
     setTheStealState(null);
-    const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!c.isJoker&&!isJackDiamond(c)&&!isBatman(c)) : h);
+    const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isBatman(c)) : h);
     setHands(newHands);
     setRoundScores(newRound);
     setTotalScores(newTotal);
@@ -4109,6 +4163,73 @@ function DiamondsGame() {
       setPhase("roundover");
       setRoundNum(r=>r+1);
     }
+  }
+
+  function handleShowdownEndRound() {
+    if (!showdownState) return;
+    const pi = showdownState.playerIdx;
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const bonus = SHOWDOWN_BONUS * GA;
+    const newRound = [...roundScores];
+    newRound[pi] += bonus;
+    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    addLog(`🌆 SHOWDOWN — ${allNames[pi]} ends the round! +${bonus} pts.`);
+    logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:bonus, setEmoji:"🌆", setName:"Showdown", cards:[] });
+    soundTheSteal();
+    setShowdownState(null);
+    const stealIds = new Set((hands[pi]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isBatman(c)).map(c=>c.id));
+    const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!stealIds.has(c.id)) : h);
+    setHands(newHands);
+    setRoundScores(newRound);
+    setTotalScores(newTotal);
+    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    if (gameOver) {
+      const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+      setFireworksPlace(Math.max(1,Math.min(4,place)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
+    } else {
+      soundRoundWin();
+      setPhase("roundover");
+      setRoundNum(r=>r+1);
+    }
+  }
+
+  function handleShowdownPlayOn() {
+    if (!showdownState) return;
+    const pi = showdownState.playerIdx;
+    addLog(`🌆 SHOWDOWN — ${allNames[pi]} plays on. All four steal cards stay in hand.`);
+    soundTheSteal();
+    setShowdownState(null);
+    setPhase("playing");
+  }
+  function dismissShowdownEvent() {
+    setShowdownState(null);
+    setPhase("playing");
+  }
+
+  function handleRule1Give(targetIdx, card) {
+    const cardId = card.id;
+    const newHands = hands.map((h, i) => {
+      if (i === 0) return h.filter(c => c.id !== cardId);
+      if (i === targetIdx) return [...h, card];
+      return h;
+    });
+    setHands(newHands);
+    setRule1State(null);
+    addLog(`💠 ${allNames[0]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
+    if (!diamondsBroken) {
+      setDiamondsBroken(true);
+      soundCuttingYourTeeth();
+      addLog("♦ Cutting Your Teeth — Dimonds are now in play! (via Rule of 1)");
+      setPendingPlayContinuation(null);
+      setPhase("cuttingteeth_interrupt");
+    } else {
+      setPhase("playing");
+    }
+  }
+  function handleRule1Skip() {
+    setRule1State(null);
+    setPhase("playing");
   }
 
   function handleTheStealPlayOn() {
@@ -4746,10 +4867,11 @@ function DiamondsGame() {
     const r4Avail = r4 && (diamondsBroken || !r4.some(c => isDiamond(c)));
     const riotAvail = checkRiot(h0, diamondsBroken);
     const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
-    const stealAvail = trickPlays.length === 0 && checkTheSteal(h0);
+    const showdownAvail = trickPlays.length === 0 && checkShowdown(h0);
+    const stealAvail = trickPlays.length === 0 && !showdownAvail && checkTheSteal(h0);
     const afAvail   = trickPlays.length === 0 && checkAmericanFamily(h0);
     const gaAvail   = trickPlays.length === 0 && checkAcesLow(h0);
-    if (r3Avail || r4Avail || riotAvail || spCombos.length > 0 || stealAvail || afAvail || gaAvail) return;
+    if (r3Avail || r4Avail || riotAvail || spCombos.length > 0 || showdownAvail || stealAvail || afAvail || gaAvail) return;
 
     // Play a non-Joker card automatically (skip Joker to avoid empty kidnap modal)
     const autoCard = h0.find(c => !c.isJoker);
@@ -5517,9 +5639,12 @@ function DiamondsGame() {
 
             const hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked);
 
-            const stealAvail = checkTheSteal(h0);
+            const showdownAvail = checkShowdown(h0);
+            const stealAvail = !showdownAvail && checkTheSteal(h0);
             const afAvail = checkAmericanFamily(h0);
             const gaAvail = checkAcesLow(h0);
+            const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
+            const rule1Avail = trickPlays.length === 0 && rule1Dimonds.length > 0;
 
             const lockedBtnStyle = {
               background:"transparent", color:"#ffffff44",
@@ -5550,6 +5675,8 @@ function DiamondsGame() {
                   return <GoldBtn key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2: {p1} & {p2}</GoldBtn>;
                 })}
                 {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
+                {rule1Avail && <GoldBtn onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
+                {trickPlays.length === 0 && showdownAvail && <GoldBtn onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
@@ -5562,6 +5689,16 @@ function DiamondsGame() {
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* MODALS */}
+      {phase==="rule1"&&rule1State&&(
+        <Rule1Modal
+          hand={hands[0]||[]}
+          allNames={allNames}
+          onGive={handleRule1Give}
+          onSkip={handleRule1Skip}
+          deckTheme={deckTheme}
+        />
+      )}
+
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&(
         <KidnapModal
           hands={hands}
@@ -5581,7 +5718,7 @@ function DiamondsGame() {
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Special Event</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>THE STEAL</h2>
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
-              You hold the Joker, Robbin Jack, and Ace of Spades.
+              You hold any 3 of the 4 steal cards.
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
               End the Round → +{THE_STEAL_BONUS} pts
@@ -5604,9 +5741,46 @@ function DiamondsGame() {
       {phase==="thesteal_event" && theStealState && (
         <EventBox borderColor="#c9a84c" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Joker, Robbin Jack, &amp; Ace of Spades — cashed in!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 of 4 steal cards — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
+          </div>
+        </EventBox>
+      )}
+
+      {phase==="showdown" && showdownState && (
+        <Modal>
+          <div style={{textAlign:"center"}}>
+            <div style={{fontSize:48,marginBottom:4}}>🌆</div>
+            <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Special Event</div>
+            <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>SHOWDOWN</h2>
+            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
+              You hold all four steal cards — the ultimate hand!
+            </p>
+            <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
+              End the Round → +{SHOWDOWN_BONUS*(goldenAgeRef.current?2:1)} pts
+            </p>
+            <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
+              Play On → keep all cards, no bonus
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+              <GoldBtn onClick={handleShowdownEndRound}>
+                End the Round 🌆 (+{SHOWDOWN_BONUS*(goldenAgeRef.current?2:1)} pts)
+              </GoldBtn>
+              <GoldBtn onClick={handleShowdownPlayOn} secondary>
+                Play On — Keep the Cards
+              </GoldBtn>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {phase==="showdown_event" && showdownState && (
+        <EventBox borderColor="#c9a84c" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[showdownState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>All 4 steal cards — cashed in!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{showdownState.points} pts 🌆</span>
           </div>
         </EventBox>
       )}
@@ -5641,7 +5815,7 @@ function DiamondsGame() {
       {phase==="riot_event" && riotState && (
         <EventBox borderColor="#ff4400" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>9 {riotState.suit} cards discarded — Round over!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>9 {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{riotState.points} pts 🔥</span>
           </div>
@@ -5964,11 +6138,11 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
 
-      {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played */}
+      {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
         <EventBox
           borderColor="#cc1111"
-          emoji="💎"
+          emoji="🦷"
           title="Cutting Your Teeth!"
           btnLabel="PROCEED"
           onContinue={() => {
