@@ -2571,7 +2571,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== ACE OF SPADES RESCUE (+ optional Joker Lock-Up) =====
   if (result.aceRescued) {
     const rescuerIdx = result.aceRescuerIdx ?? result.winnerIdx;
-    const title = result.jokerLockedUp ? "Joker Locked Up + Rescue!" : "Ace of Spades Rescue!";
+    const title = result.jokerLockedUp ? "Joker Locked Up + Rescue!" : "Ace of Spades Locks Up!";
     return (
       <EventBox borderColor="#1a3ab8" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue}>
         {result.jokerLockedUp && (
@@ -2582,9 +2582,9 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         </div>
         {result.rescuedCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            rescues the{" "}
+            locks up{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
-              {result.rescuedCard.isJoker ? "Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
+              {result.rescuedCard.isJoker ? "The Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
             </strong>{" "}from{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
           </div>
