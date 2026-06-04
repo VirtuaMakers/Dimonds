@@ -4982,18 +4982,25 @@ function DiamondsGame() {
   }
   if (screen === "menu") {
     const isWide = typeof window !== "undefined" && window.innerWidth >= 700;
+    const BG_FLOAT_ANIMS = ["bgFloat0","bgFloat1","bgFloat2","bgFloat3","bgFloat4"];
+    const BG_DURATIONS   = [9.2, 11.5, 8.8, 13.1, 10.4, 12.7, 9.6, 14.2, 8.3, 11.9];
+    const BG_DELAYS      = [0, -3.2, -5.7, -1.8, -7.3, -4.1, -2.6, -6.4, -0.9, -8.1];
     const bgDiamonds = (
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
         {[55,90,70,120,60,85,100,65,110,75].map((size,i)=>(
           <div key={i} style={{
             position:"absolute",
             left:`${5+i*10}%`,top:`${3+(i%4)*22}%`,
-            fontSize:size,
-            color: i%3===0 ? VM.gold+"22" : VM.tealLight+"1c",
-            textShadow:`0 0 24px ${i%3===0?VM.gold:VM.tealLight}33`,
             transform:`rotate(${i*13-25}deg)`,
-            lineHeight:1,
-          }}>◆</div>
+          }}>
+            <div style={{
+              fontSize:size,
+              color: i%3===0 ? VM.gold+"22" : VM.tealLight+"1c",
+              textShadow:`0 0 24px ${i%3===0?VM.gold:VM.tealLight}33`,
+              lineHeight:1,
+              animation:`${BG_FLOAT_ANIMS[i%5]} ${BG_DURATIONS[i]}s ease-in-out ${BG_DELAYS[i]}s infinite`,
+            }}>◆</div>
+          </div>
         ))}
       </div>
     );
@@ -6195,6 +6202,33 @@ function DiamondsGame() {
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+        @keyframes bgFloat0 {
+          0%,100% { transform:translate(0,0) rotate(0deg) scale(1); }
+          28%     { transform:translate(6px,-24px) rotate(3.5deg) scale(1.045); }
+          62%     { transform:translate(-5px,-13px) rotate(-2deg) scale(1.02); }
+        }
+        @keyframes bgFloat1 {
+          0%,100% { transform:translate(0,0) rotate(0deg) scale(1); }
+          35%     { transform:translate(-9px,-29px) rotate(-4deg) scale(1.05); }
+          68%     { transform:translate(6px,-17px) rotate(2.5deg) scale(1.02); }
+        }
+        @keyframes bgFloat2 {
+          0%,100% { transform:translate(0,0) rotate(0deg) scale(1); }
+          22%     { transform:translate(8px,-16px) rotate(2deg) scale(1.03); }
+          55%     { transform:translate(-7px,-31px) rotate(-3.5deg) scale(1.055); }
+          80%     { transform:translate(4px,-10px) rotate(1deg) scale(1.015); }
+        }
+        @keyframes bgFloat3 {
+          0%,100% { transform:translate(0,0) rotate(0deg) scale(1); }
+          38%     { transform:translate(-6px,-26px) rotate(-3deg) scale(1.04); }
+          72%     { transform:translate(9px,-15px) rotate(2deg) scale(1.025); }
+        }
+        @keyframes bgFloat4 {
+          0%,100% { transform:translate(0,0) rotate(0deg) scale(1); }
+          18%     { transform:translate(5px,-14px) rotate(1.5deg) scale(1.02); }
+          50%     { transform:translate(-10px,-27px) rotate(-4.5deg) scale(1.05); }
+          78%     { transform:translate(7px,-9px) rotate(2deg) scale(1.015); }
+        }
         /* Card lands into the trick — drops in from above with a slight settle */
         @keyframes cardLand {
           0% { opacity:0; transform:translateY(-46px) scale(1.08); }
