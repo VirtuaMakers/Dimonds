@@ -1886,7 +1886,7 @@ function GoldBtn({ onClick, children, disabled, small, secondary }) {
       color: disabled ? "#ffffff33" : secondary ? VM.tealLight : "#0a2320",
       border: secondary ? `1px solid ${VM.tealLight}44` : "none",
       borderRadius:10,
-      padding: small ? "7px 11px" : "14px 32px",
+      padding: small ? "7px 14px" : "14px 32px",
       fontSize: small ? 12 : 15,
       fontWeight:800, cursor: disabled?"not-allowed":"pointer",
       letterSpacing: small ? 0.5 : 1, textTransform:"uppercase",
@@ -5749,19 +5749,19 @@ function DiamondsGame() {
                     </div>
                   </div>
                 )}
-                {r3Avail && <GoldBtn onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
-                {r4Avail && <GoldBtn onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
+                {r3Avail && <GoldBtn small onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>}
+                {r4Avail && <GoldBtn small onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
                 {spCombos.map((combo, i) => {
                   const p1 = `${combo[1].id}/${combo[0].id}`;
                   const p2 = `${combo[3].id}/${combo[2].id}`;
-                  return <GoldBtn key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2: {p1} & {p2}</GoldBtn>;
+                  return <GoldBtn small key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>💍 Rule of 2: {p1} & {p2}</GoldBtn>;
                 })}
-                {riotAvail && <GoldBtn onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
-                {rule1Avail && <GoldBtn onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
-                {trickPlays.length === 0 && showdownAvail && <GoldBtn onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && stealAvail && <GoldBtn onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && afAvail && <GoldBtn onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && gaAvail && <GoldBtn onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
+                {riotAvail && <GoldBtn small onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
+                {rule1Avail && <GoldBtn small onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
+                {trickPlays.length === 0 && showdownAvail && <GoldBtn small onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && stealAvail && <GoldBtn small onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && afAvail && <GoldBtn small onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
+                {trickPlays.length === 0 && gaAvail && <GoldBtn small onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
               </>
             );
           })()}
