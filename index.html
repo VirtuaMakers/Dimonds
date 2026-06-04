@@ -3378,7 +3378,7 @@ function DiamondsGame() {
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
             setScreen("gameover"); return;
           }
-          setRuleFourState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
+          setRuleFourState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
           setPhase("rulefour_event");
           return;
         }
@@ -3415,7 +3415,7 @@ function DiamondsGame() {
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
             setScreen("gameover"); return;
           }
-          setRuleOfThreeState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
+          setRuleOfThreeState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
           setPhase("ruleofthree_event");
           return;
         }
@@ -3452,7 +3452,7 @@ function DiamondsGame() {
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
             setScreen("gameover"); return;
           }
-          setSwingingParadoxState({ playerIdx:cp, cashed:true, points:pts, continuation:null });
+          setSwingingParadoxState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
           setPhase("swingingparadox_event");
           return;
         }
@@ -3741,7 +3741,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setRuleOfThreeState({ playerIdx:i, cashed:true, points:pts3, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
+      setRuleOfThreeState({ _id:Math.random(), playerIdx:i, cashed:true, points:pts3, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
       setPhase("ruleofthree_event");
       return;
     }
@@ -3774,7 +3774,7 @@ function DiamondsGame() {
           setScreen("gameover");
           return;
         }
-        setSwingingParadoxState({ playerIdx:i, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
+        setSwingingParadoxState({ _id:Math.random(), playerIdx:i, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
         setPhase("swingingparadox_event");
         return;
       }
@@ -3809,7 +3809,7 @@ function DiamondsGame() {
           setScreen("gameover");
           return;
         }
-        setRuleFourState({ playerIdx:i, cashed:true, points:pts4, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
+        setRuleFourState({ _id:Math.random(), playerIdx:i, cashed:true, points:pts4, isEnding: newHands.every(h => h.length === 0), continuation:{playerIdx, card, newPlays, newHands} });
         setPhase("rulefour_event");
         return;
       }
@@ -4482,7 +4482,7 @@ function DiamondsGame() {
       return;
     }
     const updCont3 = continuation ? { ...continuation, newHands: updatedHands } : null;
-    setRuleOfThreeState({ ...ruleOfThreeState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont3 });
+    setRuleOfThreeState({ _id:Math.random(), ...ruleOfThreeState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont3 });
     setPhase("ruleofthree_event");
   }
   function declineRuleOfThree() {
@@ -4524,7 +4524,7 @@ function DiamondsGame() {
       return;
     }
     const updCont4 = continuation ? { ...continuation, newHands: updatedHands } : null;
-    setSwingingParadoxState({ ...swingingParadoxState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont4 });
+    setSwingingParadoxState({ _id:Math.random(), ...swingingParadoxState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont4 });
     setPhase("swingingparadox_event");
   }
   function declineSwingingParadox() {
@@ -4566,7 +4566,7 @@ function DiamondsGame() {
       return;
     }
     const updCont4f = continuation ? { ...continuation, newHands: updatedHands } : null;
-    setRuleFourState({ ...ruleFourState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont4f });
+    setRuleFourState({ _id:Math.random(), ...ruleFourState, cashed:true, points:pts, isEnding: updatedHands.every(h => h.length === 0), continuation: updCont4f });
     setPhase("rulefour_event");
   }
   function declineRuleFour() {
@@ -5682,11 +5682,11 @@ function DiamondsGame() {
                 setScreen("gameover"); return;
               }
               if (selectedSetType==="r3") {
-                setRuleOfThreeState({ playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                setRuleOfThreeState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
                 setRuleOfThreeOffered(prev => { const n=[...prev]; n[0]=null; return n; });
                 setPhase("ruleofthree_event");
               } else {
-                setSwingingParadoxState({ playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                setSwingingParadoxState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
                 setSwingingParadoxOffered(prev => { const n=[...prev]; n[0]=null; return n; });
                 setPhase("swingingparadox_event");
               }
@@ -6114,7 +6114,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 3 event box */}
       {phase==="ruleofthree_event" && ruleOfThreeState && (
-        <EventBox borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
+        <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -6145,7 +6145,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 2 event box */}
       {phase==="swingingparadox_event" && swingingParadoxState && (
-        <EventBox borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
+        <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -6176,7 +6176,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 4 event box */}
       {phase==="rulefour_event" && ruleFourState && (
-        <EventBox borderColor="#dd77aa" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
+        <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
