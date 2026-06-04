@@ -2378,7 +2378,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const blockedNames = [blockedJoker?"The Joker":null, blockedRobbin?"Robbin Jack":null, blockedQueenClubs?"The Queen of Clubs":null].filter(Boolean);
     const blockedList = blockedNames.length===1 ? blockedNames[0] : blockedNames.slice(0,-1).join(", ")+" AND "+blockedNames.slice(-1)[0];
     const verb = blockedJoker ? "Locks Up" : "Blocks";
-    const blockTitle = `The Ace of Spades ${verb} ${blockedList}!`;
+    const blockTitle = (<>The Ace of Spades<br/>{verb} {blockedList}!</>);
     const blockEmoji = blockedNames.length >= 2 ? "🏙️" : blockedRobbin ? "🎴" : "🌃";
     const blockedCards = (result.plays||[]).filter(p =>
       p.card.isJoker || isJackDiamond(p.card) || isQueenClubs(p.card)
