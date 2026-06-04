@@ -2365,7 +2365,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
       : blockedRobbin ? "Robbin Jack is foiled — no robbing this trick!"
       : "The Joker is Locked Up — no kidnapping this trick!";
     return (
-      <EventBox borderColor="#4466ff" emoji={blockEmoji} title={blockTitle} btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a3ab8" emoji={blockEmoji} title={blockTitle} btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.batmanHolderIdx ?? result.winnerIdx]}
         </div>
@@ -2395,7 +2395,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const trickWinner = result.winnerIdx;
     const robbinWonTrick = robbinIdx === trickWinner;
     return (
-      <EventBox borderColor="#1f8f4e" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a6b30" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[robbinIdx]}
         </div>
@@ -2432,7 +2432,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const robbinIdx = result.jackDiamondPlayerIdx;
     const trickWinner = result.winnerIdx;
     return (
-      <EventBox borderColor="#1f8f4e" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {robbinIdx != null ? allNames[robbinIdx] : "?"}
         </div>
@@ -2456,7 +2456,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== THE JOKER KIDNAPS =====
   if (result.jokerWin) {
     return (
-      <EventBox borderColor="#7700cc" emoji="💸" title="The Joker Kidnaps!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#8833cc" emoji="💸" title="The Joker Kidnaps!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -2502,7 +2502,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.queenClubsThieved) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
-      <EventBox borderColor="#1a7a3a" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4db8e8" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -2519,7 +2519,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.queenClubsReallocated) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
-      <EventBox borderColor="#b07030" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4db8e8" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -2538,7 +2538,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const rescuerIdx = result.aceRescuerIdx ?? result.winnerIdx;
     const title = result.jokerLockedUp ? "Joker Locked Up + Rescue!" : "Ace of Spades Rescue!";
     return (
-      <EventBox borderColor="#4466ff" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a3ab8" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue}>
         {result.jokerLockedUp && (
           <div style={{color:"#8a9fe0",fontSize:12,fontWeight:700,marginBottom:6}}>🔒 The Joker is Locked Up — no kidnapping this trick!</div>
         )}
@@ -5762,7 +5762,7 @@ function DiamondsGame() {
       )}
 
       {phase==="thesteal_event" && theStealState && (
-        <EventBox borderColor="#c9a84c" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
+        <EventBox borderColor="#cc5500" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 of 4 steal cards — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -5799,7 +5799,7 @@ function DiamondsGame() {
       )}
 
       {phase==="showdown_event" && showdownState && (
-        <EventBox borderColor="#c9a84c" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
+        <EventBox borderColor="#55cc77" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[showdownState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>All 4 steal cards — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -5836,7 +5836,7 @@ function DiamondsGame() {
       )}
 
       {phase==="riot_event" && riotState && (
-        <EventBox borderColor="#ff4400" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
+        <EventBox borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>9 {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -6014,7 +6014,7 @@ function DiamondsGame() {
       {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
       {phase==="aceslow_event" && acesLowState && (
         <EventBox
-          borderColor="#0a0a0a"
+          borderColor="#a8a8a8"
           emoji="🤖"
           title="The Golden Age"
           btnLabel="PROCEED"
@@ -6057,7 +6057,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 3 event box */}
       {phase==="ruleofthree_event" && ruleOfThreeState && (
-        <EventBox borderColor="#0a0a0a" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
+        <EventBox borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind discarded!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -6088,7 +6088,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 2 event box */}
       {phase==="swingingparadox_event" && swingingParadoxState && (
-        <EventBox borderColor="#0a0a0a" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
+        <EventBox borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs discarded!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -6119,7 +6119,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 4 event box */}
       {phase==="rulefour_event" && ruleFourState && (
-        <EventBox borderColor="#0a0a0a" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
+        <EventBox borderColor="#dd77aa" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind discarded!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
