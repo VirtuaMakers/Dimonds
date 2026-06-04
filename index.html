@@ -4709,9 +4709,11 @@ function DiamondsGame() {
       return;
     }
 
-    // AUTO-CLAIM: if only one AI player has cards left, sweep their remaining cards
+    // AUTO-CLAIM: sole remaining player → sweep (AI always; human only when no diamonds left)
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    if (playersWithCards.length === 1 && playersWithCards[0] !== 0) {
+    const soloIsHuman = playersWithCards.length === 1 && playersWithCards[0] === 0;
+    const humanNoDiamonds = soloIsHuman && !hands[0].some(c => isDiamond(c));
+    if (playersWithCards.length === 1 && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
       const soloPlayer = playersWithCards[0];
       const soloCards = hands[soloPlayer];
       const GA = goldenAgeRef.current ? 2 : 1;
@@ -4891,35 +4893,55 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [phase, currentTurn, turnOrder]);
 
-  // Auto-play human's remaining cards when all opponents are out and no scoring moves remain
+  // When human is last player with cards:
+  // — still has diamonds → let them play manually (they choose which to score)
+  // — no diamonds left  → sweep the useless cards automatically (original feel)
   useEffect(() => {
     if (phase !== "playing" || dealing) return;
     if (turnOrder[currentTurn] !== 0) return;
-    if (trickPlays.length > 0) return; // trick already in progress — human must play manually
+    if (trickPlays.length > 0) return;
     const h0 = hands[0] || [];
     if (h0.length === 0) return;
-    if (!hands.slice(1).every(h => h.length === 0)) return; // opponents still have cards
+    if (!hands.slice(1).every(h => h.length === 0)) return;
 
-    // Check for any unlocked scoring opportunities the human should decide on first
+    // Let human resolve any scoring sets first
     const r3 = checkRuleOfThree(h0);
     const r3Avail = r3 && (diamondsBroken || !r3.some(c => isDiamond(c)));
     const r4 = checkRuleFour(h0);
     const r4Avail = r4 && (diamondsBroken || !r4.some(c => isDiamond(c)));
     const riotAvail = checkRiot(h0, diamondsBroken);
     const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
-    const showdownAvail = trickPlays.length === 0 && checkShowdown(h0);
-    const stealAvail = trickPlays.length === 0 && !showdownAvail && checkTheSteal(h0);
-    const afAvail   = trickPlays.length === 0 && checkAmericanFamily(h0);
-    const gaAvail   = trickPlays.length === 0 && checkAcesLow(h0);
+    const showdownAvail = checkShowdown(h0);
+    const stealAvail = !showdownAvail && checkTheSteal(h0);
+    const afAvail = checkAmericanFamily(h0);
+    const gaAvail = checkAcesLow(h0);
     if (r3Avail || r4Avail || riotAvail || spCombos.length > 0 || showdownAvail || stealAvail || afAvail || gaAvail) return;
 
-    // Play a non-Joker card automatically (skip Joker to avoid empty kidnap modal)
-    const autoCard = h0.find(c => !c.isJoker);
-    if (!autoCard) return;
+    // Still have diamonds → human plays them manually to score
+    if (h0.some(c => isDiamond(c))) return;
 
+    // No diamonds left — sweep remaining unpointed cards automatically
     const timer = setTimeout(() => {
-      addLog(`⚡ No opponents remain — auto-played ${autoCard.rank}${autoCard.suit}`);
-      submitPlay(0, autoCard);
+      const GA = goldenAgeRef.current ? 2 : 1;
+      const dimondPts = h0.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
+      const newRoundScores = [...roundScores];
+      newRoundScores[0] += dimondPts;
+      if (h0.length > 0) addLog(`✨ ${allNames[0]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`);
+      setRoundScores(newRoundScores);
+      setHands([[],[],[],[]]);
+      const newTotal = totalScores.map((s,i) => s + newRoundScores[i]);
+      setTotalScores(newTotal);
+      const gameOver = newTotal.some(s => s >= WIN_SCORE);
+      if (gameOver) {
+        const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        setFireworksPlace(Math.max(1, Math.min(4, _place)));
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
+      } else {
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r => r + 1);
+        setTrickResult(null);
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, [phase, hands, currentTurn, turnOrder, trickPlays, dealing, diamondsBroken]);
