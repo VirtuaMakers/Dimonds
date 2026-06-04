@@ -5871,15 +5871,15 @@ function DiamondsGame() {
                     </div>
                   </div>
                 )}
-                {r3Avail && <GoldBtn tiny onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:20,minWidth:112}}><span style={{letterSpacing:"-0.5px"}}>🦅 Rule of 3</span><span style={{letterSpacing:"-0.3px"}}>+{RULE_OF_THREE_BONUS*GA}</span></span></GoldBtn>}
-                {r4Avail && <GoldBtn small onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
+                {rule1Avail && <GoldBtn small onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
                 {spCombos.map((combo, i) => {
                   const p1 = `${combo[1].id}/${combo[0].id}`;
                   const p2 = `${combo[3].id}/${combo[2].id}`;
                   return <GoldBtn tiny key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:20,minWidth:140}}><span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1}}><span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span><span style={{fontWeight:400,fontSize:9,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1}{" & "}{p2}</span></span><span style={{letterSpacing:"-0.3px"}}>+{SWINGING_PARADOX_BONUS*GA}</span></span></GoldBtn>;
                 })}
+                {r3Avail && <GoldBtn tiny onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:20,minWidth:112}}><span style={{letterSpacing:"-0.5px"}}>🦅 Rule of 3</span><span style={{letterSpacing:"-0.3px"}}>+{RULE_OF_THREE_BONUS*GA}</span></span></GoldBtn>}
+                {r4Avail && <GoldBtn small onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
                 {riotAvail && <GoldBtn small onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
-                {rule1Avail && <GoldBtn small onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
                 {trickPlays.length === 0 && showdownAvail && <GoldBtn small onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && stealAvail && <GoldBtn small onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
                 {trickPlays.length === 0 && afAvail && <GoldBtn small onClick={()=>setPhase("americanfamily_offer")}>🏛️ The American Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
