@@ -2507,7 +2507,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
             Thieves the{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.rank}{result.queenClubsCard.suit}</strong>
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.isJoker ? "Joker" : `${result.queenClubsCard.rank}${result.queenClubsCard.suit}`}</strong>
             {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
           </div>
         )}
@@ -2524,7 +2524,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
             Moves the{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.rank}{result.queenClubsCard.suit}</strong>
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.isJoker ? "Joker" : `${result.queenClubsCard.rank}${result.queenClubsCard.suit}`}</strong>
             {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
             {" "}to <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsTo]}</strong>
           </div>
