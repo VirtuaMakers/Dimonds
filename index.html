@@ -5463,8 +5463,7 @@ function DiamondsGame() {
               if (!anyLocked) return null;
               return (
                 <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:1.5,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:3}}>
-                  🔓 Unlock by Breaking Dimonds
-                </div>
+                  🔓 Unlock by Breaking Dimonds:                </div>
               );
             })()}
             <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
@@ -5715,7 +5714,7 @@ function DiamondsGame() {
               <>
                 {hasLocked && (
                   <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:10,padding:"8px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,width:"100%",boxSizing:"border-box"}}>
-                    <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds</div>
+                    <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
                     <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:2}}>
                       {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
                       {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
