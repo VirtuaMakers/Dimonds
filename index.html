@@ -2423,16 +2423,17 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const robbinWonTrick = robbinIdx === trickWinner;
     return (
       <EventBox borderColor="#1a6b30" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue}>
-        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
-          {allNames[robbinIdx]}
+        <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
+          {allNames[robbinIdx]}{" "}
+          <span style={{color:"#7ec8a4",fontWeight:500,fontSize:15}}>robs</span>{" "}
+          {allNames[result.stolenFrom]}
         </div>
         {result.stolenCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            {allNames[robbinIdx]} robs the{" "}
+            steals the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {result.stolenCard.isJoker ? "Joker" : `${result.stolenCard.rank}${result.stolenCard.suit}`}
-            </strong>{" "}from{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.stolenFrom]}</strong>
+            </strong>
           </div>
         )}
         {!robbinWonTrick && (
