@@ -2354,7 +2354,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
     : isHandOver ? "PROCEED"
-    : "NEXT TRICK →";
+    : "NEXT TRICK";
 
   // ===== AMERICAN FAMILY =====
   if (result.americanFamily) {
@@ -5924,10 +5924,10 @@ function DiamondsGame() {
               You hold any 3 of the 4 steal cards.
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
-              End the Round → +{THE_STEAL_BONUS} pts
+              End the Round: +{THE_STEAL_BONUS} pts
             </p>
             <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
-              Play On → keep all cards, no bonus
+              Play On: keep all cards, no bonus
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleTheStealEndRound}>
@@ -5961,10 +5961,10 @@ function DiamondsGame() {
               You hold all four steal cards — the ultimate hand!
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
-              End the Round → +{SHOWDOWN_BONUS*(goldenAgeRef.current?2:1)} pts
+              End the Round: +{SHOWDOWN_BONUS*(goldenAgeRef.current?2:1)} pts
             </p>
             <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
-              Play On → keep all cards, no bonus
+              Play On: keep all cards, no bonus
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleShowdownEndRound}>
@@ -5998,10 +5998,10 @@ function DiamondsGame() {
               You hold 9 {riotState.suit} cards!
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
-              End the Round → +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
+              End the Round: +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
             </p>
             <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
-              Play On → keep all cards, no bonus
+              Play On: keep all cards, no bonus
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleRiotEndRound}>
