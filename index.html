@@ -2485,16 +2485,17 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.jokerWin) {
     return (
       <EventBox borderColor="#8833cc" emoji="💸" title="The Joker Kidnaps!" btnLabel={btnLabel} onContinue={onContinue}>
-        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
-          {allNames[result.winnerIdx]}
+        <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
+          {allNames[result.winnerIdx]}{" "}
+          <span style={{color:"#c084f5",fontWeight:500,fontSize:15}}>kidnaps</span>{" "}
+          {allNames[result.stolenFrom]}
         </div>
         {result.stolenCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            {allNames[result.winnerIdx]} kidnaps the{" "}
+            takes the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {result.stolenCard.isJoker ? "Joker" : `${result.stolenCard.rank}${result.stolenCard.suit}`}
-            </strong>{" "}from{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.stolenFrom]}</strong>
+            </strong>
           </div>
         )}
         {pointsWon > 0 && (
@@ -2575,7 +2576,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         </div>
         {result.rescuedCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-            {allNames[rescuerIdx]} rescues the{" "}
+            rescues the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {result.rescuedCard.isJoker ? "Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
             </strong>{" "}from{" "}
