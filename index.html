@@ -2500,7 +2500,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 
   // ===== QUEEN OF CLUBS — THIEVED =====
   if (result.queenClubsThieved) {
-    const qcIdx = result.winnerIdx;
+    const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
       <EventBox borderColor="#1a7a3a" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
@@ -2517,7 +2517,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 
   // ===== QUEEN OF CLUBS — REALLOCATED =====
   if (result.queenClubsReallocated) {
-    const qcIdx = result.winnerIdx;
+    const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
       <EventBox borderColor="#b07030" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
@@ -4350,7 +4350,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(stolenCard, fromPlayer, playerIdx);
     setHands(newHands);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-    setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: stolenCard, queenClubsFrom: fromPlayer });
+    setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: stolenCard, queenClubsFrom: fromPlayer, queenClubsPlayerIdx: playerIdx });
     setQueenClubsState(null);
     setPhase("trickresult");
   }
@@ -4369,7 +4369,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(movedCard, fromPlayer, toPlayer);
     setHands(newHands);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-    setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: fromPlayer, queenClubsTo: toPlayer });
+    setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: fromPlayer, queenClubsTo: toPlayer, queenClubsPlayerIdx: playerIdx });
     setQueenClubsState(null);
     setPhase("trickresult");
   }
