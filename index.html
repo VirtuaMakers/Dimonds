@@ -3116,6 +3116,8 @@ function DiamondsGame() {
   const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([null,null,null,null]); // null = never offered; string = rank last offered
   const [ruleFourState, setRuleFourState] = useState(null);
   const [ruleFourOffered, setRuleFourOffered] = useState([null,null,null,null]);
+  const [handSortMode, setHandSortMode] = useState('rank'); // 'rank' | 'suit'
+  const [sortAnimating, setSortAnimating] = useState(false);
   const [swingingParadoxState, setSwingingParadoxState] = useState(null);
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
@@ -4232,6 +4234,14 @@ function DiamondsGame() {
     setPhase("playing");
   }
 
+  function toggleHandSort() {
+    setSortAnimating(true);
+    setTimeout(() => {
+      setHandSortMode(m => m === 'rank' ? 'suit' : 'rank');
+      setSortAnimating(false);
+    }, 140);
+  }
+
   function handleTheStealPlayOn() {
     if (!theStealState) return;
     const pi = theStealState.playerIdx;
@@ -5146,7 +5156,7 @@ function DiamondsGame() {
   // ============================================================
   // RENDER: GAME TABLE
   // ============================================================
-  const playerHand = sortHand(hands[0] || []);
+  const playerHand = handSortMode === 'suit' ? sortHandBySuit(hands[0] || []) : sortHand(hands[0] || []);
   const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768; // big cards + side button
   // Mouse-pointer check: double-click-to-play only when using a real mouse (not touch)
   const hasMouseInput = isDesktop && !(typeof window !== 'undefined' && window.matchMedia?.("(pointer: coarse)").matches);
@@ -5465,6 +5475,8 @@ function DiamondsGame() {
             display:"flex",
             alignItems:"flex-end",
             justifyContent:"center",
+            opacity: sortAnimating ? 0 : 1,
+            transition: "opacity 0.14s ease",
           }}>
           {(() => {
             // Compute fan layout based on the STARTING hand size (always 13 at deal time),
@@ -5584,6 +5596,14 @@ function DiamondsGame() {
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+            <GoldBtn secondary small onClick={toggleHandSort}>
+              ⇅ Re-Sort Hand
+            </GoldBtn>
+            <div style={{color:"#ffffff33",fontSize:8,fontFamily:FONT_UI,letterSpacing:1,textTransform:"uppercase"}}>
+              {handSortMode === 'rank' ? 'by rank' : 'by suit'}
+            </div>
+          </div>
           {selectedSetType && isPlayerTurn && (diamondsBroken || selectedCards.every(c => c.suit !== "♦")) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
