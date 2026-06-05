@@ -2479,7 +2479,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             </strong>
           </div>
         )}
-        {!robbinWonTrick && (
+        {!robbinWonTrick && !result.pendingJokerKidnap && (
           <div style={{color:"#ffffff66",fontSize:12,fontFamily:FONT_UI,marginTop:2}}>
             Trick won by <strong style={{color:"#ffffffcc"}}>{allNames[trickWinner]}</strong>
           </div>
@@ -2510,7 +2510,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
           Chose not to rob.
         </div>
-        {pointsWon > 0 && (
+        {pointsWon > 0 && !result.pendingJokerKidnap && (
           <div style={{
             background:"#1f8f4e11", border:"1px solid #1f8f4e44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
