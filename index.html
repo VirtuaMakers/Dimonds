@@ -1639,22 +1639,59 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
       )}
 
       {/* ---- ACE OF SPADES ---- */}
-      {ace && (
-        <>
-          <div style={{
-            position:"absolute", inset:0,
-            borderRadius:4,
-            overflow:"hidden",
-            zIndex:1,
-          }}>
-            <img
-              src={ACESPADES_IMG}
-              style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}
-              alt="Ace of Spades"
-            />
-          </div>
-        </>
-      )}
+      {ace && (() => {
+        const aceCornerPip = tiny ? 7 : isDesktop ? 12 : 10;
+        const aceCornerFont = tiny ? 9 : isDesktop ? 18 : 15;
+        return (
+          <>
+            {/* Background image */}
+            <div style={{
+              position:"absolute", inset:0,
+              borderRadius:4,
+              overflow:"hidden",
+              zIndex:1,
+            }}>
+              <img
+                src={ACESPADES_IMG}
+                style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}
+                alt="Ace of Spades"
+              />
+            </div>
+            {/* Top-left index */}
+            <div style={{
+              position:"absolute", top:tiny?2:4, left:tiny?3:5,
+              display:"flex", flexDirection:"column", alignItems:"center",
+              lineHeight:1, zIndex:3,
+            }}>
+              <span style={{
+                fontSize:aceCornerFont, fontWeight:900, color:VM.tealDeep,
+                fontFamily:"'Trebuchet MS',Avenir,sans-serif", letterSpacing:-0.5,
+              }}>A</span>
+              <div style={{marginTop:1}}><PipShape suit="♠" size={aceCornerPip}/></div>
+            </div>
+            {/* Bottom-right index (rotated) */}
+            <div style={{
+              position:"absolute", bottom:tiny?2:4, right:tiny?3:5,
+              display:"flex", flexDirection:"column", alignItems:"center",
+              lineHeight:1, transform:"rotate(180deg)", zIndex:3,
+            }}>
+              <span style={{
+                fontSize:aceCornerFont, fontWeight:900, color:VM.tealDeep,
+                fontFamily:"'Trebuchet MS',Avenir,sans-serif", letterSpacing:-0.5,
+              }}>A</span>
+              <div style={{marginTop:1}}><PipShape suit="♠" size={aceCornerPip}/></div>
+            </div>
+            {/* Center spade pip */}
+            <div style={{
+              position:"absolute", inset:0,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              zIndex:2,
+            }}>
+              <PipShape suit="♠" size={tiny?22:isDesktop?56:44}/>
+            </div>
+          </>
+        );
+      })()}
 
       {/* ---- NORMAL CARD ---- */}
       {!isJoker && !ace && (() => {
