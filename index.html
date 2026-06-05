@@ -5541,7 +5541,7 @@ function DiamondsGame() {
           )}
         </div>
         {/* Cards row — full-size cards (115px mobile) + name label */}
-        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
+        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"flex-end",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
@@ -5558,8 +5558,8 @@ function DiamondsGame() {
         </div>
       </div>
 
-      {/* SPACER — keeps hand fan cards from crowding the led suit label above */}
-      <div style={{ height: isDesktop ? 14 : 6, flexShrink:0 }} />
+      {/* SPACER */}
+      <div style={{ height: 5, flexShrink:0 }} />
 
       {/* PLAYER HAND — fixed-height block so the row never jumps */}
       <div style={{
@@ -5610,36 +5610,27 @@ function DiamondsGame() {
           </div>
         )}
 
-        <div style={{
-          display:"flex", alignItems:"center", justifyContent:"space-between",
-          flexShrink:0, marginBottom:2, paddingLeft:8, paddingRight:8,
-        }}>
-          <div style={{flex:1, display:"flex", alignItems:"center"}}>
-            {!isDesktop && selectedCards.length > 0 && isPlayerTurn && (
-              <div style={{
-                background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
-                borderRadius:6,padding:"2px 7px",
-                color:VM.tealLight+"aa",fontSize:9,fontWeight:700,fontFamily:FONT_UI,
-                display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1,lineHeight:1.3,
-              }}>
-                {selectedCards.length === 1
-                  ? <><span>Playing</span><strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>{!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:8}}>{mustOpenWith2C?"✗ 2♣":"✗ suit"}</span>}</>
-                  : <><span>{selectedCards.length} cards</span>{selectedSetType&&<span style={{color:VM.gold}}>✓ set</span>}</>
-                }
-              </div>
-            )}
-          </div>
+        {!isDesktop && (
           <div style={{
-            color: isPlayerTurn?VM.tealLight:"#ffffff44",
-            fontSize:9,letterSpacing:2,
-            textTransform:"uppercase",textAlign:"center",
-            fontWeight:700, fontFamily:FONT_UI,
-            height:14, lineHeight:"14px",
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            flexShrink:0, marginBottom:0, paddingLeft:8, paddingRight:8,
           }}>
-            {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
-          </div>
-          <div style={{flex:1, display:"flex", justifyContent:"flex-end"}}>
-            {!isDesktop && (
+            <div style={{flex:1, display:"flex", alignItems:"center"}}>
+              {selectedCards.length > 0 && isPlayerTurn && (
+                <div style={{
+                  background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
+                  borderRadius:6,padding:"2px 7px",
+                  color:VM.tealLight+"aa",fontSize:9,fontWeight:700,fontFamily:FONT_UI,
+                  display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1,lineHeight:1.3,
+                }}>
+                  {selectedCards.length === 1
+                    ? <><span>Playing</span><strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>{!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:8}}>{mustOpenWith2C?"✗ 2♣":"✗ suit"}</span>}</>
+                    : <><span>{selectedCards.length} cards</span>{selectedSetType&&<span style={{color:VM.gold}}>✓ set</span>}</>
+                  }
+                </div>
+              )}
+            </div>
+            <div style={{flex:1, display:"flex", justifyContent:"flex-end"}}>
               <div onClick={toggleHandSort} style={{
                 display:"flex", flexDirection:"column", alignItems:"center",
                 cursor:"pointer", border:`1px solid ${VM.tealLight}44`, borderRadius:6,
@@ -5650,19 +5641,29 @@ function DiamondsGame() {
                   {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
                 </span>
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
 
 
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
           overflow:"visible",
-          paddingTop: isDesktop?52:36, // headroom for the lifted selected card
+          paddingTop: 36, // headroom: 16px card lift + 5px gap + 14px turn text + 1px buffer
           flexShrink:0,
           position:"relative",
         }}>
+          {/* YOUR TURN — sits 5px above the lifted selected card */}
+          <div style={{
+            position:"absolute", top:1, left:0, right:0, zIndex:5,
+            textAlign:"center", pointerEvents:"none",
+            color: isPlayerTurn?VM.tealLight:"#ffffff44",
+            fontSize:9, letterSpacing:2, textTransform:"uppercase",
+            fontWeight:700, fontFamily:FONT_UI, lineHeight:"14px",
+          }}>
+            {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+          </div>
           {/* Desktop only: Playing + Re-Sort hover above the cards on each side */}
           {isDesktop && (
             <>
