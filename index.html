@@ -1831,6 +1831,8 @@ function Modal({ children, dim=true }) {
       backdropFilter: dim?"blur(4px)":"none",
       WebkitBackdropFilter: dim?"blur(4px)":"none",
       WebkitOverflowScrolling:"touch",
+      overscrollBehavior:"none",
+      touchAction:"pan-y",
     }}>
       <div style={{
         background:"linear-gradient(155deg,#0f3c38,#08231f)",
@@ -1840,6 +1842,7 @@ function Modal({ children, dim=true }) {
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,
         margin:"auto 0",
+        overflowX:"hidden",
       }}>
         {children}
       </div>
