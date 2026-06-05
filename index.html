@@ -5853,7 +5853,9 @@ function DiamondsGame() {
 
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
-          : {display:"flex",flexDirection:"column",justifyContent:"flex-start",gap:4,marginTop:4,alignItems:"center",flexShrink:0,overflowY:"auto",maxHeight:130,WebkitOverflowScrolling:"touch"}}>
+          : {display:"flex",flexDirection:"column",justifyContent:"flex-start",gap:4,marginTop:4,alignItems:"center",flexShrink:0,width:"100%"}}>
+
+          {/* Play Card / Play Cards — always outside the scroll panel */}
           {(() => {
             const canPlaySingle = isPlayerTurn && selectedCards.length === 1 && !!selectedIsLegal;
             const canPlaySet = isPlayerTurn && selectedSetType !== null && (
@@ -5908,7 +5910,8 @@ function DiamondsGame() {
               </GoldBtn>
             );
           })()}
-          {/* Set notification buttons — appear at the start of your turn before playing */}
+
+          {/* Set notification panel — scrollable styled container */}
           {isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && (()=>{
             const h0 = hands[0] || [];
             const GA = goldenAgeRef.current ? 2 : 1;
@@ -5947,7 +5950,6 @@ function DiamondsGame() {
               fontFamily:FONT_DISPLAY, minHeight:22,
             };
 
-            // Collect all set buttons into an array for 2-per-row grid
             const setButtons = [];
             if (rule1Avail) setButtons.push(
               <GoldBtn tiny key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>
@@ -5986,10 +5988,29 @@ function DiamondsGame() {
               <GoldBtn tiny key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>
             );
 
+            if (!hasLocked && setButtons.length === 0) return null;
+
             return (
-              <>
+              <div
+                data-setpanel="1"
+                style={{
+                  background:`${VM.tealLight}0d`,
+                  border:`1px solid ${VM.tealLight}44`,
+                  borderRadius:8,
+                  padding:"5px 6px 5px 5px",
+                  overflowY:"auto",
+                  maxHeight: isDesktop ? 200 : 96,
+                  width:"100%",
+                  boxSizing:"border-box",
+                  WebkitOverflowScrolling:"touch",
+                  display:"flex",
+                  flexDirection:"column",
+                  gap:4,
+                  flexShrink:0,
+                }}
+              >
                 {hasLocked && (
-                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:10,padding:"6px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,width:"100%",boxSizing:"border-box"}}>
+                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
                     <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
                       {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
@@ -6000,11 +6021,21 @@ function DiamondsGame() {
                   </div>
                 )}
                 {setButtons.length > 0 && (
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%",alignItems:"stretch"}}>
-                    {setButtons}
-                  </div>
+                  <>
+                    <div style={{
+                      color:"#d4b054cc",
+                      fontSize:8, fontWeight:900, letterSpacing:2,
+                      textTransform:"uppercase", fontFamily:FONT_DISPLAY,
+                      textAlign:"center",
+                      borderBottom:`1px solid ${VM.tealLight}22`,
+                      paddingBottom:3,
+                    }}>⛏️ Sets Playable</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,alignItems:"stretch"}}>
+                      {setButtons}
+                    </div>
+                  </>
                 )}
-              </>
+              </div>
             );
           })()}
         </div>
@@ -6535,6 +6566,9 @@ function DiamondsGame() {
           0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
         }
+        [data-setpanel]::-webkit-scrollbar { width: 3px; background: transparent; }
+        [data-setpanel]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.4); border-radius: 4px; }
+        [data-setpanel] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.4) transparent; }
         /* Trick cards sweep away toward the winner */
         @keyframes trickSweep {
           0% { opacity:1; transform:scale(1) translate(0,0); }
