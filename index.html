@@ -3998,7 +3998,7 @@ function DiamondsGame() {
           // AI always passes — preserves J♦'s +1 and denies A♠ the block bonus
           finalizeAceRobResolution(false, jdIdx, winner, aceBlockedJoker, aceBlockedQueenClubs, newRoundScores, resultObj, currentHands);
         }
-      }, 600);
+      }, 900);
       return;
     }
 
@@ -6076,8 +6076,8 @@ function DiamondsGame() {
               If you pass, you earn +1 pt and walk away clean.
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
-              <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
               <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>Pass — +1 pt</GoldBtn>
+              <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
             </div>
           </div>
         </Modal>
