@@ -1941,6 +1941,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
       boxShadow: disabled||secondary ? "none" : `0 4px 14px ${VM.gold}33`,
       minHeight: tiny ? 22 : small ? 34 : 48,
       width: tiny ? "100%" : undefined,
+      textAlign: tiny ? "center" : undefined,
       touchAction:"manipulation",
     }}>{children}</button>
   );
