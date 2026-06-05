@@ -2450,7 +2450,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             Trick won by <strong style={{color:"#ffffffcc"}}>{allNames[trickWinner]}</strong>
           </div>
         )}
-        {pointsWon > 0 && (
+        {pointsWon > 0 && !result.pendingJokerKidnap && (
           <div style={{
             background:"#1f8f4e11", border:"1px solid #1f8f4e44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
@@ -2507,7 +2507,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             </strong>
           </div>
         )}
-        {pointsWon > 0 && (
+        {pointsWon > 0 && !result.pendingRobbinKidnap && (
           <div style={{
             background:"#7700cc11", border:"1px solid #7700cc44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
