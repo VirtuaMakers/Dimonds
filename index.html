@@ -1929,7 +1929,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
       color: disabled ? "#ffffff33" : secondary ? VM.tealLight : "#0a2320",
       border: secondary ? `1px solid ${VM.tealLight}44` : "none",
       borderRadius:10,
-      padding: tiny ? "3px 8px" : small ? "7px 14px" : "14px 32px",
+      padding: tiny ? "3px" : small ? "7px 14px" : "14px 32px",
       fontSize: tiny ? 9 : small ? 12 : 15,
       fontWeight:800, cursor: disabled?"not-allowed":"pointer",
       letterSpacing: tiny ? 0 : small ? 0.5 : 1, textTransform:"uppercase",
@@ -1937,6 +1937,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
       fontFamily:FONT_DISPLAY,
       boxShadow: disabled||secondary ? "none" : `0 4px 14px ${VM.gold}33`,
       minHeight: tiny ? 22 : small ? 34 : 48,
+      width: tiny ? "100%" : undefined,
       touchAction:"manipulation",
     }}>{children}</button>
   );
@@ -5416,8 +5417,11 @@ function DiamondsGame() {
   }
   // Returns true if `cards` could still grow into a valid R3 or R4 selection.
   // Used on mobile to allow multi-select only when building toward a set.
+  const AF_IDS = ["J♦","Q♦","K♦","A♦"];
   function couldBuildSet(cards) {
     if (cards.length > 4 || cards.some(c => c.isJoker)) return false;
+    // AF path: building toward all 4 honor cards
+    if (cards.every(c => AF_IDS.includes(c.id))) return true;
     // R3 path: all same rank, max 3
     if (cards.length <= 3 && cards.every(c => c.rank === cards[0].rank)) return true;
     // R4 path: at most 2 ranks each with ≤2 cards; completed pairs must be one ♦ + one non-♦
@@ -5437,12 +5441,23 @@ function DiamondsGame() {
     const pairs = Object.values(byRank);
     return pairs.length === 2 && pairs.every(p => p.length===2 && p.some(c=>c.suit==="♦") && p.some(c=>c.suit!=="♦"));
   }
-  const selectedSetType = isValidRule3sel(selectedCards) ? "r3" : isValidRule4sel(selectedCards) ? "r4" : null;
+  function isValidAFsel(cards) {
+    return cards.length === 4 && cards.every(c => AF_IDS.includes(c.id));
+  }
+  const selectedSetType = isValidRule3sel(selectedCards) ? "r3"
+    : isValidRule4sel(selectedCards) ? "r4"
+    : isValidAFsel(selectedCards) ? "af"
+    : null;
   const selectedSetBonus = selectedSetType === "r3"
     ? RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1)
     : selectedSetType === "r4"
     ? SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1)
+    : selectedSetType === "af"
+    ? AMERICAN_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1)
     : 0;
+  // Honor card glow: AF cards pulse gold when the set is available and the trick hasn't started
+  const afAvailForGlow = isPlayerTurn && phase === "playing" && !dealing &&
+    trickPlays.length === 0 && checkAmericanFamily(hands[0] || []);
 
   return (
     <div style={{
@@ -5770,6 +5785,7 @@ function DiamondsGame() {
               }
               const xPos = startX + ci * OVERLAP + spread;
               const showGlow = isPlayerTurn && isLegal && !isSelected;
+              const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
 
               return (
                 <div
@@ -5800,6 +5816,8 @@ function DiamondsGame() {
                     touchAction:"manipulation",
                     filter: (!isPlayerTurn || !isLegal)
                       ? "brightness(0.55)"
+                      : isHonorCard && !isSelected
+                      ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
                       : showGlow
                       ? "drop-shadow(0 0 0 rgba(75,195,175,0))"
                       : "none",
@@ -5807,6 +5825,8 @@ function DiamondsGame() {
                       ? `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`
                       : ci === dealRevealIdx - 1
                       ? "cardFlip 0.18s ease-out"
+                      : isHonorCard && !isSelected
+                      ? `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`
                       : showGlow ? `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite` : "none",
                     // deck origin: cards fly up from bottom-center
                     "--deal-dx": `${-xPos*0.5}px`,
@@ -5834,44 +5854,60 @@ function DiamondsGame() {
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
           : {display:"flex",flexDirection:"column",justifyContent:"flex-start",gap:4,marginTop:4,alignItems:"center",flexShrink:0,overflowY:"auto",maxHeight:130,WebkitOverflowScrolling:"touch"}}>
-          <GoldBtn small
-            onClick={()=>{ if(selectedCard&&selectedIsLegal) { setSelectedCards([]); playCard(selectedCard); } }}
-            disabled={!canPlay||!selectedIsLegal}
-          >
-            {isPlayerTurn ? "Play Card" : "Waiting…"}
-          </GoldBtn>
-          {selectedSetType && isPlayerTurn && (diamondsBroken || selectedCards.every(c => c.suit !== "♦")) && (
-            <GoldBtn onClick={()=>{
-              const cards = selectedCards;
-              const pts = selectedSetBonus;
-              const cardIds = new Set(cards.map(c=>c.id));
-              const newHands = hands.map((h,j) => j===0 ? h.filter(c=>!cardIds.has(c.id)) : h);
-              setHands(newHands);
-              const newRS = [...roundScores]; newRS[0] += pts;
-              setRoundScores(newRS);
-              setSelectedCards([]);
-              addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 2"}! +${pts} pts`);
-              logRoundEvent({ type:"set", playerIdx:0, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
-              const newTotal = totalScores.map((s,i) => s + newRS[i]);
-              if (newTotal.some(s => s >= WIN_SCORE)) {
-                setTotalScores(newTotal);
-                setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
-                setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-                setScreen("gameover"); return;
+          {(() => {
+            const canPlaySingle = isPlayerTurn && selectedCards.length === 1 && !!selectedIsLegal;
+            const canPlaySet = isPlayerTurn && selectedSetType !== null && (
+              selectedSetType === "af"
+                ? trickPlays.length === 0
+                : (diamondsBroken || selectedCards.every(c => c.suit !== "♦"))
+            );
+            const btnEnabled = canPlaySingle || canPlaySet;
+            const btnLabel = !isPlayerTurn ? "Waiting…"
+              : selectedSetType ? `Play Cards +${selectedSetBonus}`
+              : "Play Card";
+            function handlePlayBtn() {
+              if (!btnEnabled) return;
+              if (selectedSetType === "af") {
+                setSelectedCards([]);
+                setPhase("americanfamily_offer");
+              } else if (selectedSetType === "r3" || selectedSetType === "r4") {
+                const cards = selectedCards;
+                const pts = selectedSetBonus;
+                const cardIds = new Set(cards.map(c=>c.id));
+                const newHands = hands.map((h,j) => j===0 ? h.filter(c=>!cardIds.has(c.id)) : h);
+                setHands(newHands);
+                const newRS = [...roundScores]; newRS[0] += pts;
+                setRoundScores(newRS);
+                setSelectedCards([]);
+                addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 2"}! +${pts} pts`);
+                logRoundEvent({ type:"set", playerIdx:0, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
+                const newTotal = totalScores.map((s,i) => s + newRS[i]);
+                if (newTotal.some(s => s >= WIN_SCORE)) {
+                  setTotalScores(newTotal);
+                  setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+                  setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+                  setScreen("gameover"); return;
+                }
+                if (selectedSetType==="r3") {
+                  setRuleOfThreeState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                  setRuleOfThreeOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                  setPhase("ruleofthree_event");
+                } else {
+                  setSwingingParadoxState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                  setSwingingParadoxOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                  setPhase("swingingparadox_event");
+                }
+              } else if (canPlaySingle) {
+                setSelectedCards([]);
+                playCard(selectedCard);
               }
-              if (selectedSetType==="r3") {
-                setRuleOfThreeState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
-                setRuleOfThreeOffered(prev => { const n=[...prev]; n[0]=null; return n; });
-                setPhase("ruleofthree_event");
-              } else {
-                setSwingingParadoxState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
-                setSwingingParadoxOffered(prev => { const n=[...prev]; n[0]=null; return n; });
-                setPhase("swingingparadox_event");
-              }
-            }}>
-              Redeem Set +{selectedSetBonus}
-            </GoldBtn>
-          )}
+            }
+            return (
+              <GoldBtn small onClick={handlePlayBtn} disabled={!btnEnabled}>
+                {btnLabel}
+              </GoldBtn>
+            );
+          })()}
           {/* Set notification buttons — appear at the start of your turn before playing */}
           {isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && (()=>{
             const h0 = hands[0] || [];
@@ -5906,17 +5942,56 @@ function DiamondsGame() {
             const lockedBtnStyle = {
               background:"transparent", color:"#ffffff44",
               border:"1.5px solid #ffffff1a", borderRadius:10,
-              padding:"9px 16px", fontSize:12, fontWeight:800,
-              cursor:"default", letterSpacing:1, textTransform:"uppercase",
-              fontFamily:FONT_DISPLAY,
+              padding:"3px", fontSize:9, fontWeight:800,
+              cursor:"default", letterSpacing:0, textTransform:"uppercase",
+              fontFamily:FONT_DISPLAY, minHeight:22,
             };
+
+            // Collect all set buttons into an array for 2-per-row grid
+            const setButtons = [];
+            if (rule1Avail) setButtons.push(
+              <GoldBtn tiny key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>
+            );
+            spCombos.forEach((combo, i) => {
+              const p1 = `${combo[1].id}/${combo[0].id}`;
+              const p2 = `${combo[3].id}/${combo[2].id}`;
+              setButtons.push(
+                <GoldBtn tiny key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>
+                  <span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1}}>
+                    <span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span>
+                    <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
+                  </span>
+                </GoldBtn>
+              );
+            });
+            if (r3Avail) setButtons.push(
+              <GoldBtn tiny key="r3" onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>
+            );
+            if (r4Avail) setButtons.push(
+              <GoldBtn tiny key="r4" onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>
+            );
+            if (riotAvail) setButtons.push(
+              <GoldBtn tiny key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>
+            );
+            if (trickPlays.length === 0 && showdownAvail) setButtons.push(
+              <GoldBtn tiny key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>
+            );
+            if (trickPlays.length === 0 && stealAvail) setButtons.push(
+              <GoldBtn tiny key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>
+            );
+            if (trickPlays.length === 0 && afAvail) setButtons.push(
+              <GoldBtn tiny key="af" onClick={()=>setPhase("americanfamily_offer")}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>
+            );
+            if (trickPlays.length === 0 && gaAvail) setButtons.push(
+              <GoldBtn tiny key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>
+            );
 
             return (
               <>
                 {hasLocked && (
-                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:10,padding:"8px 14px",display:"flex",flexDirection:"column",alignItems:"center",gap:5,width:"100%",boxSizing:"border-box"}}>
-                    <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
-                    <div style={{display:"flex",flexWrap:"wrap",gap:6,justifyContent:"center",marginTop:2}}>
+                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:10,padding:"6px 10px",display:"flex",flexDirection:"column",alignItems:"center",gap:4,width:"100%",boxSizing:"border-box"}}>
+                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
                       {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
                       {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
                       {r4Locked && <div style={lockedBtnStyle}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</div>}
@@ -5924,19 +5999,11 @@ function DiamondsGame() {
                     </div>
                   </div>
                 )}
-                {rule1Avail && <GoldBtn tiny onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>}
-                {spCombos.map((combo, i) => {
-                  const p1 = `${combo[1].id}/${combo[0].id}`;
-                  const p2 = `${combo[3].id}/${combo[2].id}`;
-                  return <GoldBtn tiny key={i} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,minWidth:110}}><span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1}}><span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span><span style={{fontWeight:400,fontSize:8,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1}{" & "}{p2}</span></span><span style={{letterSpacing:"-0.3px"}}>+{SWINGING_PARADOX_BONUS*GA}</span></span></GoldBtn>;
-                })}
-                {r3Avail && <GoldBtn tiny onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,minWidth:90}}><span style={{letterSpacing:"-0.5px"}}>🦅 Rule of 3</span><span style={{letterSpacing:"-0.3px"}}>+{RULE_OF_THREE_BONUS*GA}</span></span></GoldBtn>}
-                {r4Avail && <GoldBtn tiny onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>}
-                {riotAvail && <GoldBtn tiny onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && showdownAvail && <GoldBtn tiny onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && stealAvail && <GoldBtn tiny onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && afAvail && <GoldBtn tiny onClick={()=>setPhase("americanfamily_offer")}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>}
-                {trickPlays.length === 0 && gaAvail && <GoldBtn tiny onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>}
+                {setButtons.length > 0 && (
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%",alignItems:"stretch"}}>
+                    {setButtons}
+                  </div>
+                )}
               </>
             );
           })()}
@@ -6463,6 +6530,10 @@ function DiamondsGame() {
         @keyframes legalRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(75,195,175,0)); }
           50% { filter: drop-shadow(0 0 6px rgba(75,195,175,0.6)); }
+        }
+        @keyframes honorRipple {
+          0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
+          50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
         }
         /* Trick cards sweep away toward the winner */
         @keyframes trickSweep {
