@@ -5559,30 +5559,29 @@ function DiamondsGame() {
         padding:"2px 12px 2px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
         flex:"1 1 auto",
-        minHeight: 168, // never smaller than this (label + ledSuit + cards)
+        minHeight: 88,
         boxSizing:"border-box",
       }}>
-        <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:2,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
         {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
-        <div style={{height:22,marginBottom:7,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:16,marginBottom:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {ledSuit && (
-            <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
-              Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
+            <div style={{color:VM.tealLight,fontSize:10,fontWeight:700,fontFamily:FONT_UI}}>
+              Led suit: <span style={{fontSize:14}}>{ledSuit}</span>
             </div>
           )}
         </div>
-        {/* Cards row — fixed height matches a mobile card (115) + name label (~14) */}
-        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
+        {/* Cards row — tiny cards (58px) + name label */}
+        <div ref={trickAreaRef} style={{display:"flex",gap:8,justifyContent:"center",height:72,alignItems:"center",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
-            <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
+            <div style={{color:"#ffffff1a",fontSize:11,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
             trickPlays.map((p,i)=>(
               <div key={`${p.playerIdx}-${p.card.id}`} style={{
                 textAlign:"center",
                 animation:"cardLand 0.28s cubic-bezier(0.2,0.8,0.3,1)",
               }}>
-                <CardComp card={p.card} played/>
-                <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
+                <CardComp card={p.card} played tiny/>
+                <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:3,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
               </div>
             ))
           )}
