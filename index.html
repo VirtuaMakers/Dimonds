@@ -5644,7 +5644,21 @@ function DiamondsGame() {
           display:"flex", alignItems:"center", justifyContent:"space-between",
           flexShrink:0, marginBottom:2, paddingLeft:8, paddingRight:8,
         }}>
-          <div style={{flex:1}} />
+          <div style={{flex:1, display:"flex", alignItems:"center"}}>
+            {selectedCards.length > 0 && isPlayerTurn && (
+              <div style={{
+                background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
+                borderRadius:6,padding:"2px 7px",
+                color:VM.tealLight+"aa",fontSize:9,fontWeight:700,fontFamily:FONT_UI,
+                display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1,lineHeight:1.3,
+              }}>
+                {selectedCards.length === 1
+                  ? <><span>Playing</span><strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>{!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:8}}>{mustOpenWith2C?"✗ 2♣":"✗ suit"}</span>}</>
+                  : <><span>{selectedCards.length} cards</span>{selectedSetType&&<span style={{color:VM.gold}}>✓ set</span>}</>
+                }
+              </div>
+            )}
+          </div>
           <div style={{
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9,letterSpacing:2,
@@ -5783,21 +5797,6 @@ function DiamondsGame() {
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
           : {display:"flex",flexDirection:"column",justifyContent:"flex-start",gap:4,marginTop:4,alignItems:"center",flexShrink:0,overflowY:"auto",maxHeight:130,WebkitOverflowScrolling:"touch"}}>
-          {selectedCards.length > 0 && isPlayerTurn && (
-            <div style={{
-              background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
-              borderRadius:8,padding:"5px 12px",
-              color:VM.tealLight+"aa",fontSize:11,fontWeight:700,fontFamily:FONT_UI,
-              display:"flex",alignItems:"center",gap:6,
-            }}>
-              {selectedCards.length === 1
-                ? <>Playing: <strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>
-                    {!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:10}}>{mustOpenWith2C?" ✗ must open with 2♣":" ✗ must follow "+ledSuit}</span>}
-                  </>
-                : <><strong style={{color:VM.tealLight}}>{selectedCards.length} cards</strong><span style={{opacity:0.7}}> selected</span>{selectedSetType && <span style={{color:VM.gold,marginLeft:4}}>✓ valid set</span>}</>
-              }
-            </div>
-          )}
           <GoldBtn small
             onClick={()=>{ if(selectedCard&&selectedIsLegal) { setSelectedCards([]); playCard(selectedCard); } }}
             disabled={!canPlay||!selectedIsLegal}
