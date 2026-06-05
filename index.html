@@ -3179,6 +3179,14 @@ function DiamondsGame() {
     }
   }, [screen]);
 
+  // Reactive window width — updates layout when device rotates or window resizes
+  const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 768);
+  useEffect(() => {
+    const handler = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
   // Game state
   const [hands, setHands] = useState([[],[],[],[]]);
   const [totalScores, setTotalScores] = useState([0,0,0,0]);
@@ -5102,7 +5110,7 @@ function DiamondsGame() {
     );
   }
   if (screen === "menu") {
-    const isWide = typeof window !== "undefined" && window.innerWidth >= 700;
+    const isWide = windowWidth >= 700;
     const BG_FLOAT_ANIMS = ["bgFloat0","bgFloat1","bgFloat2","bgFloat3","bgFloat4"];
     const BG_DURATIONS   = [9.2, 11.5, 8.8, 13.1, 10.4, 12.7, 9.6, 14.2, 8.3, 11.9];
     const BG_DELAYS      = [0, -3.2, -5.7, -1.8, -7.3, -4.1, -2.6, -6.4, -0.9, -8.1];
@@ -5288,7 +5296,7 @@ function DiamondsGame() {
   // RENDER: GAME TABLE
   // ============================================================
   const playerHand = handSortMode === 'suit' ? sortHandBySuit(hands[0] || []) : sortHand(hands[0] || []);
-  const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768; // big cards + side button
+  const isDesktop = windowWidth > 768; // big cards + side button
   // Mouse-pointer check: double-click-to-play only when using a real mouse (not touch)
   const hasMouseInput = isDesktop && !(typeof window !== 'undefined' && window.matchMedia?.("(pointer: coarse)").matches);
   const selectedCard = selectedCards.length === 1 ? selectedCards[0] : null; // convenience for single-select checks
