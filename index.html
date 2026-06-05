@@ -3904,7 +3904,7 @@ function DiamondsGame() {
     } else if (aceBlocked && jackDPendingRobChoice) {
       addLog(`♠ ${allNames[winner]} (Ace of Spades) in the trick — ${allNames[result.jackDiamondPlayerIdx]} (Robbin Jack) must choose...`);
     } else if (aceRescueTriggered) {
-      addLog(`🗡️ ${allNames[acePlayerIdx]} played the Ace of Spades — preparing rescue...`);
+      addLog(`♠ ${allNames[acePlayerIdx]} played the Ace of Spades — wins the trick.`);
     } else if (jackDRobTriggered) {
       addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) prepares to rob...`);
     } else if (queenClubsTriggered) {
@@ -4031,32 +4031,15 @@ function DiamondsGame() {
       }, 600);
     } else if (aceRescueTriggered) {
       setTimeout(() => {
-        const hasTargets = currentHands.some((h, i) => i !== acePlayerIdx && h.length > 0);
-        if (!hasTargets) {
-          addLog(`♠ ${allNames[acePlayerIdx]} played the Ace of Spades (no cards left to rescue)`);
-          setTrickResult(resultObj);
-          if (gameWon) {
-            setTotalScores(newTotal);
-            setPendingFireworks(true);
-          }
-          setPhase("trickresult");
-          return;
-        }
-        setRescueState({ acePlayerIdx, hands: currentHands, resultObj });
-        setPhase("rescue");
+        setTrickResult(resultObj);
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+        setPhase("trickresult");
       }, 600);
     } else if (aceBlocked && !jackDPendingRobChoice) {
-      // Auto-block (Joker/Q♣ only, no J♦ pending) — A♠ also rescues after blocking
       setTimeout(() => {
-        const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
-        if (!hasTargets) {
-          setTrickResult(resultObj);
-          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-          setPhase("trickresult");
-          return;
-        }
-        setRescueState({ acePlayerIdx: winner, hands: currentHands, resultObj, jokerLockedUp: aceBlockedJoker });
-        setPhase("rescue");
+        setTrickResult(resultObj);
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+        setPhase("trickresult");
       }, 600);
     } else {
       setTimeout(() => {
@@ -4215,8 +4198,8 @@ function DiamondsGame() {
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
     };
-    // Rescue fires unless J♦ is the only special card and chose to rob
-    const rescueFires = autoBlockedJoker || autoBlockedQC || !jackRobbed;
+    // Rescue fires only when J♦ is in the trick and chose not to rob
+    const rescueFires = !jackRobbed;
     if (rescueFires && currentHands) {
       const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && h.length > 0);
       if (hasTargets) {
