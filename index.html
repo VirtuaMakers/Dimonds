@@ -2916,7 +2916,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, onRestart }) {
+function GameOverModal({ scores, allNames, onRestart, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0 }) {
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
   return (
     <Modal>
@@ -2926,17 +2926,43 @@ function GameOverModal({ scores, allNames, onRestart }) {
         <h2 style={{
           background:`linear-gradient(135deg,${VM.tealLight},${VM.goldBright})`,
           WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-          fontSize:32,margin:"0 0 20px",fontFamily:FONT_DISPLAY,fontWeight:900,letterSpacing:1,
+          fontSize:32,margin:"0 0 2px",fontFamily:FONT_DISPLAY,fontWeight:900,letterSpacing:1,
         }}>{sorted[0].n} Wins!</h2>
+        {gameNum > 0 && (
+          <div style={{color:VM.tealLight+"88",fontSize:11,fontFamily:FONT_UI,letterSpacing:1,marginBottom:18}}>
+            Game #{gameNum}
+          </div>
+        )}
+        {/* Column headers */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"0 14px 4px",marginBottom:2}}>
+          <span style={{color:"#ffffff44",fontSize:9,letterSpacing:1,fontFamily:FONT_UI}}>PLAYER</span>
+          <div style={{display:"flex",gap:8}}>
+            <span style={{color:"#7ec8a455",fontSize:9,letterSpacing:1,minWidth:36,textAlign:"center",fontFamily:FONT_UI}}>🎩</span>
+            <span style={{color:"#8a9fe055",fontSize:9,letterSpacing:1,minWidth:30,textAlign:"center",fontFamily:FONT_UI}}>💠</span>
+            <span style={{color:"#c9a84c55",fontSize:9,letterSpacing:1,minWidth:44,textAlign:"center",fontFamily:FONT_UI}}>PTS.</span>
+          </div>
+        </div>
         {sorted.map((p,i)=>(
           <div key={p.n} style={{
-            display:"flex",justifyContent:"space-between",
+            display:"flex",justifyContent:"space-between",alignItems:"center",
             background:i===0?VM.tealLight+"16":"rgba(255,255,255,0.04)",
             border:`1px solid ${i===0?VM.tealLight+"55":"rgba(255,255,255,0.08)"}`,
-            borderRadius:10,padding:"10px 18px",marginBottom:8,
+            borderRadius:10,padding:"10px 14px",marginBottom:8,
           }}>
-            <span style={{color:i===0?VM.tealLight:"#ffffffaa",fontFamily:FONT_UI}}>{["🥇","🥈","🥉",""][i]} {p.n}</span>
-            <span style={{color:i===0?VM.gold:"#ffffffcc",fontWeight:800,fontSize:20,fontFamily:FONT_DISPLAY}}>{p.s}</span>
+            <span style={{color:i===0?VM.tealLight:"#ffffffaa",fontFamily:FONT_UI,fontSize:14}}>
+              {["🥇","🥈","🥉","🎖️"][i]} {p.n}
+            </span>
+            <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <div style={{textAlign:"center",minWidth:36}}>
+                <div style={{color:"#7ec8a4",fontSize:15,fontWeight:700,lineHeight:1}}>{gameTricksPerPlayer[p.i]||0}</div>
+              </div>
+              <div style={{textAlign:"center",minWidth:30}}>
+                <div style={{color:"#8a9fe0",fontSize:15,fontWeight:700,lineHeight:1}}>{gameSetsPerPlayer[p.i]||0}</div>
+              </div>
+              <div style={{textAlign:"center",minWidth:44}}>
+                <div style={{color:i===0?VM.gold:"#ffffffcc",fontWeight:800,fontSize:20,fontFamily:FONT_DISPLAY,lineHeight:1}}>{p.s}</div>
+              </div>
+            </div>
           </div>
         ))}
         <div style={{marginTop:20}}>
@@ -6412,6 +6438,9 @@ function DiamondsGame() {
           scores={totalScores}
           allNames={allNames}
           onRestart={()=>{ setScreen("menu"); }}
+          gameTricksPerPlayer={gameTricksPerPlayer}
+          gameSetsPerPlayer={gameSetsPerPlayer}
+          gameNum={gameNum}
         />
       )}
 
