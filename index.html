@@ -1575,8 +1575,8 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
   const ace = isAceSpades(card);
   // Responsive sizing: larger on desktop (>768px wide)
   const isDesktop = typeof window !== 'undefined' && window.innerWidth > 768;
-  const w = tiny ? 40 : isDesktop ? 108 : 80;
-  const h = tiny ? 58 : isDesktop ? 156 : 115;
+  const w = tiny ? 40 : isDesktop ? 90 : 80;
+  const h = tiny ? 58 : isDesktop ? 130 : 115;
 
   // Face-down — pixel art seasonal back
   if (faceDown) return (
@@ -5541,7 +5541,7 @@ function DiamondsGame() {
           )}
         </div>
         {/* Cards row — full-size cards (115px mobile) + name label */}
-        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"flex-end",flexWrap:"nowrap"}}>
+        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:isDesktop?150:130,alignItems:"flex-end",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
@@ -5650,13 +5650,13 @@ function DiamondsGame() {
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
           overflow:"visible",
-          paddingTop: 36, // headroom: 16px card lift + 5px gap + 14px turn text + 1px buffer
+          paddingTop: isDesktop ? 40 : 36, // headroom: card lift(16) + gap(5) + turn text(14) + buffer
           flexShrink:0,
           position:"relative",
         }}>
           {/* YOUR TURN — sits 5px above the lifted selected card */}
           <div style={{
-            position:"absolute", top:1, left:0, right:0, zIndex:5,
+            position:"absolute", top: isDesktop ? 5 : 1, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
@@ -5709,7 +5709,7 @@ function DiamondsGame() {
             // not the current hand size. This way overlap stays constant as cards are played,
             // and the row doesn't slide/expand on each play.
             const total = playerHand.length;
-            const cardW = 80;
+            const cardW = isDesktop ? 90 : 80;
             const SAFETY = 20; // px of breathing room on each side
             const STARTING_HAND_SIZE = 14;
             const availW = (typeof window !== 'undefined' ? window.innerWidth : 360) - SAFETY * 2;
