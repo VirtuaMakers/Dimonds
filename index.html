@@ -2382,6 +2382,8 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const blockedJoker  = !!result.aceBlockedJoker;
     const blockedRobbin = !!result.aceBlockedRobbin;
     const blockedQueenClubs = !!result.aceBlockedQueenClubs;
+    const blockedCount = [blockedJoker, blockedRobbin, blockedQueenClubs].filter(Boolean).length;
+    const aceBlockBonus = (blockedCount === 1 ? 30 : blockedCount === 2 ? 35 : 40) * multiplier;
     const blockedNames = [blockedJoker?"The Joker":null, blockedRobbin?"Robbin Jack":null, blockedQueenClubs?"The Queen of Clubs":null].filter(Boolean);
     const blockedList = blockedNames.length===1 ? blockedNames[0] : blockedNames.slice(0,-1).join(", ")+" AND "+blockedNames.slice(-1)[0];
     const verb = blockedJoker ? "Locks Up" : "Blocks";
@@ -2417,7 +2419,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           background:"#4466ff11", border:"1px solid #4466ff44",
           borderRadius:10, padding:"8px 20px", display:"inline-block",
         }}>
-          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{35 * multiplier} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
+          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{aceBlockBonus} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
         </div>
       </EventBox>
     );
@@ -3183,6 +3185,8 @@ function DiamondsGame() {
       const remaining = turnOrder.slice(currentTurn + 1).filter(p => hands[p]?.length > 0);
       if (remaining.length === 0 && trickPlays.length > 0) {
         resolveTrickComplete(trickPlays, hands);
+      } else if (remaining.length === 0 && trickPlays.length === 0) {
+        // no trick in progress and no players after human — auto-claim useEffect handles it
       } else {
         setCurrentTurn(t => t + 1);
       }
@@ -5803,6 +5807,7 @@ function DiamondsGame() {
               setRoundScores(newRS);
               setSelectedCards([]);
               addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 2"}! +${pts} pts`);
+              logRoundEvent({ type:"set", playerIdx:0, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
               const newTotal = totalScores.map((s,i) => s + newRS[i]);
               if (newTotal.some(s => s >= WIN_SCORE)) {
                 setTotalScores(newTotal);
@@ -6057,7 +6062,7 @@ function DiamondsGame() {
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robbin Jack's Choice</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>The Ace of Spades is in this trick.</h2>
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 4px"}}>
-              If you rob, The Ace of Spades will block the attempt — and earn +35 pts.
+              {(()=>{const GA=goldenAgeRef.current?2:1;const auto=(aceRobChoiceState.aceBlockedJoker?1:0)+(aceRobChoiceState.aceBlockedQueenClubs?1:0);const bonus=(auto+1===3?40:auto+1===2?35:30)*GA;return`If you rob, The Ace of Spades will block the attempt — and earn +${bonus} pts.`;})()}
             </p>
             <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
               If you pass, you earn +1 pt and walk away clean.
