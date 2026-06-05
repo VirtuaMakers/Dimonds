@@ -3404,7 +3404,8 @@ function DiamondsGame() {
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
-  // Auto-claim sweep: if only one AI player has cards left, sweep their remaining cards.
+  // Auto-claim sweep: if only one AI player has cards left AND all remaining cards are pointless,
+  // sweep them automatically. If diamonds remain, play each trick out normally.
   // Human player is exempt — they play their remaining cards out manually.
   useEffect(() => {
     if (phase !== "playing") return;
@@ -3413,6 +3414,7 @@ function DiamondsGame() {
     if (playersWithCards.length !== 1) return;
     const solo = playersWithCards[0];
     if (solo === 0) return; // Human plays their own cards out
+    if (hands[solo].some(c => isDiamond(c))) return; // Diamonds remain — play tricks out normally
     const timer = setTimeout(() => {
       setTrickResult({ winnerIdx: solo, plays: [], diamondsCaptured: [], autoClaim: true });
       setPhase("trickresult");
@@ -4768,13 +4770,15 @@ function DiamondsGame() {
       return;
     }
 
-    // AUTO-CLAIM: sole remaining player → sweep (AI always; human only when no diamonds left)
+    // AUTO-CLAIM: sole remaining player, pointless cards only → sweep.
+    // If the solo player still holds diamonds, play those tricks out one by one (won unopposed).
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
     const soloIsHuman = playersWithCards.length === 1 && playersWithCards[0] === 0;
     const humanNoDiamonds = soloIsHuman && !hands[0].some(c => isDiamond(c));
-    if (playersWithCards.length === 1 && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
+    const soloCards = playersWithCards.length === 1 ? hands[playersWithCards[0]] : [];
+    const soloNoDiamonds = !soloCards.some(c => isDiamond(c));
+    if (playersWithCards.length === 1 && soloNoDiamonds && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
       const soloPlayer = playersWithCards[0];
-      const soloCards = hands[soloPlayer];
       const GA = goldenAgeRef.current ? 2 : 1;
       const dimondPts = soloCards.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
       const newRoundScores = [...roundScores];
