@@ -3705,20 +3705,16 @@ function DiamondsGame() {
     if (phase === "roundover" || phase === "gameover") {
       const log = [...roundEventLogRef.current];
       setRoundEventLog(log);
-      // Accumulate game-wide totals only on roundover (gameover skips round-over screen)
-      if (phase === "roundover") {
-        const rt = [0,0,0,0], rs = [0,0,0,0];
-        for (const e of log) {
-          if (e.type === "trick") rt[e.playerIdx]++;
-          if (e.type === "set")   rs[e.playerIdx]++;
-        }
-        setGameTricksPerPlayer(prev => prev.map((v,i) => v + rt[i]));
-        setGameSetsPerPlayer(prev =>   prev.map((v,i) => v + rs[i]));
+      // Accumulate game-wide trick/set totals for both roundover and gameover
+      const rt = [0,0,0,0], rs = [0,0,0,0];
+      for (const e of log) {
+        if (e.type === "trick") rt[e.playerIdx]++;
+        if (e.type === "set")   rs[e.playerIdx]++;
       }
+      setGameTricksPerPlayer(prev => prev.map((v,i) => v + rt[i]));
+      setGameSetsPerPlayer(prev =>   prev.map((v,i) => v + rs[i]));
       if (phase === "gameover") {
         // Record game stats to localStorage for future player profile system
-        const lastRoundTricks = log.filter(e => e.type === "trick" && e.playerIdx === 0).length;
-        const lastRoundSets   = log.filter(e => e.type === "set"   && e.playerIdx === 0).length;
         const finalScores = totalScores;
         const ranking = [0,1,2,3].sort((a,b) => finalScores[b]-finalScores[a] || (a===0?1:b===0?-1:a-b));
         const placement = ranking.indexOf(0) + 1;
@@ -3728,8 +3724,8 @@ function DiamondsGame() {
           date: new Date().toISOString(),
           placement,
           score: finalScores[0] || 0,
-          tricks: (gameTricksPerPlayer[0] || 0) + lastRoundTricks,
-          sets:   (gameSetsPerPlayer[0]   || 0) + lastRoundSets,
+          tricks: (gameTricksPerPlayer[0] || 0) + rt[0],
+          sets:   (gameSetsPerPlayer[0]   || 0) + rs[0],
           rounds: roundNum,
           won: placement === 1,
         };
