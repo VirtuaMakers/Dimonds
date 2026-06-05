@@ -5036,7 +5036,7 @@ function DiamondsGame() {
     const riotAvail = checkRiot(h0, diamondsBroken);
     const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
     const showdownAvail = checkShowdown(h0);
-    const stealAvail = !showdownAvail && checkTheSteal(h0);
+    const stealAvail = checkTheSteal(h0);
     const afAvail = checkAmericanFamily(h0);
     const gaAvail = checkAcesLow(h0);
     if (r3Avail || r4Avail || riotAvail || spCombos.length > 0 || showdownAvail || stealAvail || afAvail || gaAvail) return;
@@ -5559,29 +5559,30 @@ function DiamondsGame() {
         padding:"2px 12px 2px",
         background:`radial-gradient(ellipse at 50% 50%,${VM.tealLight}0d,transparent 70%)`,
         flex:"1 1 auto",
-        minHeight: 88,
+        minHeight: 170,
         boxSizing:"border-box",
       }}>
+        <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:-1,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
         {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
-        <div style={{height:16,marginBottom:4,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:22,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {ledSuit && (
-            <div style={{color:VM.tealLight,fontSize:10,fontWeight:700,fontFamily:FONT_UI}}>
-              Led suit: <span style={{fontSize:14}}>{ledSuit}</span>
+            <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
+              Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
             </div>
           )}
         </div>
-        {/* Cards row — tiny cards (58px) + name label */}
-        <div ref={trickAreaRef} style={{display:"flex",gap:8,justifyContent:"center",height:72,alignItems:"center",flexWrap:"nowrap"}}>
+        {/* Cards row — full-size cards (115px mobile) + name label */}
+        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:130,alignItems:"center",flexWrap:"nowrap"}}>
           {trickPlays.length===0 ? (
-            <div style={{color:"#ffffff1a",fontSize:11,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
+            <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
             trickPlays.map((p,i)=>(
               <div key={`${p.playerIdx}-${p.card.id}`} style={{
                 textAlign:"center",
                 animation:"cardLand 0.28s cubic-bezier(0.2,0.8,0.3,1)",
               }}>
-                <CardComp card={p.card} played tiny/>
-                <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:3,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
+                <CardComp card={p.card} played/>
+                <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
               </div>
             ))
           )}
@@ -5640,13 +5641,31 @@ function DiamondsGame() {
         )}
 
         <div style={{
-          color: isPlayerTurn?VM.tealLight:"#ffffff44",
-          fontSize:9,letterSpacing:2,
-          textTransform:"uppercase",textAlign:"center",marginBottom:2,
-          fontWeight:700, flexShrink:0, fontFamily:FONT_UI,
-          height:14, lineHeight:"14px",
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          flexShrink:0, marginBottom:2, paddingLeft:8, paddingRight:8,
         }}>
-          {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+          <div style={{flex:1}} />
+          <div style={{
+            color: isPlayerTurn?VM.tealLight:"#ffffff44",
+            fontSize:9,letterSpacing:2,
+            textTransform:"uppercase",textAlign:"center",
+            fontWeight:700, fontFamily:FONT_UI,
+            height:14, lineHeight:"14px",
+          }}>
+            {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Tap a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+          </div>
+          <div style={{flex:1, display:"flex", justifyContent:"flex-end"}}>
+            <div onClick={toggleHandSort} style={{
+              display:"flex", flexDirection:"column", alignItems:"center",
+              cursor:"pointer", border:`1px solid ${VM.tealLight}44`, borderRadius:6,
+              padding:"2px 7px", gap:1, touchAction:"manipulation",
+            }}>
+              <span style={{color:VM.tealLight,fontWeight:700,fontSize:10,fontFamily:FONT_UI,letterSpacing:0.5}}>Re-Sort</span>
+              <span style={{color:VM.tealLight+"99",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
+                {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
+              </span>
+            </div>
+          </div>
         </div>
 
 
@@ -5763,7 +5782,7 @@ function DiamondsGame() {
 
         <div style={isDesktop
           ? {position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",display:"flex",flexDirection:"column",gap:8,alignItems:"center",zIndex:50}
-          : {display:"flex",justifyContent:"center",gap:8,marginTop:4,alignItems:"center",flexShrink:0,flexWrap:"wrap",overflowY:"auto",maxHeight:130,WebkitOverflowScrolling:"touch"}}>
+          : {display:"flex",flexDirection:"column",justifyContent:"flex-start",gap:6,marginTop:4,alignItems:"center",flexShrink:0,overflowY:"auto",maxHeight:140,WebkitOverflowScrolling:"touch"}}>
           {selectedCards.length > 0 && isPlayerTurn && (
             <div style={{
               background:VM.tealLight+"14",border:`1px solid ${VM.tealLight}33`,
@@ -5779,22 +5798,12 @@ function DiamondsGame() {
               }
             </div>
           )}
-          <GoldBtn
+          <GoldBtn small
             onClick={()=>{ if(selectedCard&&selectedIsLegal) { setSelectedCards([]); playCard(selectedCard); } }}
             disabled={!canPlay||!selectedIsLegal}
           >
             {isPlayerTurn ? "Play Card" : "Waiting…"}
           </GoldBtn>
-          {isDesktop && (
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
-            <GoldBtn secondary small onClick={toggleHandSort}>
-              ⇅ Re-Sort Hand
-            </GoldBtn>
-            <div style={{color:"#ffffff33",fontSize:8,fontFamily:FONT_UI,letterSpacing:1,textTransform:"uppercase"}}>
-              {handSortMode === 'rank' ? 'by rank' : 'by suit'}
-            </div>
-          </div>
-          )}
           {selectedSetType && isPlayerTurn && (diamondsBroken || selectedCards.every(c => c.suit !== "♦")) && (
             <GoldBtn onClick={()=>{
               const cards = selectedCards;
@@ -5852,7 +5861,7 @@ function DiamondsGame() {
             const hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked);
 
             const showdownAvail = checkShowdown(h0);
-            const stealAvail = !showdownAvail && checkTheSteal(h0);
+            const stealAvail = checkTheSteal(h0);
             const afAvail = checkAmericanFamily(h0);
             const gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
