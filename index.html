@@ -2664,7 +2664,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0] }) {
+function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round" }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
 
@@ -2908,7 +2908,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         {noteText("Redeeming the most sets does not always win the most points!")}
 
         <div style={{marginTop:16,textAlign:"center"}}>
-          <GoldBtn onClick={onContinue}>Deal Next Round</GoldBtn>
+          <GoldBtn onClick={onContinue}>{continueLabel}</GoldBtn>
         </div>
       </div>
     </Modal>
@@ -2918,8 +2918,25 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, onRestart, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0 }) {
+function GameOverModal({ scores, allNames, onRestart, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[] }) {
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
+
+  if (showBreakdown) {
+    return (
+      <RoundOverModal
+        scores={scores}
+        allNames={allNames}
+        roundScores={roundScores}
+        onContinue={onRestart}
+        eventLog={eventLog}
+        gameTricksPerPlayer={gameTricksPerPlayer}
+        gameSetsPerPlayer={gameSetsPerPlayer}
+        continueLabel="Play Again"
+      />
+    );
+  }
+
   return (
     <Modal>
       <div style={{textAlign:"center"}}>
@@ -2967,7 +2984,8 @@ function GameOverModal({ scores, allNames, onRestart, gameTricksPerPlayer=[], ga
             </div>
           </div>
         ))}
-        <div style={{marginTop:20}}>
+        <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+          <GoldBtn onClick={()=>setShowBreakdown(true)} secondary>Round Breakdown</GoldBtn>
           <GoldBtn onClick={onRestart}>Play Again</GoldBtn>
         </div>
       </div>
@@ -6423,6 +6441,8 @@ function DiamondsGame() {
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
           gameNum={gameNum}
+          roundScores={roundScores}
+          eventLog={roundEventLog}
         />
       )}
 
