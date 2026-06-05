@@ -3147,6 +3147,7 @@ function DiamondsGame() {
   const [showdownState, setShowdownState] = useState(null);
   const [showdownOffered, setShowdownOffered] = useState([false,false,false,false]);
   const [rule1State, setRule1State] = useState(null);
+  const [rule1UsedThisTurn, setRule1UsedThisTurn] = useState(false);
   const [riotState, setRiotState] = useState(null);
   const [riotOffered, setRiotOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
@@ -3515,6 +3516,7 @@ function DiamondsGame() {
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
     setTrickPlays([]);
+    setRule1UsedThisTurn(false);
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -3585,6 +3587,7 @@ function DiamondsGame() {
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
     setTrickPlays([]);
+    setRule1UsedThisTurn(false);
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -4364,6 +4367,7 @@ function DiamondsGame() {
     });
     setHands(newHands);
     setRule1State(null);
+    setRule1UsedThisTurn(true);
     addLog(`💠 ${allNames[0]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
     if (!diamondsBroken) {
       setDiamondsBroken(true);
@@ -4868,6 +4872,7 @@ function DiamondsGame() {
     setTurnOrder(newOrder);
     setCurrentTurn(0);
     setTrickPlays([]);
+    setRule1UsedThisTurn(false);
     setSelectedCards([]);
     setTricksPlayed(t=>t+1);
     setIsFirstTrick(false);
@@ -5847,7 +5852,7 @@ function DiamondsGame() {
             const afAvail = checkAmericanFamily(h0);
             const gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
-            const rule1Avail = trickPlays.length === 0 && rule1Dimonds.length > 0;
+            const rule1Avail = trickPlays.length === 0 && rule1Dimonds.length > 0 && !rule1UsedThisTurn;
 
             const lockedBtnStyle = {
               background:"transparent", color:"#ffffff44",
