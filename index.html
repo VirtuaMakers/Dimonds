@@ -1681,14 +1681,6 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
               }}>A</span>
               <div style={{marginTop:1}}><PipShape suit="♠" size={aceCornerPip}/></div>
             </div>
-            {/* Center spade pip */}
-            <div style={{
-              position:"absolute", inset:0,
-              display:"flex", alignItems:"center", justifyContent:"center",
-              zIndex:2,
-            }}>
-              <PipShape suit="♠" size={tiny?22:isDesktop?56:44}/>
-            </div>
           </>
         );
       })()}
@@ -2694,7 +2686,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
               Trick {ev.trickNum} — Cards Played
             </div>
           </div>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:8}}>
             {(ev.plays||[]).map((p,i)=>{
               const c = p.card;
               const label = c.isJoker ? "🃏 Joker" : `${c.rank}${c.suit}`;
@@ -2715,13 +2707,21 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
               );
             })}
           </div>
-          {ev.diamondsCaptured && ev.diamondsCaptured.length > 0 && (
-            <div style={{background:"#ff6b6b11",border:"1px solid #ff6b6b33",borderRadius:10,padding:"8px 14px",marginBottom:12,textAlign:"center"}}>
-              <span style={{color:"#ff6b6b",fontSize:13,fontWeight:700}}>
-                💎 Captured: {ev.diamondsCaptured.map(c=>`${c.rank}${c.suit}`).join(", ")} = +{ev.points} pts
+          <div style={{
+            borderTop:`1px solid ${(ev.points||0)>0?"#c9a84c33":"#ffffff11"}`,
+            paddingTop:8, marginBottom:12,
+            display:"flex", justifyContent:"space-between", alignItems:"center",
+          }}>
+            <span style={{color:"#ffffff77",fontSize:11,fontFamily:FONT_UI}}>
+              Trick won by{" "}
+              <span style={{color:"#c9a84c",fontWeight:700}}>{allNames[ev.playerIdx]}</span>
+            </span>
+            {(ev.points||0) > 0 && (
+              <span style={{color:"#ff6b6b",fontSize:12,fontWeight:700}}>
+                +{ev.points} {ev.points===1?"pt":"pts"} 💎
               </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </Modal>
     );
@@ -2887,6 +2887,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
           </div>
         ))}
         {noteText("Winning the most tricks does not always win the most points!")}
+        {noteText("At the end of the round, pointless tricks are not tallied.")}
 
         <div style={{height:4}}/>
         {sectionLabel("Most Sets")}
@@ -3750,7 +3751,8 @@ function DiamondsGame() {
     // Trump rule: can't lead with a diamond until diamonds are broken
     // Exception: round 1, player has no clubs — may lead diamond to break them
     if (!diamondsBroken && trickPlays.length === 0 && isDiamond(card)) {
-      const noClubsRound1 = roundNum === 1 && !hands[0].some(c => c.suit === "♣" && !c.isJoker);
+      const isJackD = card.id === "J♦";
+      const noClubsRound1 = !isJackD && roundNum === 1 && !hands[0].some(c => c.suit === "♣" && !c.isJoker);
       if (!noClubsRound1) {
         const nonDiamonds = hands[0].filter(c => !isDiamond(c) && !c.isJoker);
         if (nonDiamonds.length > 0) return;
@@ -3797,37 +3799,26 @@ function DiamondsGame() {
     // AUTO-CLAIM: if everyone but one player is out of cards, that player
     // automatically wins all their remaining cards as solo tricks.
     const playersWithCards = newHands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    if (playersWithCards.length === 1 && newPlays.length === 4) {
-      // Trick fully played AND only one player has cards left → resolve this trick,
-      // then auto-claim will trigger from afterTrickResult on the next round-end check.
-      resolveTrickComplete(newPlays, newHands);
-      return;
-    }
-    if (playersWithCards.length <= 1) {
-      // Mid-trick or after this play, only one player has cards.
-      // Resolve whatever plays we have now, then auto-claim remaining.
+    // Resolve as soon as every card-holding player has already played in this trick
+    const trickPlayerIds = new Set(newPlays.map(p => p.playerIdx));
+    const hasUnplayedCardholders = playersWithCards.some(i => !trickPlayerIds.has(i));
+    if (!hasUnplayedCardholders) {
       resolveTrickComplete(newPlays, newHands);
       return;
     }
 
-    if (newPlays.length === 4) {
-      // Trick complete
+    // Advance currentTurn, skipping players with no cards — never skip human (player 0) if they have cards
+    let nextTurn = currentTurn + 1;
+    while (nextTurn < 4 && newHands[turnOrder[nextTurn]]?.length === 0) {
+      if (turnOrder[nextTurn] === 0 && (newHands[0]?.length ?? 0) > 0) break; // guard: never skip human with cards
+      nextTurn++;
+    }
+    if (nextTurn >= 4) {
       resolveTrickComplete(newPlays, newHands);
     } else {
-      // Advance currentTurn, skipping players with no cards — never skip human (player 0) if they have cards
-      let nextTurn = currentTurn + 1;
-      while (nextTurn < 4 && newHands[turnOrder[nextTurn]]?.length === 0) {
-        if (turnOrder[nextTurn] === 0 && (newHands[0]?.length ?? 0) > 0) break; // guard: never skip human with cards
-        nextTurn++;
-      }
-      if (nextTurn >= 4) {
-        // No more players have cards in this trick → resolve what we have
-        resolveTrickComplete(newPlays, newHands);
-      } else {
-        setCurrentTurn(nextTurn);
-        setTrickPlays(newPlays);
-        setHands(newHands);
-      }
+      setCurrentTurn(nextTurn);
+      setTrickPlays(newPlays);
+      setHands(newHands);
     }
   }
 
@@ -5327,7 +5318,9 @@ function DiamondsGame() {
       : selectedCard.isJoker
       ? true
       : trickPlays.length === 0
-      ? (!isDiamond(selectedCard) || canLeadDiamond)
+      ? (!isDiamond(selectedCard) || (selectedCard.id === "J♦"
+          ? (diamondsBroken || playerHand.filter(c=>!isDiamond(c)&&!c.isJoker).length===0)
+          : canLeadDiamond))
       : (
           !ledSuit ||
           selectedCard.suit === ledSuit ||
