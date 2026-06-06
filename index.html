@@ -5623,13 +5623,13 @@ function DiamondsGame() {
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
           overflow:"visible",
-          paddingTop: isDesktop ? 68 : 100, // desktop: 2px from screen; non-desktop: headroom for floating btn+text
+          paddingTop: isDesktop ? 68 : 120, // desktop: headroom for side panel; non-desktop: room for floating UI group
           flexShrink:0,
           position:"relative",
         }}>
           {/* YOUR TURN — sits 5px above the lifted selected card */}
           <div style={{
-            position:"absolute", top: isDesktop ? 5 : 36, left:0, right:0, zIndex:5,
+            position:"absolute", top: isDesktop ? 5 : 56, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
@@ -5648,7 +5648,7 @@ function DiamondsGame() {
               <>
                 {selectedCards.length > 0 && isPlayerTurn && (
                   <div style={{
-                    position:"absolute", left:fanEdgeOffset, top:2, zIndex:10,
+                    position:"absolute", left:fanEdgeOffset, top:24, zIndex:10,
                     background:VM.tealLight+"14", border:`1px solid ${VM.tealLight}33`,
                     borderRadius:6, padding:"2px 7px",
                     color:VM.tealLight+"aa", fontSize:9, fontWeight:700, fontFamily:FONT_UI,
@@ -5661,7 +5661,7 @@ function DiamondsGame() {
                   </div>
                 )}
                 <button onClick={toggleHandSort} style={{
-                  position:"absolute", right:fanEdgeOffset, top:2, zIndex:10,
+                  position:"absolute", right:fanEdgeOffset, top:24, zIndex:10,
                   display:"flex", flexDirection:"column", alignItems:"center",
                   cursor:"pointer", border:"none", borderRadius:6,
                   padding:"2px 7px", gap:1, touchAction:"manipulation",
