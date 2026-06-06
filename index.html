@@ -5660,17 +5660,19 @@ function DiamondsGame() {
                     }
                   </div>
                 )}
-                <div onClick={toggleHandSort} style={{
+                <button onClick={toggleHandSort} style={{
                   position:"absolute", right:fanEdgeOffset, top:3, zIndex:10,
                   display:"flex", flexDirection:"column", alignItems:"center",
-                  cursor:"pointer", border:`1px solid ${VM.tealLight}44`, borderRadius:6,
+                  cursor:"pointer", border:"none", borderRadius:6,
                   padding:"2px 7px", gap:1, touchAction:"manipulation",
+                  background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+                  boxShadow:`0 3px 10px ${VM.gold}44`,
                 }}>
-                  <span style={{color:VM.tealLight,fontWeight:700,fontSize:10,fontFamily:FONT_UI,letterSpacing:0.5}}>Re-Sort</span>
-                  <span style={{color:VM.tealLight+"99",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
+                  <span style={{color:"#0a2320",fontWeight:800,fontSize:10,fontFamily:FONT_DISPLAY,letterSpacing:0.5}}>Re-Sort</span>
+                  <span style={{color:"#0a232099",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
                     {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
                   </span>
-                </div>
+                </button>
               </>
             );
           })()}
