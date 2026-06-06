@@ -5842,19 +5842,18 @@ function DiamondsGame() {
             const GA = goldenAgeRef.current ? 2 : 1;
 
             const r3Cards = checkRuleOfThree(h0);
-            const r3HasDia = !!(r3Cards && r3Cards.some(c => isDiamond(c) && !isJackDiamond(c)));
+            const r3HasDia = !!(r3Cards && r3Cards.some(c => c.suit==="♦"));
             const r3Avail = r3Cards && (!r3HasDia || diamondsBroken) ? r3Cards : null;
             const r3Locked = r3Cards && r3HasDia && !diamondsBroken;
 
             const r4Cards = checkRuleFour(h0);
-            const r4HasDia = !!(r4Cards && r4Cards.some(c => isDiamond(c) && !isJackDiamond(c)));
+            const r4HasDia = !!(r4Cards && r4Cards.some(c => c.suit==="♦"));
             const r4Avail = r4Cards && (!r4HasDia || diamondsBroken) ? r4Cards : null;
             const r4Locked = r4Cards && r4HasDia && !diamondsBroken;
 
             const spCards = checkSwingingParadox(h0);
-            const spHasRealDia = !!(spCards && spCards.some(c => isDiamond(c) && !isJackDiamond(c)));
-            const spLocked = spCards && spHasRealDia && !diamondsBroken;
-            const spCombos = (spCards && !spLocked) ? allSwingingParadoxCombos(h0) : [];
+            const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
+            const spLocked = spCards && !diamondsBroken;
 
             const riotAvail = checkRiot(h0, diamondsBroken);
             const riotLocked = !diamondsBroken && !riotAvail && checkRiot(h0, true);
