@@ -335,469 +335,205 @@ function soundJokerRelease() {
   );
 }
 
-function setupBridgeWaterfall(canvas, onDone) {
-  const ctx = canvas.getContext("2d");
-  const cw = canvas.width, ch = canvas.height;
+// ============================================================
+// RETRO 8-BIT VICTORY ANIMATION
+// Square box, 10px from screen edges. Tetris-inspired block rain.
+// ============================================================
+const _RETRO_PALETTES = {
+  1: ["#ffd700","#ffb700","#ffe866","#c9a84c","#fff0a0","#ffa000"],
+  2: ["#ff3333","#ff6622","#ff1111","#cc0000","#ff8866","#ff4444"],
+  3: ["#2266ff","#4488ff","#66aaff","#0044cc","#88bbff","#3377ff"],
+  4: ["#778899","#99aabb","#bbcccc","#556677","#aabbcc","#889aaa"],
+};
+const _RETRO_PLACE_COLOR = { 1:"#ffd700", 2:"#ff4444", 3:"#4499ff", 4:"#99aaaa" };
+const _RETRO_PLACE_LABEL = { 1:"★ 1ST PLACE ★", 2:"2ND PLACE", 3:"3RD PLACE", 4:"4TH PLACE" };
 
-  const WY  = ch * 0.652;
-  const DY  = ch * 0.437;
-  const DH  = ch * 0.025;
-  const TW  = cw * 0.055;
-  const LTX = cw * 0.231;
-  const RTX = cw * 0.769;
-  const TTY = DY - ch * 0.290;
-  const SL  = LTX + TW/2 + cw*0.015;
-  const SR  = RTX - TW/2 - cw*0.015;
-  const SW  = SR - SL;
-  const CCX = (LTX + RTX) / 2;
-  const CCY = TTY + 6 + ch * 0.086;
+function RetroFireworks({ onDone, place=1 }) {
+  const canvasRef  = useRef(null);
+  const placeRef   = useRef(place);
+  const finishedRef = useRef(false);
 
-  const N   = 4200;
-  const PX  = new Float32Array(N); const PY  = new Float32Array(N);
-  const PVX = new Float32Array(N); const PVY = new Float32Array(N);
-  const PL  = new Float32Array(N); const PD  = new Float32Array(N);
-  const PSZ = new Float32Array(N); const PST = new Uint8Array(N);
-  const COLS = Array.from({length:10}, (_,i) => SL + (i/9)*SW);
-  let slot = 0;
+  const boxSize    = Math.min(window.innerWidth, window.innerHeight) - 20;
+  const placeColor = _RETRO_PLACE_COLOR[place] || _RETRO_PLACE_COLOR[1];
+  const placeLabel = _RETRO_PLACE_LABEL[place] || _RETRO_PLACE_LABEL[1];
 
-  function resetP(i) {
-    const s = Math.random() < 0.27;
-    PST[i] = s ? 1 : 0;
-    PX[i]  = s ? COLS[Math.floor(Math.random()*COLS.length)] + (Math.random()-0.5)*10
-               : SL + Math.random()*SW;
-    PY[i]  = DY + DH + Math.random()*3;
-    PVX[i] = (Math.random()-0.5) * (s ? 0.65 : 3.4);
-    PVY[i] = s ? 3.0 + Math.random()*4.5 : 0.8 + Math.random()*3.0;
-    PL[i]  = 1.0;
-    PD[i]  = s ? 0.0038 + Math.random()*0.006 : 0.007 + Math.random()*0.017;
-    PSZ[i] = s ? 1.9 + Math.random()*1.5 : 0.6 + Math.random()*1.9;
-  }
-  for (let i = 0; i < N; i++) {
-    resetP(i); PL[i] = Math.random();
-    PY[i] = DY + DH + Math.random() * (WY - DY - DH - 8);
-  }
-  function spawnBatch() { for (let k=0;k<72;k++) { resetP(slot%N); slot++; } }
-
-  function pR(l) { const t=1-l; return t<0.64?255:Math.round(255-(t-0.64)/0.36*108); }
-  function pG(l) { const t=1-l; if(t<0.16)return 255; if(t<0.36)return Math.round(255-(t-0.16)/0.20*228); if(t<0.68)return Math.round(27-(t-0.36)/0.32*27); return 0; }
-  function pB(l) { const t=1-l; if(t<0.16)return 255; if(t<0.30)return Math.round(255-(t-0.16)/0.14*255); return 0; }
-
-  const smk = [];
-  function spawnSmoke() {
-    if (smk.length < 80 && Math.random() < 0.26)
-      smk.push({ x:SL+Math.random()*SW, y:DY-4, vx:(Math.random()-0.5)*0.45,
-                 vy:-(0.28+Math.random()*0.7), r:10+Math.random()*16, a:0,
-                 d:0.0022+Math.random()*0.003 });
+  function safeDone() {
+    if (!finishedRef.current) { finishedRef.current = true; onDone(); }
   }
 
-  const STARS = Array.from({length:100}, (_,i) => ({
-    x:((i*193+43)%(cw-24))+12, y:((i*317+71)%(WY-105))+8,
-    r:0.22+(i%4)*0.22, a:0.45+(i%3)*0.2,
-  }));
-
-  function drawScene(ts) {
-    const sk=ctx.createLinearGradient(0,0,0,WY);
-    sk.addColorStop(0,"#01030f"); sk.addColorStop(0.52,"#060c1e"); sk.addColorStop(1,"#0a152c");
-    ctx.fillStyle=sk; ctx.fillRect(0,0,cw,WY);
-    STARS.forEach(s=>{
-      ctx.globalAlpha=s.a*(0.6+0.4*Math.sin(ts/1900+s.x*0.04));
-      ctx.fillStyle="#cce0ff"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.283); ctx.fill();
-    });
-    ctx.globalAlpha=1;
-    const hg=ctx.createLinearGradient(0,WY-52,0,WY+5);
-    hg.addColorStop(0,"rgba(0,0,0,0)"); hg.addColorStop(0.6,"rgba(240,180,80,0.05)"); hg.addColorStop(1,"rgba(255,200,100,0.11)");
-    ctx.fillStyle=hg; ctx.fillRect(0,WY-52,cw,57);
-    const wt=ctx.createLinearGradient(0,WY,0,ch);
-    wt.addColorStop(0,"#060e1c"); wt.addColorStop(1,"#020407");
-    ctx.fillStyle=wt; ctx.fillRect(0,WY,cw,ch-WY);
-    ctx.lineWidth=1;
-    for(let wy=WY+12;wy<ch;wy+=16){
-      const wa=0.022+0.013*Math.sin(ts/1050+wy/22);
-      ctx.strokeStyle=`rgba(185,140,50,${wa.toFixed(3)})`;
-      ctx.beginPath(); ctx.moveTo(38,wy); ctx.bezierCurveTo(cw*0.3,wy+1.5,cw*0.7,wy-1.5,cw-38,wy); ctx.stroke();
-    }
-    ctx.fillStyle="#060a16";
-    ctx.fillRect(0,WY-10,82,14); ctx.fillRect(cw-82,WY-10,82,14);
-    ctx.strokeStyle="#48586e"; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.moveTo(0,DY); ctx.lineTo(LTX,TTY+6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cw,DY); ctx.lineTo(RTX,TTY+6); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(LTX,TTY+6); ctx.quadraticCurveTo(CCX,CCY,RTX,TTY+6); ctx.stroke();
-    ctx.strokeStyle="rgba(68,86,108,0.58)"; ctx.lineWidth=1;
-    for(let hx=SL+8;hx<=SR-8;hx+=19){
-      const nt=(hx-LTX)/(RTX-LTX);
-      const cy=(1-nt)*(1-nt)*(TTY+6)+2*(1-nt)*nt*CCY+nt*nt*(TTY+6);
-      ctx.beginPath(); ctx.moveTo(hx,cy); ctx.lineTo(hx,DY); ctx.stroke();
-    }
-    drawTower(LTX); drawTower(RTX);
-    [LTX,RTX].forEach(tx=>{
-      const tw2=TW+14;
-      const wg=ctx.createLinearGradient(0,WY-2,0,WY+28);
-      wg.addColorStop(0,"rgba(6,14,28,0.0)"); wg.addColorStop(0.25,"rgba(6,14,28,0.65)"); wg.addColorStop(1,"#060e1c");
-      ctx.fillStyle=wg; ctx.fillRect(tx-tw2/2,WY-2,tw2,30);
-    });
-    const dk=ctx.createLinearGradient(0,DY,0,DY+DH);
-    dk.addColorStop(0,"#26304a"); dk.addColorStop(1,"#111826");
-    ctx.fillStyle=dk; ctx.fillRect(0,DY,cw,DH);
-    ctx.fillStyle="rgba(95,120,162,0.16)"; ctx.fillRect(0,DY,cw,2);
-    ctx.fillStyle="rgba(0,0,0,0.5)"; ctx.fillRect(0,DY+DH,cw,5);
-  }
-
-  function drawTower(cx) {
-    const x=cx-TW/2, y=TTY, btm=WY+22;
-    const tg=ctx.createLinearGradient(x,0,x+TW,0);
-    tg.addColorStop(0,"#1b2440"); tg.addColorStop(0.45,"#232e50"); tg.addColorStop(1,"#131c2e");
-    ctx.fillStyle=tg;
-    ctx.beginPath();
-    ctx.moveTo(cx-1,y); ctx.lineTo(cx+4,y+14); ctx.lineTo(x+TW+1,y+32);
-    ctx.lineTo(x+TW+3,y+TW*1.4); ctx.lineTo(x+TW+5,DY); ctx.lineTo(x+TW+5,btm);
-    ctx.lineTo(x-5,btm); ctx.lineTo(x-5,DY); ctx.lineTo(x-3,y+TW*1.4);
-    ctx.lineTo(x-1,y+32); ctx.lineTo(cx-4,y+14); ctx.closePath(); ctx.fill();
-    const aH=(DY-y)*0.28, aY=y+(DY-y)*0.44, aW=TW*0.47;
-    ctx.fillStyle="rgba(2,5,14,0.93)";
-    ctx.beginPath(); ctx.moveTo(cx-aW/2,aY+aH); ctx.lineTo(cx-aW/2,aY+15);
-    ctx.quadraticCurveTo(cx-aW/2,aY,cx,aY); ctx.quadraticCurveTo(cx+aW/2,aY,cx+aW/2,aY+15);
-    ctx.lineTo(cx+aW/2,aY+aH); ctx.closePath(); ctx.fill();
-    ctx.fillStyle="#1b2440";
-    for(let bx=x+5;bx<x+TW-4;bx+=12) ctx.fillRect(bx,y-9,5,9);
-    ctx.fillStyle="#3a4c65"; ctx.beginPath(); ctx.arc(cx,TTY+6,5,0,6.283); ctx.fill();
-    ctx.strokeStyle="rgba(32,46,70,0.52)"; ctx.lineWidth=1;
-    for(let sy=y+28;sy<WY-8;sy+=15){ ctx.beginPath(); ctx.moveTo(x-3,sy); ctx.lineTo(x+TW+3,sy); ctx.stroke(); }
-  }
-
-  function drawGlow(intensity) {
-    if(intensity<=0) return;
-    const iv=Math.min(1,intensity);
-    const g=ctx.createRadialGradient(cw/2,DY+60,12,cw/2,DY+60,440);
-    g.addColorStop(0,`rgba(240,35,15,${(0.26*iv).toFixed(3)})`);
-    g.addColorStop(0.28,`rgba(190,12,5,${(0.16*iv).toFixed(3)})`);
-    g.addColorStop(0.62,`rgba(100,5,2,${(0.07*iv).toFixed(3)})`);
-    g.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle=g; ctx.fillRect(0,0,cw,ch);
-    const dg=ctx.createLinearGradient(0,DY,0,DY+DH+4);
-    dg.addColorStop(0,`rgba(230,40,20,${(0.22*iv).toFixed(3)})`); dg.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle=dg; ctx.fillRect(SL-26,DY,SW+52,DH+4);
-  }
-
-  function drawReflection(ts) {
-    ctx.save(); ctx.globalCompositeOperation="screen";
-    const FADE=120;
-    for(let i=0;i<N;i+=2){
-      if(PL[i]<0.07) continue;
-      const above=WY-PY[i];
-      if(above<0||above>FADE) continue;
-      const prox=1-above/FADE;
-      const wb=Math.sin(ts/780+PX[i]/28)*4.5;
-      const ry=WY+above*0.04;
-      const eW=PSZ[i]*(1.5+prox*3.5), eH=PSZ[i]*(0.45+prox*0.7);
-      const a=Math.min(0.28,PL[i]*prox*0.38);
-      ctx.beginPath(); ctx.ellipse(PX[i]+wb,ry,eW,eH,0,0,6.283);
-      ctx.fillStyle=`rgba(${pR(PL[i])},${pG(PL[i])},${pB(PL[i])},${a.toFixed(2)})`; ctx.fill();
-    }
-    ctx.restore();
-    const sg=ctx.createLinearGradient(0,WY,0,WY+80);
-    sg.addColorStop(0,"rgba(210,25,12,0.20)"); sg.addColorStop(0.30,"rgba(170,12,6,0.10)"); sg.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle=sg; ctx.fillRect(SL-75,WY,SW+150,80);
-  }
-
-  soundPlace2();
-  const TOTAL_MS = 6500;
-  let finished = false, spawning = true, animId;
-  const stopSpawnId = setTimeout(()=>{ spawning=false; }, TOTAL_MS-1200);
-  const doneId = setTimeout(()=>{
-    finished=true; cancelAnimationFrame(animId); clearTimeout(stopSpawnId); onDone();
-  }, TOTAL_MS);
-
-  function loop(ts) {
-    if (finished) return;
-    ctx.clearRect(0,0,cw,ch);
-    drawScene(ts);
-    let alive=0; for(let i=0;i<N;i++) if(PL[i]>0.06) alive++;
-    drawGlow(alive/2400);
-    spawnSmoke();
-    ctx.save();
-    for(let i=smk.length-1;i>=0;i--){
-      const s=smk[i]; s.x+=s.vx; s.y+=s.vy; s.r+=0.26;
-      s.a=Math.min(0.18,s.a+0.007)-s.d;
-      if(s.a<=0){smk.splice(i,1);continue;}
-      ctx.globalAlpha=s.a*0.88; ctx.fillStyle="#2c2218";
-      ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.283); ctx.fill();
-    }
-    ctx.globalAlpha=1; ctx.restore();
-    if (spawning) spawnBatch();
-    ctx.save(); ctx.globalCompositeOperation="lighter";
-    for(let i=0;i<N;i++){
-      if(PL[i]<=0) continue;
-      PX[i]+=PVX[i]; PY[i]+=PVY[i]; PVY[i]+=0.046; PVX[i]*=0.996;
-      if(PY[i]>=WY){PL[i]=0;continue;}
-      PL[i]-=PD[i]; if(PL[i]<=0){PL[i]=0;continue;}
-      const sz=PSZ[i]*Math.max(0.1,PL[i]);
-      ctx.beginPath(); ctx.arc(PX[i],PY[i],sz,0,6.283);
-      ctx.fillStyle=`rgba(${pR(PL[i])},${pG(PL[i])},${pB(PL[i])},${Math.min(0.95,PL[i]).toFixed(2)})`; ctx.fill();
-      if(PST[i]&&PL[i]>0.28&&PVY[i]>0){
-        ctx.beginPath(); ctx.moveTo(PX[i],PY[i]); ctx.lineTo(PX[i]-PVX[i]*5,PY[i]-PVY[i]*4);
-        ctx.strokeStyle=`rgba(${pR(PL[i])},${pG(PL[i])},${pB(PL[i])},${(PL[i]*0.62).toFixed(2)})`; ctx.lineWidth=sz*0.45; ctx.stroke();
-      }
-    }
-    ctx.restore();
-    drawReflection(ts);
-    const v=ctx.createRadialGradient(cw/2,ch/2,ch*0.28,cw/2,ch/2,ch*0.82);
-    v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(0,0,0,0.58)");
-    ctx.fillStyle=v; ctx.fillRect(0,0,cw,ch);
-    animId=requestAnimationFrame(loop);
-  }
-  animId=requestAnimationFrame(loop);
-  return ()=>{ finished=true; cancelAnimationFrame(animId); clearTimeout(stopSpawnId); clearTimeout(doneId); };
-}
-
-function Fireworks({ onDone, place=1 }) {
-  const canvasRef = useRef(null);
-  const placeRef = useRef(place);
   useEffect(() => {
-    const place = placeRef.current;
+    const p      = placeRef.current;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    if (place === 2) return setupBridgeWaterfall(canvas, onDone);
-    const cw = canvas.width, ch = canvas.height;
-    const particles = [];
-    let animId, frameCount = 0, finished = false;
-    const allTimers = [];
-    let p4PreFrame = null;
+    const ctx    = canvas.getContext("2d");
+    const sz     = boxSize;
+    canvas.width  = sz;
+    canvas.height = sz;
 
-    const palettes = {
-      1: ["#ffd700","#fff8e0","#fceabb","#ffffff","#f4d97a","#fff2c4","#e2c97e"],
-      2: ["#ff2020","#ff5010","#ff7020","#ff3020","#ff8030","#ff1010"],
-      3: ["#2060ff","#4090ff","#60b0ff","#9090ff","#ffffff","#20b0ff"],
-      4: ["#ffffff","#e0e0e0","#c8c8d8","#f0f0f0","#d0d0ff","#ffffff"],
-    };
-    const colors = palettes[place] || palettes[1];
+    const colors = _RETRO_PALETTES[p] || _RETRO_PALETTES[1];
 
-    function spawnBurst(x, y, cfg={}) {
-      const count  = cfg.count  || 70;
-      const spd    = cfg.speed  || 2.2;
-      const decay  = cfg.decay  || 0.005;
-      const grav   = cfg.grav   || 0.05;
-      const droopy = cfg.droopy || false;
-      for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.12;
-        const s = spd * (0.5 + Math.random() * 0.8);
-        particles.push({
-          x, y,
-          vx: Math.cos(angle) * s,
-          vy: droopy ? Math.sin(angle)*s - Math.abs(Math.cos(angle)*s)*0.2 : Math.sin(angle)*s - 0.5,
-          color: colors[Math.floor(Math.random()*colors.length)],
-          life: 1, decay: decay + Math.random()*decay,
-          size: cfg.size || (2.5 + Math.random()*3.5),
-          twinkle: Math.random()*Math.PI*2,
-          grav, dragX: cfg.dragX || 0.992,
-        });
-      }
+    const BS     = 12;
+    const COLS   = Math.floor(sz / BS);
+    const TOP_PX = Math.floor(sz * 0.26);
+    const ROWS   = Math.floor((sz - TOP_PX) / BS);
+    const OY     = sz - ROWS * BS;
+
+    const grid = Array.from({length:ROWS}, () => Array(COLS).fill(null));
+
+    function landRow(c) {
+      for (let r=ROWS-1; r>=0; r--) if (grid[r][c]===null) return r;
+      return -1;
+    }
+    function colFull(c) { return grid[0][c] !== null; }
+
+    const fallers = [];
+    function spawnFaller() {
+      const active = new Set(fallers.map(f=>f.col));
+      const avail  = [];
+      for (let c=0; c<COLS; c++) if (!active.has(c) && !colFull(c)) avail.push(c);
+      if (!avail.length) return;
+      const col = avail[Math.floor(Math.random()*avail.length)];
+      fallers.push({ col, y:-1.0, color: colors[Math.floor(Math.random()*colors.length)] });
     }
 
-    function spawnWaterfall(x, y) {
-      for (let i = 0; i < 18; i++) {
-        particles.push({
-          x: x + (Math.random()-0.5)*50, y,
-          vx: (Math.random()-0.5)*1.0,
-          vy: 2.5 + Math.random()*3.5,
-          color: colors[Math.floor(Math.random()*colors.length)],
-          life: 1, decay: 0.003 + Math.random()*0.004,
-          size: 2 + Math.random()*3,
-          twinkle: Math.random()*Math.PI*2,
-          grav: 0.07, dragX: 0.996,
-        });
-      }
+    const cleanupTimers = [];
+    if      (p===1) { soundPlace1Willow(); const t=setTimeout(soundPlace1Mortar,1600); cleanupTimers.push(t); }
+    else if (p===2) { soundPlace2(); }
+    else if (p===3) { soundPlace3(); }
+    else            { soundPlace4(); }
+
+    for (let i=0; i<Math.min(10,COLS); i++) spawnFaller();
+
+    const SPAWN_DUR  = [0, 3.2, 2.8, 2.4, 2.0][p] || 2.5;
+    const FALLER_SPD = 16;
+    const BLK_TICK   = 4;
+    const SPAWN_TICK = 0.06;
+
+    let lastTs=performance.now(), totalTime=0, spawnAcc=0, animId;
+    let clearIdxs=null, clearTimer=0, doneTimer=-1;
+
+    function getFilledRows() {
+      const out=[];
+      for (let r=0; r<ROWS; r++) if (grid[r].every(c=>c!==null)) out.push(r);
+      return out;
+    }
+    function removeRows(idxs) {
+      [...idxs].sort((a,b)=>b-a).forEach(r=>{ grid.splice(r,1); grid.unshift(Array(COLS).fill(null)); });
+    }
+    function drawGrid(flashIdxs, flashWhite) {
+      for (let r=0; r<ROWS; r++)
+        for (let c=0; c<COLS; c++) {
+          if (!grid[r][c]) continue;
+          ctx.fillStyle = (flashIdxs && flashIdxs.includes(r) && flashWhite) ? "#ffffff" : grid[r][c];
+          ctx.fillRect(c*BS, OY+r*BS, BS-1, BS-1);
+        }
     }
 
-    function spawnSparkle(x, y) {
-      for (let i = 0; i < 6; i++) {
-        const angle = Math.random()*Math.PI*2;
-        const s = 0.4 + Math.random()*1.5;
-        particles.push({
-          x, y,
-          vx: Math.cos(angle)*s, vy: Math.sin(angle)*s,
-          color: colors[Math.floor(Math.random()*colors.length)],
-          life: 0.7+Math.random()*0.5, decay: 0.018+Math.random()*0.025,
-          size: 1+Math.random()*2, twinkle: Math.random()*Math.PI*2,
-          grav: 0.015, dragX: 0.97,
-        });
+    function loop(ts) {
+      if (finishedRef.current) { cancelAnimationFrame(animId); return; }
+      const dt = Math.min((ts-lastTs)/1000, 0.05);
+      lastTs=ts; totalTime+=dt;
+      ctx.fillStyle="#050505"; ctx.fillRect(0,0,sz,sz);
+
+      if (doneTimer>=0) {
+        doneTimer+=dt; drawGrid(null,false);
+        if (doneTimer>0.7) { safeDone(); return; }
+        animId=requestAnimationFrame(loop); return;
       }
-    }
 
-    let totalDuration;
-    if (place === 4) {
-      totalDuration = 5200;
-      soundPlace4();
-      const p4X = Math.round(cw * 0.50);
-      const p4StemTop = Math.round(ch * 0.17);
-      const p4StemBottom = Math.round(ch * 0.60);
-      const p4T0 = performance.now();
-      const p4BurnMs = 3700;
-      p4PreFrame = function() {
-        const elapsed = performance.now() - p4T0;
-        const frac = Math.min(elapsed / p4BurnMs, 1);
-        const burnY = p4StemTop + (p4StemBottom - p4StemTop) * frac;
-        const burned = frac >= 1;
-        ctx.save();
-        ctx.lineCap = "round";
-        // Already-burned wire above burn point — dark, thin
-        if (burnY > p4StemTop) {
-          ctx.strokeStyle = "#1a1a1a";
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(p4X, p4StemTop);
-          ctx.lineTo(p4X, burnY);
-          ctx.stroke();
+      if (clearIdxs!==null) {
+        clearTimer+=dt;
+        drawGrid(clearIdxs, Math.floor(clearTimer*10)%2===0);
+        fallers.forEach(f=>{ ctx.fillStyle=f.color; ctx.fillRect(f.col*BS, OY+Math.floor(f.y)*BS, BS-1, BS-1); });
+        if (clearTimer>0.5) {
+          removeRows(clearIdxs); clearIdxs=null; clearTimer=0;
+          const nxt=getFilledRows();
+          if (nxt.length>0) clearIdxs=nxt;
+          else if (totalTime>SPAWN_DUR && fallers.length===0) doneTimer=0;
         }
-        // Unburned sparkler coating below — silver, slightly thicker
-        if (burnY < p4StemBottom) {
-          ctx.strokeStyle = "#c8c8c8";
-          ctx.lineWidth = 3;
-          ctx.beginPath();
-          ctx.moveTo(p4X, burnY);
-          ctx.lineTo(p4X, p4StemBottom);
-          ctx.stroke();
-        }
-        ctx.restore();
-        // Hand silhouette — very dark, blends with background
-        const hx = p4X, hy = p4StemBottom;
-        ctx.save();
-        ctx.fillStyle = "#090f0c";
-        // Forearm/wrist extending off the bottom of screen
-        ctx.fillRect(hx - 22, hy + 48, 44, ch);
-        // Palm body
-        ctx.beginPath();
-        ctx.roundRect(hx - 24, hy + 5, 48, 52, 10);
-        ctx.fill();
-        // Four finger knuckle bumps (closed fist gripping the stem)
-        for (let fi = 0; fi < 4; fi++) {
-          ctx.beginPath();
-          ctx.arc(hx - 15 + fi * 10, hy + 5, 10, Math.PI, 0);
-          ctx.fill();
-        }
-        // Thumb on left side
-        ctx.beginPath();
-        ctx.ellipse(hx - 30, hy + 25, 11, 18, -0.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-        // Burn head glow + sparks, or smoke after fizzle
-        if (!burned) {
-          // Spawn sparks from burn point
-          for (let i = 0; i < 3 + Math.floor(Math.random()*4); i++) {
-            const a = Math.random() * Math.PI * 2;
-            const s = 0.5 + Math.random() * 2.0;
-            particles.push({
-              x: p4X + (Math.random()-0.5)*4, y: burnY,
-              vx: Math.cos(a)*s, vy: Math.sin(a)*s - 0.5,
-              color: colors[Math.floor(Math.random()*colors.length)],
-              life: 0.7+Math.random()*0.5, decay: 0.022+Math.random()*0.028,
-              size: 1+Math.random()*2.5, twinkle: Math.random()*Math.PI*2,
-              grav: 0.03, dragX: 0.97,
-            });
-          }
-          // Radial glow at burn point
-          const g = ctx.createRadialGradient(p4X, burnY, 0, p4X, burnY, 16);
-          g.addColorStop(0, "rgba(255,255,190,0.9)");
-          g.addColorStop(0.35, "rgba(255,155,25,0.55)");
-          g.addColorStop(1, "rgba(255,80,0,0)");
-          ctx.fillStyle = g;
-          ctx.beginPath();
-          ctx.arc(p4X, burnY, 16, 0, Math.PI*2);
-          ctx.fill();
-        } else {
-          // Fizzle — sparse smoke puffs from tip
-          if (Math.random() < 0.22) {
-            particles.push({
-              x: p4X + (Math.random()-0.5)*6, y: p4StemBottom - 4,
-              vx: (Math.random()-0.5)*0.5, vy: -0.6 - Math.random()*0.7,
-              color: ["#666","#777","#888","#999"][Math.floor(Math.random()*4)],
-              life: 0.55+Math.random()*0.35, decay: 0.009+Math.random()*0.007,
-              size: 5+Math.random()*7, twinkle: 0, grav: -0.01, dragX: 0.986,
-              isSmoke: true,
-            });
-          }
-        }
-      };
+        animId=requestAnimationFrame(loop); return;
+      }
 
-    } else if (place === 3) {
-      // 3 big blue F3 bursts
-      totalDuration = 6000;
-      [[cw*0.25,ch*0.25],[cw*0.75,ch*0.20],[cw*0.50,ch*0.33]].forEach(([x,y],i) => {
-        const id = setTimeout(()=>{ spawnBurst(x,y,{count:130,speed:3.8,decay:0.003,size:3.8}); soundPlace3(); }, i*1600);
-        allTimers.push({type:"timeout",id});
+      if (totalTime<SPAWN_DUR) {
+        spawnAcc+=dt;
+        while (spawnAcc>SPAWN_TICK) { spawnAcc-=SPAWN_TICK; for(let k=0;k<BLK_TICK;k++) spawnFaller(); }
+      }
+
+      const toRemove=[];
+      fallers.forEach(f=>{
+        f.y+=FALLER_SPD*dt;
+        const lr=landRow(f.col);
+        if (lr<0||Math.floor(f.y)>=lr) { if(lr>=0) grid[lr][f.col]=f.color; toRemove.push(f); }
       });
+      toRemove.forEach(f=>{ const i=fallers.indexOf(f); if(i>=0) fallers.splice(i,1); });
 
-    } else {
-      // 1st place: 3 golden willow trees, then 10 rapid F1 mortars after 5s
-      totalDuration = 11000;
-      [[cw*0.20,ch*0.25],[cw*0.75,ch*0.22],[cw*0.50,ch*0.30]].forEach(([x,y],i) => {
-        const id = setTimeout(()=>{ spawnBurst(x,y,{count:110,speed:2.6,decay:0.003,grav:0.09,droopy:true,size:3.2}); soundPlace1Willow(); }, i*1600);
-        allTimers.push({type:"timeout",id});
-      });
-      for (let i=0; i<10; i++) {
-        const id = setTimeout(()=>{
-          const x = cw*(0.1+Math.random()*0.8), y = ch*(0.08+Math.random()*0.38);
-          spawnBurst(x,y,{count:90,speed:4.2,decay:0.006,grav:0.06,size:3.2});
-          soundPlace1Mortar();
-        }, 5000 + i*320 + Math.random()*180);
-        allTimers.push({type:"timeout",id});
-      }
+      const filled=getFilledRows();
+      if (filled.length>0) { clearIdxs=filled; clearTimer=0; }
+      if (totalTime>SPAWN_DUR && fallers.length===0 && !clearIdxs) doneTimer=0;
+
+      drawGrid(null,false);
+      fallers.forEach(f=>{ ctx.fillStyle=f.color; ctx.fillRect(f.col*BS, OY+Math.floor(f.y)*BS, BS-1, BS-1); });
+
+      animId=requestAnimationFrame(loop);
     }
 
-    function animate() {
-      ctx.fillStyle = "rgba(0,0,0,0.08)";
-      ctx.fillRect(0,0,canvas.width,canvas.height);
-      if (p4PreFrame) p4PreFrame();
-      frameCount++;
-      for (let i=particles.length-1; i>=0; i--) {
-        const p=particles[i];
-        p.x+=p.vx; p.y+=p.vy;
-        p.vy+=p.grav||0.05;
-        p.vx*=p.dragX||0.992;
-        p.life-=p.decay;
-        if (p.life<=0){particles.splice(i,1);continue;}
-        if (p.isSmoke) {
-          ctx.globalAlpha=p.life*0.45;
-          ctx.fillStyle=p.color;
-          ctx.shadowBlur=0;
-          ctx.beginPath();
-          ctx.arc(p.x,p.y,p.size*(1+(1-p.life)*0.6),0,Math.PI*2);
-          ctx.fill();
-        } else {
-          const tw=0.85+0.15*Math.sin(frameCount*0.18+p.twinkle);
-          ctx.globalAlpha=p.life*tw;
-          ctx.fillStyle=p.color;
-          ctx.shadowColor=p.color;
-          ctx.shadowBlur=place===4?3:8;
-          ctx.beginPath();
-          ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2);
-          ctx.fill();
-        }
-      }
-      ctx.globalAlpha=1; ctx.shadowBlur=0;
-      if (!finished) animId=requestAnimationFrame(animate);
-    }
-    animId=requestAnimationFrame(animate);
-
-    const doneTimer = setTimeout(()=>{
-      finished=true;
-      cancelAnimationFrame(animId);
-      allTimers.forEach(({type,id})=> type==="interval"?clearInterval(id):clearTimeout(id));
-      onDone();
-    }, totalDuration);
-    allTimers.push({type:"timeout",id:doneTimer});
-
-    return ()=>{
-      finished=true;
-      cancelAnimationFrame(animId);
-      allTimers.forEach(({type,id})=> type==="interval"?clearInterval(id):clearTimeout(id));
-    };
+    animId=requestAnimationFrame(loop);
+    return ()=>{ cancelAnimationFrame(animId); cleanupTimers.forEach(clearTimeout); };
   }, []);
 
-  return <canvas ref={canvasRef} style={{position:"fixed",inset:0,zIndex:500,pointerEvents:"none"}}/>;
+  const fontSize = Math.max(14, Math.floor(boxSize*0.065));
+  const subSize  = Math.max(8,  Math.floor(boxSize*0.030));
+
+  return (
+    <div onClick={safeDone} style={{
+      position:"fixed", inset:0, zIndex:500,
+      background:"rgba(0,0,0,0.93)",
+      display:"flex", alignItems:"center", justifyContent:"center",
+      cursor:"pointer",
+    }}>
+      <div style={{
+        position:"relative", width:boxSize, height:boxSize,
+        overflow:"hidden",
+        border:`4px solid ${placeColor}`,
+        boxShadow:`0 0 0 2px #000, 0 0 0 5px ${placeColor}55, 0 0 0 7px #000, 0 0 50px ${placeColor}88`,
+      }}>
+        {/* CRT scanlines */}
+        <div style={{
+          position:"absolute", inset:0, pointerEvents:"none", zIndex:30,
+          background:"repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)",
+        }}/>
+        {/* Text header — top 26% of box */}
+        <div style={{
+          position:"absolute", top:0, left:0, right:0, height:"26%", zIndex:20,
+          pointerEvents:"none",
+          display:"flex", flexDirection:"column",
+          alignItems:"center", justifyContent:"center", gap:5,
+          borderBottom:`2px solid ${placeColor}33`, background:"#050505",
+        }}>
+          <div style={{
+            fontFamily:"'Courier New',monospace",
+            color:placeColor, fontSize, fontWeight:900, letterSpacing:4,
+            textShadow:`0 0 12px ${placeColor}, 0 0 28px ${placeColor}66, 2px 2px 0 #000`,
+            animation:"retroBlink 1.2s step-end infinite",
+            lineHeight:1, textAlign:"center", padding:"0 8px",
+          }}>
+            {placeLabel}
+          </div>
+          <div style={{
+            fontFamily:"'Courier New',monospace",
+            color:"#ffffff33", fontSize:subSize, letterSpacing:2, lineHeight:1,
+          }}>
+            TAP TO SKIP
+          </div>
+        </div>
+        {/* Canvas — covers full box; blocks are drawn below the text area */}
+        <canvas ref={canvasRef} style={{display:"block", width:"100%", height:"100%"}}/>
+      </div>
+    </div>
+  );
 }
+
+
 
 // ============================================================
 // CONSTANTS
@@ -3159,7 +2895,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
 // ============================================================
 function TestFireworks({ place, onDone }) {
   React.useEffect(() => { soundRoundWin(); }, []);
-  return <Fireworks place={place} onDone={onDone} />;
+  return <RetroFireworks place={place} onDone={onDone} />;
 }
 
 // ============================================================
@@ -6459,10 +6195,11 @@ function DiamondsGame() {
 
       {/* FIREWORKS */}
       {showFireworks && (
-        <Fireworks onDone={()=>{ setShowFireworks(false); setPhase("gameover"); }} place={fireworksPlace}/>
+        <RetroFireworks onDone={()=>{ setShowFireworks(false); setPhase("gameover"); }} place={fireworksPlace}/>
       )}
 
       <style>{`
+        @keyframes retroBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
         @keyframes pop { 0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
