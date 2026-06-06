@@ -5891,7 +5891,7 @@ function DiamondsGame() {
               const p2 = `${combo[3].id}/${combo[2].id}`;
               setButtons.push(
                 <GoldBtn tiny key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>
-                  <span style={{display:"flex",flexDirection:"column",alignItems:"flex-start",gap:1}}>
+                  <span style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
                     <span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span>
                     <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
                   </span>
