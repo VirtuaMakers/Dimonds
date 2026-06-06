@@ -5951,17 +5951,6 @@ function DiamondsGame() {
                   flexShrink:0,
                 }}
               >
-                {hasLocked && (
-                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
-                      {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
-                      {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
-                      {r4Locked && <div style={lockedBtnStyle}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</div>}
-                      {riotLocked && <div style={lockedBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</div>}
-                    </div>
-                  </div>
-                )}
                 {setButtons.length > 0 && (
                   <>
                     <div style={{
@@ -5976,6 +5965,17 @@ function DiamondsGame() {
                       {setButtons}
                     </div>
                   </>
+                )}
+                {hasLocked && (
+                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
+                      {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
+                      {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
+                      {r4Locked && <div style={lockedBtnStyle}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</div>}
+                      {riotLocked && <div style={lockedBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</div>}
+                    </div>
+                  </div>
                 )}
               </div>
             );
