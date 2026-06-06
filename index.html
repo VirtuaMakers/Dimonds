@@ -5623,13 +5623,13 @@ function DiamondsGame() {
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
           overflow:"visible",
-          paddingTop: isDesktop ? 68 : 70, // desktop: card 2px from screen; non-desktop: room for floating PLAY CARD + YOUR TURN above card
+          paddingTop: isDesktop ? 68 : 100, // desktop: 2px from screen; non-desktop: headroom for floating btn+text
           flexShrink:0,
           position:"relative",
         }}>
           {/* YOUR TURN — sits 5px above the lifted selected card */}
           <div style={{
-            position:"absolute", top: isDesktop ? 5 : 4, left:0, right:0, zIndex:5,
+            position:"absolute", top: isDesktop ? 5 : 22, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
@@ -5921,11 +5921,11 @@ function DiamondsGame() {
           return (
             <>
               <div style={{position:"relative",height:0,overflow:"visible",width:"100%",flexShrink:0,zIndex:30}}>
-                <div style={{position:"absolute",left:0,right:0,bottom:139,display:"flex",justifyContent:"center"}}>
+                <div style={{position:"absolute",left:0,right:0,bottom:143,display:"flex",justifyContent:"center"}}>
                   {playBtn}
                 </div>
               </div>
-              {setsPanel}
+              {setsPanel && <div style={{marginTop:4,width:"100%"}}>{setsPanel}</div>}
             </>
           );
         })()}
