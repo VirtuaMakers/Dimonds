@@ -2112,7 +2112,6 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
             <GoldBtn onClick={()=>{ if(thieveFrom!==null&&thieveCardIdx!==null) onThieve(thieveFrom,thieveCardIdx); }} disabled={thieveCardIdx===null}>
               Thieve This Card 🔷
             </GoldBtn>
-            <div onClick={onSkip} style={{color:"#ffffff55",fontSize:12,cursor:"pointer",padding:"10px 8px",alignSelf:"center"}}>Pass</div>
           </div>
         </>)}
 
@@ -2172,7 +2171,6 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
             <GoldBtn onClick={()=>{ if(realFrom!==null&&realCardIdx!==null&&realTo!==null) onReallocate(realFrom,realCardIdx,realTo); }} disabled={realFrom===null||realCardIdx===null||realTo===null}>
               Reallocate 🔶
             </GoldBtn>
-            <div onClick={onSkip} style={{color:"#ffffff55",fontSize:12,cursor:"pointer",padding:"10px 8px",alignSelf:"center"}}>Pass</div>
           </div>
         </>)}
       </div>
@@ -4156,9 +4154,18 @@ function DiamondsGame() {
     } else {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
-    setTrickResult({ ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined });
+    const passResultObj = { ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined };
+    const savedHands = kidnapState.hands;
+    // Rescue fires for whoever holds A♠, even if A♠ wasn't in this trick
+    const aceHolderIdx = savedHands.findIndex(h => h.some(c => isAceSpades(c)));
     setKidnapState(null);
-    setPhase("trickresult");
+    if (aceHolderIdx >= 0) {
+      setRescueState({ acePlayerIdx: aceHolderIdx, hands: savedHands, resultObj: passResultObj, jokerLockedUp: false });
+      setPhase("rescue");
+    } else {
+      setTrickResult(passResultObj);
+      setPhase("trickresult");
+    }
   }
 
   function handleRobbinSummonYes() {
