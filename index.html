@@ -5899,7 +5899,7 @@ function DiamondsGame() {
                 )}
                 {hasLocked && (
                   <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>🔓 Unlock by Breaking Dimonds:</div>
+                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,width:"100%",textAlign:"center",borderBottom:"1px solid #ff444433",paddingBottom:3}}>🔓 Unlock by Breaking Dimonds</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
                       {spLocked && <div style={lockedBtnStyle}>💍 Rule of 2 +{SWINGING_PARADOX_BONUS*GA}</div>}
                       {r3Locked && <div style={lockedBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</div>}
