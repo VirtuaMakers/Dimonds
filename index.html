@@ -6506,9 +6506,6 @@ function DiamondsGame() {
         [data-setpanel]::-webkit-scrollbar { width: 3px; background: transparent; }
         [data-setpanel]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.4); border-radius: 4px; }
         [data-setpanel] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.4) transparent; }
-        [data-modal]::-webkit-scrollbar { width: 4px; background: transparent; }
-        [data-modal]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.35); border-radius: 4px; }
-        [data-modal] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.35) transparent; }
         /* Trick cards sweep away toward the winner */
         @keyframes trickSweep {
           0% { opacity:1; transform:scale(1) translate(0,0); }
@@ -6525,6 +6522,9 @@ function DiamondsGame() {
         }
         ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
         * { scrollbar-width: none; }
+        [data-modal]::-webkit-scrollbar { width: 6px; background: rgba(0,0,0,0.2); }
+        [data-modal]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.6); border-radius: 4px; }
+        [data-modal] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.6) rgba(0,0,0,0.2); }
       `}</style>
     </div>
   );
