@@ -5919,7 +5919,9 @@ function DiamondsGame() {
               {setsPanel}
             </div>
           );
-          // Non-desktop: PLAY CARD floats 4px above lifted selected card (bottom:139 from card-fan bottom)
+          // Non-desktop: PLAY CARD floats 4px above lifted selected card (bottom:143 from card-fan bottom)
+          // stillRevealing: true while deal animation runs — reserve panel space so cards land in final position
+          const stillRevealing = dealing || dealRevealIdx < (hands[0]?.length ?? 0);
           return (
             <>
               <div style={{position:"relative",height:0,overflow:"visible",width:"100%",flexShrink:0,zIndex:30}}>
@@ -5927,7 +5929,9 @@ function DiamondsGame() {
                   {playBtn}
                 </div>
               </div>
-              {setsPanel && <div style={{marginTop:4,width:"100%"}}>{setsPanel}</div>}
+              <div style={{marginTop:8,width:"100%",flexShrink:0,minHeight: stillRevealing ? 96 : 0}}>
+                {setsPanel}
+              </div>
             </>
           );
         })()}
