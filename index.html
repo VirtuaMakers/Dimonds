@@ -5589,19 +5589,6 @@ function DiamondsGame() {
             position:"absolute", left:10, top:"54%", transform:"translateY(-50%)", zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
-            {!diamondsBroken && (() => {
-              const h0 = hands[0] || [];
-              const r3c = checkRuleOfThree(h0);
-              const r4c = checkRuleFour(h0);
-              const spc = checkSwingingParadox(h0);
-              const rc  = checkRiot(h0, true);
-              const anyLocked = (r3c && r3c.some(c=>c.suit==="♦")) || (r4c && r4c.some(c=>c.suit==="♦")) || spc || rc;
-              if (!anyLocked) return null;
-              return (
-                <div style={{color:"#ff6644",fontSize:10,fontWeight:900,letterSpacing:1.5,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:3}}>
-                  🔓 Unlock by Breaking Dimonds:                </div>
-              );
-            })()}
             <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
             {[
               { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",      pts:"+13" },
@@ -5643,34 +5630,43 @@ function DiamondsGame() {
           }}>
             {isPlayerTurn ? mustOpenWith2C ? "Play the 2♣ to open" : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
           </div>
-          {/* Playing + Re-Sort — absolute flanks above the card fan (all modes) */}
-          <>
-            {selectedCards.length > 0 && isPlayerTurn && (
-                <div style={{
-                  position:"absolute", left:8, top:3, zIndex:10,
-                  background:VM.tealLight+"14", border:`1px solid ${VM.tealLight}33`,
-                  borderRadius:6, padding:"2px 7px",
-                  color:VM.tealLight+"aa", fontSize:9, fontWeight:700, fontFamily:FONT_UI,
-                  display:"flex", flexDirection:"column", alignItems:"flex-start", gap:1, lineHeight:1.3,
+          {/* Playing + Re-Sort — aligned with left/right edges of the card fan */}
+          {(() => {
+            const fanTotal = playerHand.length;
+            const fanCardW = isDesktop ? 90 : 80;
+            const fanOverlap = Math.min(22, Math.max(8, Math.floor((windowWidth - 40 - fanCardW) / 13)));
+            const fanTotalW = fanOverlap * Math.max(0, fanTotal - 1) + fanCardW;
+            const fanEdgeOffset = Math.max(3, Math.floor((windowWidth - 20 - fanTotalW) / 2));
+            return (
+              <>
+                {selectedCards.length > 0 && isPlayerTurn && (
+                  <div style={{
+                    position:"absolute", left:fanEdgeOffset, top:3, zIndex:10,
+                    background:VM.tealLight+"14", border:`1px solid ${VM.tealLight}33`,
+                    borderRadius:6, padding:"2px 7px",
+                    color:VM.tealLight+"aa", fontSize:9, fontWeight:700, fontFamily:FONT_UI,
+                    display:"flex", flexDirection:"column", alignItems:"flex-start", gap:1, lineHeight:1.3,
+                  }}>
+                    {selectedCards.length === 1
+                      ? <><span>Playing</span><strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>{!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:8}}>{mustOpenWith2C?"✗ 2♣":"✗ suit"}</span>}</>
+                      : <><span>{selectedCards.length} cards</span>{selectedSetType&&<span style={{color:VM.gold}}>✓ set</span>}</>
+                    }
+                  </div>
+                )}
+                <div onClick={toggleHandSort} style={{
+                  position:"absolute", right:fanEdgeOffset, top:3, zIndex:10,
+                  display:"flex", flexDirection:"column", alignItems:"center",
+                  cursor:"pointer", border:`1px solid ${VM.tealLight}44`, borderRadius:6,
+                  padding:"2px 7px", gap:1, touchAction:"manipulation",
                 }}>
-                  {selectedCards.length === 1
-                    ? <><span>Playing</span><strong style={{color:VM.tealLight}}>{selectedCard.isJoker?"🃏 Joker":selectedCard.rank+selectedCard.suit}</strong>{!selectedIsLegal&&<span style={{color:"#ff6666",fontSize:8}}>{mustOpenWith2C?"✗ 2♣":"✗ suit"}</span>}</>
-                    : <><span>{selectedCards.length} cards</span>{selectedSetType&&<span style={{color:VM.gold}}>✓ set</span>}</>
-                  }
+                  <span style={{color:VM.tealLight,fontWeight:700,fontSize:10,fontFamily:FONT_UI,letterSpacing:0.5}}>Re-Sort</span>
+                  <span style={{color:VM.tealLight+"99",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
+                    {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
+                  </span>
                 </div>
-              )}
-              <div onClick={toggleHandSort} style={{
-                position:"absolute", right:8, top:3, zIndex:10,
-                display:"flex", flexDirection:"column", alignItems:"center",
-                cursor:"pointer", border:`1px solid ${VM.tealLight}44`, borderRadius:6,
-                padding:"2px 7px", gap:1, touchAction:"manipulation",
-              }}>
-                <span style={{color:VM.tealLight,fontWeight:700,fontSize:10,fontFamily:FONT_UI,letterSpacing:0.5}}>Re-Sort</span>
-                <span style={{color:VM.tealLight+"99",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
-                  {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
-                </span>
-              </div>
-          </>
+              </>
+            );
+          })()}
           <div style={{
             position:"relative",
             height: isDesktop?160:125, // fit card height so tops aren't clipped
