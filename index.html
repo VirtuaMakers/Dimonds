@@ -5585,7 +5585,7 @@ function DiamondsGame() {
       <div style={{
         flexShrink:0,
         display:"flex",flexDirection:"column",
-        padding: isDesktop ? "4px 10px 8px" : "4px 10px 8px",
+        padding: "4px 10px 2px",
         height: isDesktop ? 236 : "auto",
         position:"relative",
         boxSizing:"border-box",
@@ -5623,7 +5623,7 @@ function DiamondsGame() {
         {/* FANNED HAND */}
         <div ref={handAreaRef} style={{
           overflow:"visible",
-          paddingTop: isDesktop ? 40 : 36, // headroom: card lift(16) + gap(5) + turn text(14) + buffer
+          paddingTop: isDesktop ? 68 : 48, // card bottom(2px from screen) + chip clearance; actual lift=20px
           flexShrink:0,
           position:"relative",
         }}>
