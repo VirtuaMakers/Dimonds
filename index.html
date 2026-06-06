@@ -5593,7 +5593,7 @@ function DiamondsGame() {
         {/* DESKTOP SETS CHEATSHEET — compact reference in the left margin of the hand area */}
         {isDesktop && (
           <div style={{
-            position:"absolute", left:10, top:"54%", transform:"translateY(-50%)", zIndex:4,
+            position:"absolute", left:10, top:4, zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
             <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
@@ -5605,7 +5605,7 @@ function DiamondsGame() {
               { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+25" },
               { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+30" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
-              { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ 🃏",         pts:"+40" },
+              { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ J🃏",        pts:"+40" },
             ].map(({emoji,name,desc,pts}) => (
               <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
