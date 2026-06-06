@@ -5431,10 +5431,10 @@ function DiamondsGame() {
           WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
           letterSpacing:2, flexShrink:0,
         }}>◆ DIMONDS</div>
-        <div style={{display:"flex",gap:8,alignItems:"center",flexShrink:0}}>
-          {gameNum > 0 && <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Game <strong style={{color:VM.tealLight}}>{gameNum}</strong></span>}
-          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Round <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
-          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
+        <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:1,overflow:"hidden",minWidth:0}}>
+          {gameNum > 0 && <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Game <strong style={{color:VM.tealLight}}>{gameNum}</strong></span>}
+          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Round <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
+          <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
         <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
           <GoldBtn onClick={()=>setShowRules(true)} small secondary>Rules</GoldBtn>
@@ -5874,50 +5874,60 @@ function DiamondsGame() {
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             const rule1Avail = trickPlays.length === 0 && rule1Dimonds.length > 0 && !rule1UsedThisTurn;
 
+            const cardBtnBase = {
+              borderRadius:8, padding:"4px 6px", fontSize:9, fontWeight:800,
+              letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
+              minHeight:26, textAlign:"center", width:"100%", boxSizing:"border-box",
+              display:"flex", alignItems:"center", justifyContent:"center",
+              lineHeight:1.2,
+            };
             const lockedBtnStyle = {
-              background:"transparent", color:"#ffffff44",
-              border:"1.5px solid #ffffff1a", borderRadius:10,
-              padding:"3px", fontSize:9, fontWeight:800,
-              cursor:"default", letterSpacing:0, textTransform:"uppercase",
-              fontFamily:FONT_DISPLAY, minHeight:22,
+              ...cardBtnBase,
+              background:"transparent", color:"#ffffff28",
+              border:"1.5px solid #ffffff15", cursor:"default",
+            };
+            const setBtnStyle = {
+              ...cardBtnBase,
+              background:"linear-gradient(135deg,#c9a84c1a,#c9a84c0a)",
+              color:VM.gold, border:"1.5px solid #c9a84c55",
+              cursor:"pointer", touchAction:"manipulation",
             };
 
             const setButtons = [];
             if (rule1Avail) setButtons.push(
-              <GoldBtn tiny key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }}>💠 Rule of 1</GoldBtn>
+              <button key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }} style={setBtnStyle}>💠 Rule of 1</button>
             );
             spCombos.forEach((combo, i) => {
               const p1 = `${combo[1].id}/${combo[0].id}`;
               const p2 = `${combo[3].id}/${combo[2].id}`;
               setButtons.push(
-                <GoldBtn tiny key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}>
-                  <span style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
-                    <span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span>
-                    <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
-                  </span>
-                </GoldBtn>
+                <button key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}
+                  style={{...setBtnStyle, gridColumn:"span 2", flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
+                </button>
               );
             });
             if (r3Avail) setButtons.push(
-              <GoldBtn tiny key="r3" onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</GoldBtn>
+              <button key="r3" onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:r3Avail,continuation:null}); setPhase("ruleofthree_offer"); }} style={setBtnStyle}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</button>
             );
             if (r4Avail) setButtons.push(
-              <GoldBtn tiny key="r4" onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</GoldBtn>
+              <button key="r4" onClick={()=>{ setRuleFourState({playerIdx:0,cards:r4Avail,continuation:null}); setPhase("rulefour_offer"); }} style={setBtnStyle}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</button>
             );
             if (riotAvail) setButtons.push(
-              <GoldBtn tiny key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}>🔥 Riot +{RIOT_BONUS*GA}</GoldBtn>
+              <button key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }} style={setBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</button>
             );
             if (trickPlays.length === 0 && showdownAvail) setButtons.push(
-              <GoldBtn tiny key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</GoldBtn>
+              <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }} style={setBtnStyle}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</button>
             );
             if (trickPlays.length === 0 && stealAvail) setButtons.push(
-              <GoldBtn tiny key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}>🌇 The Steal +{THE_STEAL_BONUS*GA}</GoldBtn>
+              <button key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }} style={setBtnStyle}>🌇 The Steal +{THE_STEAL_BONUS*GA}</button>
             );
             if (trickPlays.length === 0 && afAvail) setButtons.push(
-              <GoldBtn tiny key="af" onClick={()=>setPhase("americanfamily_offer")}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</GoldBtn>
+              <button key="af" onClick={()=>setPhase("americanfamily_offer")} style={setBtnStyle}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</button>
             );
             if (trickPlays.length === 0 && gaAvail) setButtons.push(
-              <GoldBtn tiny key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</GoldBtn>
+              <button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }} style={setBtnStyle}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</button>
             );
 
             if (!hasLocked && setButtons.length === 0) return null;
@@ -5955,7 +5965,7 @@ function DiamondsGame() {
                 {setButtons.length > 0 && (
                   <>
                     <div style={{
-                      color:"#d4b054cc",
+                      color:"#7ae8ff",
                       fontSize:8, fontWeight:900, letterSpacing:2,
                       textTransform:"uppercase", fontFamily:FONT_DISPLAY,
                       textAlign:"center",
