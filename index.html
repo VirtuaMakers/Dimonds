@@ -3180,36 +3180,46 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"c.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead summon The Ace of Spades: an A♠️ holder gets a <em>Rescue</em>, and Robin earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div></>),sub:true},
                 {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played in any one, two, or three of the other special cards' (The Joker, The Queen of Clubs, and The Jack of Dimonds) trick, which <em>Locks Up/Blocks</em> any or all of them (in the same trick)! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+30/35/40 bonus pts</strong> for one, two, or all three blocked.</div><div style={{marginTop:3}}>• Otherwise, The Ace of Spades will <em>Rescue/Lock Up</em> any one card from any opponent's hand.</div><div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> The Jack of Dimonds may still choose to rob or pass even when The Ace of Spades is present. If he robs, The Ace of Spades blocks the attempt. If he passes (+1 pt), The Ace of Spades rescues instead. When The Joker or The Queen of Clubs are also in the trick, The Ace of Spades blocks and rescues in the same move.</div></>),sub:true},
                 {num:"5.",title:"Sets",text:"",sub:false},
+                {divider:true,title:"Non-Prestige Sets",note:"Sets containing Dimonds are only playable after Dimonds are broken."},
                 {num:"a.",title:"💠 Rule of 1 (Girl's Best Friend)",text:(<>Put one of any Dimond card you have into another player's hand at the start of your turn. This is one way to break Dimonds (also known as <em>Cutting Your Teeth!</em>). This can only be done once per turn.</>),sub:true},
                 {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"e.",title:"🔥 Riot",text:(<>Any nine cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (J, Q, K, A, Joker) — always available, even before Dimonds are broken."},
                 {num:"f.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
                 {num:"g.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {num:"h.",title:"🤖 The Golden Age",text:(<>All four aces (A♦️, A♠️, A♥️, A♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> All points doubled for the rest of the round!</>),sub:true},
                 {num:"i.",title:"🌆 Showdown",text:(<><div>All four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+40 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
-              ].map(({num,title,text,sub})=>(
-                <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
-                  <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
-                  <div>
-                    <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?13:15,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
-                    {text&&<div style={{color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>{
-                      typeof text === "string"
-                        ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
-                        : text
-                    }</div>}
+              ].map(({num,title,text,sub,divider,note})=>{
+                if (divider) return (
+                  <div key={title} style={{marginTop:10,marginBottom:4,paddingLeft:14}}>
+                    <div style={{color:"#7ae8ff99",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,borderBottom:"1px solid #7ae8ff22",paddingBottom:3}}>{title}</div>
+                    {note&&<div style={{color:"#ffffff44",fontSize:11,fontStyle:"italic",marginTop:3,lineHeight:1.4}}>{note}</div>}
                   </div>
-                </div>
-              ))}
+                );
+                return (
+                  <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
+                    <div style={{color:sub?"#c9a84c77":"#c9a84c",fontSize:sub?13:15,fontWeight:700,minWidth:18,flexShrink:0,paddingTop:1}}>{num}</div>
+                    <div>
+                      <div style={{color:sub?"#c9a84ccc":"#c9a84c",fontSize:sub?13:15,fontWeight:700,marginBottom:text?2:0}}>{title}</div>
+                      {text&&<div style={{color:"#ffffffaa",fontSize:14,lineHeight:1.6}}>{
+                        typeof text === "string"
+                          ? text.split('\n').map((line,i)=><div key={i}>{line}</div>)
+                          : text
+                      }</div>}
+                    </div>
+                  </div>
+                );
+              })}
               <div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Each card can only be counted toward one set.</div>
               <div style={{height:14}}/>
               {[
                 {num:"6.",title:"🦷 Cutting Your Teeth!",text:(<>
                   <div>When the first Dimond card is played in any trick (or given via Rule of 1), the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
-                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Sets This Event Unlocks:</strong></div>
+                  <div style={{marginTop:5}}><strong style={{color:"#e2c97e",fontStyle:"normal"}}>Non-Prestige Sets Unlocked:</strong></div>
                   <div style={{marginTop:2,paddingLeft:8}}>· Rule of 2<br/>· Rule of 3 (in some cases)<br/>· Rule of 4<br/>· (Dimond) Riot</div>
-                  <div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> The rest of the sets are always available for redemption, even if they contain Dimonds.</div>
+                  <div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Prestige Card Sets are always available for redemption, even before Dimonds are broken.</div>
                 </>),sub:false},
               ].map(({num,title,text,sub})=>(
                 <div key={title} style={{marginBottom:sub?6:12,paddingLeft:sub?14:0,display:"flex",gap:6}}>
@@ -6752,7 +6762,8 @@ function DiamondsGame() {
             fontFamily:FONT_UI, lineHeight:1.9,
           }}>
             Dimonds are broken<br/>
-            <span style={{color:"#e2c97e",fontWeight:700}}>— dimonds become trump suit!</span>
+            <span style={{color:"#e2c97e",fontWeight:700}}>— dimonds become trump suit!</span><br/>
+            <span style={{fontSize:12,opacity:0.75}}>Non-Prestige Sets using Dimonds can now be played.</span>
           </div>
         </EventBox>
       )}
