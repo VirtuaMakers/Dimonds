@@ -3065,10 +3065,10 @@ function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme })
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
   const sub = { color:VM.tealLight+"88", fontSize:10, fontFamily:FONT_UI, marginTop:2 };
   return (
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
       display:"flex",alignItems:"flex-start",justifyContent:"center",
       padding:12,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
-      <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",
+      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",
         border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:"100%",
         maxHeight:Math.min(maxH,740),
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
@@ -3122,10 +3122,10 @@ function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme })
 function MultiplayerPanel({ onClose }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   return (
-    <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
+    <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
       display:"flex",alignItems:"flex-start",justifyContent:"center",
       padding:12,backdropFilter:"blur(4px)",WebkitBackdropFilter:"blur(4px)"}}>
-      <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",
+      <div onClick={e=>e.stopPropagation()} style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",
         border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:"100%",
         maxHeight:Math.min(maxH,740),
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
@@ -3155,14 +3155,14 @@ function RulesPanel({ onClose, initialView = "rules" }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
 
   return (
-    <div style={{
+    <div onClick={onClose} style={{
       position:"fixed", inset:0, zIndex:200,
       background:"rgba(4,18,15,0.80)",
       display:"flex", alignItems:"flex-start", justifyContent:"center",
       padding:12,
       backdropFilter:"blur(4px)", WebkitBackdropFilter:"blur(4px)",
     }}>
-      <div style={{
+      <div onClick={e=>e.stopPropagation()} style={{
         background:"linear-gradient(155deg,#0f3c38,#08231f)",
         border:`1px solid ${VM.tealLight}33`,
         borderRadius:20, maxWidth:420, width:"100%",
@@ -5704,6 +5704,7 @@ function DiamondsGame() {
         </div>
         <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
           <GoldBtn onClick={()=>setShowRules(true)} small secondary>Rules</GoldBtn>
+          <GoldBtn onClick={()=>setShowOptions(true)} small secondary>Options</GoldBtn>
           <GoldBtn onClick={()=>setScreen("menu")} small secondary>Menu</GoldBtn>
           <button
             onClick={()=>setSoundOn(s=>!s)}
@@ -6764,6 +6765,7 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
