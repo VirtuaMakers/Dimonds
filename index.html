@@ -4214,9 +4214,16 @@ function DiamondsGame() {
       }, 600);
     } else if (aceRescueTriggered) {
       setTimeout(() => {
-        setTrickResult(resultObj);
+        const hasTargets = currentHands.some((h, i) => i !== acePlayerIdx && h.length > 0);
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-        setPhase("trickresult");
+        if (!hasTargets) {
+          addLog(`♠ ${allNames[acePlayerIdx]} (Ace of Spades) — no cards to rescue`);
+          setTrickResult(resultObj);
+          setPhase("trickresult");
+          return;
+        }
+        setRescueState({ acePlayerIdx, hands: currentHands, resultObj, jokerLockedUp: false });
+        setPhase("rescue");
       }, 600);
     } else if (aceBlocked && !jackDPendingRobChoice) {
       setTimeout(() => {
