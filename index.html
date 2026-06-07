@@ -564,7 +564,7 @@ function Cutscene({ onDone, place=1, gameNum=1 }) {
   const finishedRef = useRef(false);
   const lastTapRef  = useRef(0);
 
-  const boxSize     = Math.min(window.innerWidth, window.innerHeight) - 20;
+  const boxSize     = Math.min(window.innerWidth, window.innerHeight) - 80;
   const BORDER_CLR  = { 1:"#ffd700", 2:"#bb3333", 3:"#4488ff", 4:"#dddddd" };
   const borderColor = BORDER_CLR[place] || BORDER_CLR[1];
 
@@ -779,38 +779,47 @@ function Cutscene({ onDone, place=1, gameNum=1 }) {
   return (
     <div onClick={handleTap} style={{
       position:"fixed", inset:0, zIndex:500,
-      background:"rgba(0,0,0,0.93)",
+      background:"rgba(0,0,0,0.85)",
       display:"flex", flexDirection:"column",
       alignItems:"center", justifyContent:"center",
-      gap:10, cursor:"pointer",
+      gap:0, cursor:"pointer",
     }}>
-      {gameNum >= 2 && (
-        <button onClick={e=>{ e.stopPropagation(); safeDone(); }} style={{
-          background:"transparent",
-          border:`1px solid ${borderColor}55`,
-          color:`${borderColor}99`,
-          fontFamily:"'Courier New',monospace",
-          fontSize:11, letterSpacing:2,
-          padding:"5px 18px", borderRadius:3,
-          cursor:"pointer", touchAction:"manipulation",
+      <div style={{
+        background:"linear-gradient(155deg,#0f3c38,#08231f)",
+        border:`2px solid ${VM.tealLight}55`,
+        borderRadius:20,
+        padding:16,
+        display:"flex", flexDirection:"column", alignItems:"center", gap:12,
+        boxShadow:"0 0 40px #00000099, 0 20px 60px #000000cc",
+      }}>
+        {gameNum >= 2 && (
+          <button onClick={e=>{ e.stopPropagation(); safeDone(); }} style={{
+            background:"transparent",
+            border:`1px solid ${borderColor}55`,
+            color:`${borderColor}99`,
+            fontFamily:"'Courier New',monospace",
+            fontSize:11, letterSpacing:2,
+            padding:"5px 18px", borderRadius:3,
+            cursor:"pointer", touchAction:"manipulation",
+            alignSelf:"flex-end",
+          }}>
+            SKIP CUTSCENE
+          </button>
+        )}
+        <div style={{
+          position:"relative", width:boxSize, height:boxSize,
+          overflow:"hidden",
+          border:`4px solid ${borderColor}`,
+          boxShadow:`0 0 0 2px #000, 0 0 0 5px ${borderColor}55, 0 0 0 7px #000, 0 0 50px ${borderColor}88`,
           flexShrink:0,
         }}>
-          SKIP CUTSCENE
-        </button>
-      )}
-      <div style={{
-        position:"relative", width:boxSize, height:boxSize,
-        overflow:"hidden",
-        border:`4px solid ${borderColor}`,
-        boxShadow:`0 0 0 2px #000, 0 0 0 5px ${borderColor}55, 0 0 0 7px #000, 0 0 50px ${borderColor}88`,
-        flexShrink:0,
-      }}>
-        {/* CRT scanlines */}
-        <div style={{
-          position:"absolute", inset:0, pointerEvents:"none", zIndex:10,
-          background:"repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)",
-        }}/>
-        <canvas ref={canvasRef} style={{display:"block", width:"100%", height:"100%"}}/>
+          {/* CRT scanlines */}
+          <div style={{
+            position:"absolute", inset:0, pointerEvents:"none", zIndex:10,
+            background:"repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px)",
+          }}/>
+          <canvas ref={canvasRef} style={{display:"block", width:"100%", height:"100%"}}/>
+        </div>
       </div>
     </div>
   );
@@ -3037,10 +3046,10 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
             </div>
           </div>
         ))}
-        <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
-          <GoldBtn onClick={onRestart}>New Game</GoldBtn>
-          <GoldBtn onClick={onShowCredits} secondary>Credits</GoldBtn>
-          <GoldBtn onClick={()=>setShowBreakdown(true)} secondary>Round Tally</GoldBtn>
+        <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:8,width:200,margin:"20px auto 0"}}>
+          <GoldBtn onClick={onRestart} small>New Game</GoldBtn>
+          <GoldBtn onClick={onShowCredits} secondary small>Credits</GoldBtn>
+          <GoldBtn onClick={()=>setShowBreakdown(true)} secondary small>Round Tally</GoldBtn>
         </div>
       </div>
     </Modal>
@@ -6754,6 +6763,7 @@ function DiamondsGame() {
       )}
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
+      {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
