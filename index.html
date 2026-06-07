@@ -2392,6 +2392,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
           fontFamily:FONT_DISPLAY,
           marginBottom:16,
           textShadow:`0 0 12px ${VM.gold}44`,
+          whiteSpace:"pre-line",
         }}>{title}</div>
         <div style={{
           width:"100%",
@@ -3182,7 +3183,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"a.",title:"💠 Rule of 1 (Girl's Best Friend)",text:(<>Put one of any Dimond card you have into another player's hand at the start of your turn. This is one way to break Dimonds (also known as <em>Cutting Your Teeth!</em>). This can only be done once per turn.</>),sub:true},
                 {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
-                {num:"d.",title:'💎 Rule of 4 (Diamond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
+                {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"e.",title:"🔥 Riot",text:(<>Any nine cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {num:"f.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
                 {num:"g.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
@@ -3559,7 +3560,7 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
     if (cp === 0) return; // Human sees buttons in action area
 
-    // Rule of 4 (Diamond in the Rough) — four of a kind (checked first; rarer and higher value)
+    // Rule of 4 (Dimond in the Rough) — four of a kind (checked first; rarer and higher value)
     if (diamondsBroken) {
       const quad4 = checkRuleFour(hands[cp] || []);
       if (quad4) {
@@ -3666,6 +3667,25 @@ function DiamondsGame() {
           return;
         }
         } // end ranks4 check
+      }
+    }
+
+    // Rule of 1 (Girl's Best Friend) — AI may give a diamond to burden the leader
+    if (!rule1UsedThisTurn) {
+      const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
+      if (aiDimonds.length > 0 && Math.random() < 0.25) {
+        const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
+        // Target: player with lowest combined score (the leader — burden them)
+        let bestTarget = -1, lowestScore = Infinity;
+        for (let i = 0; i < 4; i++) {
+          if (i === cp) continue;
+          if (combined[i] < lowestScore) { lowestScore = combined[i]; bestTarget = i; }
+        }
+        if (bestTarget !== -1) {
+          const giftCard = aiDimonds.reduce((best, c) => diamondPoints(c) > diamondPoints(best) ? c : best, aiDimonds[0]);
+          handleRule1Give(bestTarget, giftCard, cp);
+          return;
+        }
       }
     }
   }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length]);
@@ -4438,17 +4458,17 @@ function DiamondsGame() {
     setPhase("playing");
   }
 
-  function handleRule1Give(targetIdx, card) {
+  function handleRule1Give(targetIdx, card, giverIdx = 0) {
     const cardId = card.id;
     const newHands = hands.map((h, i) => {
-      if (i === 0) return h.filter(c => c.id !== cardId);
+      if (i === giverIdx) return h.filter(c => c.id !== cardId);
       if (i === targetIdx) return [...h, card];
       return h;
     });
     setHands(newHands);
     setRule1State(null);
     setRule1UsedThisTurn(true);
-    addLog(`💠 ${allNames[0]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
+    addLog(`💠 ${allNames[giverIdx]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
     if (!diamondsBroken) {
       setDiamondsBroken(true);
       soundCuttingYourTeeth();
@@ -4740,7 +4760,7 @@ function DiamondsGame() {
     if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
 
-  // ---- Rule of 4 (Diamond in the Rough): human accepts ----
+  // ---- Rule of 4 (Dimond in the Rough): human accepts ----
   function acceptRuleFour() {
     if (!ruleFourState) return;
     const { playerIdx, cards, continuation } = ruleFourState;
@@ -5212,6 +5232,38 @@ function DiamondsGame() {
       const state = queenClubsStateRef.current;
       if (!state || state.playerIdx === 0) return;
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
+
+      // 30% chance to reallocate: take best diamond from a non-leader, give to the leader
+      const othersWithCards = [0,1,2,3].filter(i => i !== playerIdx && (currentHands[i]||[]).length > 0);
+      if (othersWithCards.length >= 2 && Math.random() < 0.30) {
+        const sortedByScore = [...othersWithCards].sort((a, b) => newTotal[a] - newTotal[b]);
+        const leader = sortedByScore[0];
+        const nonLeaders = sortedByScore.slice(1);
+        let bestDiamond = null, takFrom = -1, takFromIdx = -1, bestVal = -1;
+        for (const p of nonLeaders) {
+          (currentHands[p]||[]).forEach((card, ci) => {
+            if (isDiamond(card)) {
+              const val = diamondPoints(card)*10 + cardScore(card);
+              if (val > bestVal) { bestVal = val; bestDiamond = card; takFrom = p; takFromIdx = ci; }
+            }
+          });
+        }
+        if (bestDiamond && takFrom !== -1) {
+          const newHandsRealloc = currentHands.map((h, i) => {
+            if (i === takFrom) return h.filter((_, ci) => ci !== takFromIdx);
+            if (i === leader) return [...h, bestDiamond];
+            return h;
+          });
+          addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${bestDiamond.rank}${bestDiamond.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
+          flyCardBetweenPlayers(bestDiamond, takFrom, leader);
+          setHands(newHandsRealloc);
+          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+          setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: bestDiamond, queenClubsFrom: takFrom, queenClubsPlayerIdx: leader });
+          setQueenClubsState(null);
+          setPhase("trickresult");
+          return;
+        }
+      }
 
       let target = aiChooseKidnapTarget(currentHands, playerIdx);
 
@@ -6607,12 +6659,12 @@ function DiamondsGame() {
         </EventBox>
       )}
 
-      {/* Rule of 4 (Diamond in the Rough) — offer */}
+      {/* Rule of 4 (Dimond in the Rough) — offer */}
       {phase==="rulefour_offer" && ruleFourState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💎</div>
-            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16}}>Rule of 4 — Diamond in the Rough</div>
+            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16,whiteSpace:"pre-line"}}>{"Rule of 4\n— Dimond in the Rough"}</div>
             <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>Four of a Kind!</div>
             <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
               {ruleFourState.cards.map(c=>c.id).join(", ")}
@@ -6629,7 +6681,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 4 event box */}
       {phase==="rulefour_event" && ruleFourState && (
-        <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title="Rule of 4 — Diamond in the Rough" btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
+        <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
