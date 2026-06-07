@@ -2470,7 +2470,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
       : blockedJoker && blockedRobbin ? "Neither Kidnapping nor Robbin' goes through!"
       : blockedJoker && blockedQueenClubs ? "The Joker is Locked Up and The Queen of Clubs is Blocked!"
       : blockedRobbin && blockedQueenClubs ? "Robbin Jack AND The Queen of Clubs are foiled!"
-      : blockedQueenClubs ? "The Queen of Clubs is Blocked — no Thievin' this trick!"
+      : blockedQueenClubs ? "The Queen of Clubs is Blocked — no Thievin'\n(or Reallocating) this trick!"
       : blockedRobbin ? "Robbin Jack is foiled — no robbing this trick!"
       : "The Joker is Locked Up — no kidnapping this trick!";
     return (
@@ -2485,7 +2485,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           )}
           {blockedCards.map(c=><CardComp key={c.id} card={c} tiny/>)}
         </div>
-        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",whiteSpace:"pre-line",textAlign:"center"}}>
           {blockDesc}
         </div>
         <div style={{
