@@ -3327,6 +3327,8 @@ function DiamondsGame() {
   const [kidnapState, setKidnapState] = useState(null);
   const [rescueState, setRescueState] = useState(null);
   const [queenClubsState, setQueenClubsState] = useState(null);
+  const queenClubsStateRef = useRef(null);
+  useEffect(() => { queenClubsStateRef.current = queenClubsState; }, [queenClubsState]);
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -5206,13 +5208,48 @@ function DiamondsGame() {
     if (queenClubsState.playerIdx === 0) return; // human handles via QueenClubsModal
 
     const timer = setTimeout(() => {
-      const currentHands = queenClubsState.hands;
-      const playerIdx = queenClubsState.playerIdx;
-      const target = aiChooseKidnapTarget(currentHands, playerIdx);
+      // Read from ref to get the guaranteed-current state, avoiding stale closures
+      const state = queenClubsStateRef.current;
+      if (!state || state.playerIdx === 0) return;
+      const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
+
+      let target = aiChooseKidnapTarget(currentHands, playerIdx);
+
+      // Fallback: if algorithm returned null but other players DO have cards, pick best directly
+      if (!target) {
+        let bestVal = -1, bestPlayer = -1, bestIdx = -1;
+        for (let i = 0; i < 4; i++) {
+          if (i === playerIdx) continue;
+          (currentHands[i] || []).forEach((card, ci) => {
+            const val = isDiamond(card) ? diamondPoints(card) * 10 + cardScore(card) : cardScore(card);
+            if (val > bestVal) { bestVal = val; bestPlayer = i; bestIdx = ci; }
+          });
+        }
+        if (bestPlayer !== -1) target = { fromPlayer: bestPlayer, cardIdx: bestIdx };
+      }
+
       if (target) {
-        handleQueenClubsThieve(target.fromPlayer, target.cardIdx);
+        const stolenCard = currentHands[target.fromPlayer]?.[target.cardIdx];
+        if (!stolenCard) { handleQueenClubsSkip(); return; }
+        const newHands = currentHands.map((h, i) => {
+          if (i === target.fromPlayer) return h.filter((_, ci) => ci !== target.cardIdx);
+          if (i === playerIdx) return [...h, stolenCard];
+          return h;
+        });
+        addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) thieves ${stolenCard.rank}${stolenCard.suit} from ${allNames[target.fromPlayer]}!`);
+        flyCardBetweenPlayers(stolenCard, target.fromPlayer, playerIdx);
+        setHands(newHands);
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+        setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: stolenCard, queenClubsFrom: target.fromPlayer, queenClubsPlayerIdx: playerIdx });
+        setQueenClubsState(null);
+        setPhase("trickresult");
       } else {
-        handleQueenClubsSkip();
+        // Truly no targets (all other hands empty — hasTargets check should have caught this)
+        addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) — no cards to thieve`);
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+        setTrickResult(resultObj);
+        setQueenClubsState(null);
+        setPhase("trickresult");
       }
     }, 900);
     return () => clearTimeout(timer);
