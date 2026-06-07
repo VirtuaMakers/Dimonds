@@ -1963,7 +1963,7 @@ function AnimatedNumber({ value, style }) {
   return <span style={style}>{display}</span>;
 }
 
-function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
+function GoldBtn({ onClick, children, disabled, small, tiny, secondary, style: styleOverride }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       background: disabled
@@ -1985,6 +1985,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
       width: tiny ? "100%" : undefined,
       textAlign: tiny ? "center" : undefined,
       touchAction:"manipulation",
+      ...styleOverride,
     }}>{children}</button>
   );
 }
@@ -3059,7 +3060,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -3074,10 +3075,7 @@ function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme })
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{padding:"18px 22px 13px",borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Options</h2>
-            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
-          </div>
+          <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Options</h2>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 22px 22px",WebkitOverflowScrolling:"touch"}}>
           {/* Sound */}
@@ -3093,7 +3091,7 @@ function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme })
             }}>{soundOn ? "🔊 ON" : "🔇 OFF"}</button>
           </div>
           {/* Card Back */}
-          <div style={{...row, borderBottom:"none", flexDirection:"column", alignItems:"flex-start", gap:10}}>
+          <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:10}}>
             <div><div style={label}>Card Back</div><div style={sub}>Choose your deck design</div></div>
             <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, width:"100%"}}>
               {DECK_THEMES.map(t => (
@@ -3104,11 +3102,18 @@ function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme })
                   display:"flex", flexDirection:"column", alignItems:"center", gap:4,
                   touchAction:"manipulation",
                 }}>
-                  <PixelCardBack theme={t.id} w={44} h={62}/>
+                  <div style={{position:"relative",width:44,height:62,borderRadius:6,overflow:"hidden",flexShrink:0}}>
+                    <PixelCardBack theme={t.id}/>
+                  </div>
                   <span style={{color: deckTheme===t.id ? VM.gold : "#ffffffaa", fontSize:8, fontFamily:FONT_UI, textAlign:"center", lineHeight:1.2}}>{t.label}</span>
                 </button>
               ))}
             </div>
+          </div>
+          {/* Action buttons */}
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:18}}>
+            <GoldBtn onClick={onClose} small secondary>{onExit ? "Return to Game" : "Close"}</GoldBtn>
+            {onExit && <GoldBtn onClick={onExit} small secondary style={{color:"#ff8888",borderColor:"#ff666644"}}>Exit Game</GoldBtn>}
           </div>
         </div>
       </div>
@@ -5713,27 +5718,8 @@ function DiamondsGame() {
           <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
         <div style={{display:"flex",gap:5,alignItems:"center",flexShrink:0}}>
-          <GoldBtn onClick={()=>setShowRules(true)} small secondary>Rules</GoldBtn>
-          <GoldBtn onClick={()=>setShowOptions(true)} small secondary>Options</GoldBtn>
-          <GoldBtn onClick={()=>setScreen("menu")} small secondary>Menu</GoldBtn>
-          <button
-            onClick={()=>setSoundOn(s=>!s)}
-            aria-label={soundOn ? "Mute sounds" : "Unmute sounds"}
-            title={soundOn ? "Mute all sounds" : "Unmute all sounds"}
-            style={{
-              background:"transparent",
-              border:`1px solid ${soundOn ? VM.tealLight+"55" : "#66666655"}`,
-              borderRadius:10,
-              padding:"5px 7px",
-              fontSize:14,
-              lineHeight:1,
-              color:soundOn ? VM.tealLight : "#888",
-              cursor:"pointer",
-              fontFamily:"inherit",
-              minHeight:34,
-              touchAction:"manipulation",
-            }}
-          >{soundOn ? "🔊" : "🔇"}</button>
+          <GoldBtn onClick={()=>setShowRules(true)} small secondary style={{fontSize:10,padding:"5px 10px",minHeight:28}}>Rules</GoldBtn>
+          <GoldBtn onClick={()=>setShowOptions(true)} small secondary style={{fontSize:10,padding:"5px 10px",minHeight:28}}>Options</GoldBtn>
         </div>
       </div>
 
@@ -6775,7 +6761,7 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
