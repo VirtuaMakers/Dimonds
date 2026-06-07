@@ -2770,15 +2770,52 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
   // ── LEVEL 1: player event list ──
   if (drillPlayer !== null) {
     const playerEvents = eventLog.filter(e => e.playerIdx === drillPlayer);
-    // Group by trickNum
+    const trickTypeEvents = playerEvents.filter(e => e.type !== "set");
+    const setEvents = playerEvents.filter(e => e.type === "set");
+    // Group trick-type events by trickNum only
     const byTrick = {};
-    for (const ev of playerEvents) {
+    for (const ev of trickTypeEvents) {
       if (!byTrick[ev.trickNum]) byTrick[ev.trickNum] = [];
       byTrick[ev.trickNum].push(ev);
     }
     const trickNums = Object.keys(byTrick).map(Number).sort((a,b)=>a-b);
     const playerName = allNames[drillPlayer];
     const playerIcon = drillPlayer === 0 ? "😎" : AI_PERSONAS[drillPlayer-1]?.emoji;
+
+    const renderEventRow = (ev, i) => {
+      const isTrick = ev.type === "trick";
+      const isAceSpades = ev.type === "ace";
+      const isSweep = ev.type === "sweep";
+      const emoji = isTrick ? "🎩" : isAceSpades ? "🌃" : isSweep ? "✨" : ev.setEmoji;
+      const label = isTrick
+        ? `Won (+${ev.points} pts${ev.diamondsCaptured?.length ? " 💎" : ""})`
+        : isAceSpades
+        ? `A♠ Block +${ev.points} pts`
+        : isSweep
+        ? `Swept ${ev.cardsSwept ?? ev.diamondsCaptured?.length ?? "?"} cards +${ev.points} pts 💎`
+        : `${ev.setName} +${ev.points} pts`;
+      const tappable = isTrick && ev.plays?.length > 0;
+      return (
+        <div key={i} onClick={tappable ? ()=>setDrillEvent(ev) : undefined} style={{
+          display:"flex", alignItems:"center", justifyContent:"space-between",
+          background: tappable ? "#c9a84c0d" : "#ffffff06",
+          border:`1px solid ${tappable ? "#c9a84c33" : "#ffffff0d"}`,
+          borderRadius:10, padding:"10px 14px", marginBottom:6,
+          cursor: tappable ? "pointer" : "default",
+        }}>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:16}}>{emoji}</span>
+            <span style={{color:"#ffffffcc",fontSize:13,fontFamily:FONT_UI}}>{label}</span>
+            {ev.type === "set" && ev.cards?.length > 0 && (
+              <span style={{color:"#ffffff55",fontSize:11,fontFamily:FONT_UI}}>
+                [{ev.cards.map(c=>c.isJoker?"🃏":`${c.rank}${c.suit}`).join(" ")}]
+              </span>
+            )}
+          </div>
+          {tappable && <span style={{color:"#c9a84c",fontSize:14}}>▶</span>}
+        </div>
+      );
+    };
 
     return (
       <Modal>
@@ -2789,50 +2826,26 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
             <div style={{color:"#c9a84c",fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{playerName}</div>
           </div>
 
-          {trickNums.length === 0 && (
+          {setEvents.length > 0 && (
+            <div style={{marginBottom:16}}>
+              <div style={{color:"#ffffff33",fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>Sets Redeemed</div>
+              {setEvents.map((ev,i) => renderEventRow(ev,i))}
+            </div>
+          )}
+
+          {trickNums.length === 0 && setEvents.length === 0 && (
             <div style={{color:"#ffffff44",fontSize:13,textAlign:"center",padding:"20px 0"}}>No scored events this round.</div>
           )}
 
+          {trickNums.length > 0 && (
+            <div style={{color:"#ffffff33",fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>Tricks Won</div>
+          )}
           {trickNums.map(tn => (
             <div key={tn} style={{marginBottom:14}}>
-              <div style={{color:"#ffffff33",fontSize:10,letterSpacing:2,textTransform:"uppercase",marginBottom:6,paddingLeft:2}}>
+              <div style={{color:"#ffffff22",fontSize:10,letterSpacing:1,textTransform:"uppercase",marginBottom:4,paddingLeft:10}}>
                 Trick {tn}
               </div>
-              {byTrick[tn].map((ev,i) => {
-                const isTrick = ev.type === "trick";
-                const isAceSpades = ev.type === "ace";
-                const isSet = ev.type === "set";
-                const isSweep = ev.type === "sweep";
-                const emoji = isTrick ? "🎩" : isAceSpades ? "🌃" : isSweep ? "✨" : ev.setEmoji;
-                const label = isTrick
-                  ? `Won (+${ev.points} pts${ev.diamondsCaptured?.length ? " 💎" : ""})`
-                  : isAceSpades
-                  ? `A♠ Block +${ev.points} pts`
-                  : isSweep
-                  ? `Swept ${ev.cardsSwept ?? ev.diamondsCaptured?.length ?? "?"} cards +${ev.points} pts 💎`
-                  : `${ev.setName} +${ev.points} pts`;
-                const tappable = isTrick && ev.plays?.length > 0;
-                return (
-                  <div key={i} onClick={tappable ? ()=>setDrillEvent(ev) : undefined} style={{
-                    display:"flex", alignItems:"center", justifyContent:"space-between",
-                    background: tappable ? "#c9a84c0d" : "#ffffff06",
-                    border:`1px solid ${tappable ? "#c9a84c33" : "#ffffff0d"}`,
-                    borderRadius:10, padding:"10px 14px", marginBottom:6,
-                    cursor: tappable ? "pointer" : "default",
-                  }}>
-                    <div style={{display:"flex",alignItems:"center",gap:8}}>
-                      <span style={{fontSize:16}}>{emoji}</span>
-                      <span style={{color:"#ffffffcc",fontSize:13,fontFamily:FONT_UI}}>{label}</span>
-                      {isSet && ev.cards?.length > 0 && (
-                        <span style={{color:"#ffffff55",fontSize:11,fontFamily:FONT_UI}}>
-                          [{ev.cards.map(c=>c.isJoker?"🃏":`${c.rank}${c.suit}`).join(" ")}]
-                        </span>
-                      )}
-                    </div>
-                    {tappable && <span style={{color:"#c9a84c",fontSize:14}}>▶</span>}
-                  </div>
-                );
-              })}
+              {byTrick[tn].map((ev,i) => renderEventRow(ev,i))}
             </div>
           ))}
         </div>
