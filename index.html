@@ -5873,7 +5873,7 @@ function DiamondsGame() {
         }}>
           {/* YOUR TURN — sits 5px above the lifted selected card */}
           <div style={{
-            position:"absolute", top: isDesktop ? 5 : 48, left:0, right:0, zIndex:5,
+            position:"absolute", top: isDesktop ? 5 : 10, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
@@ -6251,7 +6251,7 @@ function DiamondsGame() {
           return (
             <>
               <div style={{position:"relative",height:0,overflow:"visible",width:"100%",flexShrink:0,zIndex:60}}>
-                <div style={{position:"absolute",left:0,right:0,bottom:147,display:"flex",justifyContent:"center"}}>
+                <div style={{position:"absolute",left:0,right:0,bottom:182,display:"flex",justifyContent:"center"}}>
                   {playBtn}
                 </div>
               </div>
