@@ -3036,8 +3036,11 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose }) {
+function OptionsPanel({ onClose, soundOn, setSoundOn, deckTheme, setDeckTheme }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
+  const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
+  const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
+  const sub = { color:VM.tealLight+"88", fontSize:10, fontFamily:FONT_UI, marginTop:2 };
   return (
     <div style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
       display:"flex",alignItems:"flex-start",justifyContent:"center",
@@ -3053,13 +3056,36 @@ function OptionsPanel({ onClose }) {
             <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
           </div>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"40px 22px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-          <div style={{fontSize:40,lineHeight:1}}>⚙️</div>
-          <div style={{color:"#ffffffcc",fontSize:15,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
-            Options coming soon.
+        <div style={{flex:1,overflowY:"auto",padding:"8px 22px 22px",WebkitOverflowScrolling:"touch"}}>
+          {/* Sound */}
+          <div style={row}>
+            <div><div style={label}>Sound</div><div style={sub}>Music and card sound effects</div></div>
+            <button onClick={()=>setSoundOn(s=>!s)} style={{
+              background: soundOn ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff18",
+              border:`1.5px solid ${soundOn ? VM.tealLight : "#ffffff33"}`,
+              borderRadius:20, padding:"6px 16px", cursor:"pointer",
+              color: soundOn ? "#0a2320" : "#ffffffaa",
+              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
+              touchAction:"manipulation",
+            }}>{soundOn ? "🔊 ON" : "🔇 OFF"}</button>
           </div>
-          <div style={{color:VM.tealLight+"88",fontSize:12,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
-            Sound, display, auto-play, and<br/>accessibility settings are in development.
+          {/* Card Back */}
+          <div style={{...row, borderBottom:"none", flexDirection:"column", alignItems:"flex-start", gap:10}}>
+            <div><div style={label}>Card Back</div><div style={sub}>Choose your deck design</div></div>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, width:"100%"}}>
+              {DECK_THEMES.map(t => (
+                <button key={t.id} onClick={()=>setDeckTheme(t.id)} style={{
+                  background: deckTheme===t.id ? `linear-gradient(135deg,${VM.gold}22,${VM.gold}11)` : "transparent",
+                  border:`1.5px solid ${deckTheme===t.id ? VM.gold : VM.tealLight+"33"}`,
+                  borderRadius:10, padding:"8px 4px", cursor:"pointer",
+                  display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+                  touchAction:"manipulation",
+                }}>
+                  <PixelCardBack theme={t.id} w={44} h={62}/>
+                  <span style={{color: deckTheme===t.id ? VM.gold : "#ffffffaa", fontSize:8, fontFamily:FONT_UI, textAlign:"center", lineHeight:1.2}}>{t.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -4880,6 +4906,29 @@ function DiamondsGame() {
       return;
     }
 
+    // AUTO-COMPLETE: no diamonds remain anywhere → skip remaining pointless tricks
+    const anyDiamondsLeft = hands.some(h => h.some(c => isDiamond(c)));
+    const anyCardsLeft = hands.some(h => h.length > 0);
+    if (anyCardsLeft && !anyDiamondsLeft) {
+      const totalLeft = hands.reduce((s,h) => s+h.length, 0);
+      addLog(`✨ No dimonds remain — ${totalLeft} pointless trick${totalLeft!==1?"s":""} auto-completed`);
+      setHands([[],[],[],[]]);
+      setTrickResult(null);
+      const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
+      setTotalScores(newTotal);
+      const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+      if (gameOver) {
+        const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        setFireworksPlace(Math.max(1,Math.min(4,_place)));
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
+      } else {
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r=>r+1);
+      }
+      return;
+    }
+
     // AUTO-CLAIM: sole remaining player, pointless cards only → sweep.
     // If the solo player still holds diamonds, play those tricks out one by one (won unopposed).
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
@@ -5393,7 +5442,7 @@ function DiamondsGame() {
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)}/>}
+        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
         {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)}/>}
       </div>
     );
@@ -6003,11 +6052,56 @@ function DiamondsGame() {
                 </button>
               );
             });
-            if (riotAvail) setButtons.push(<button key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }} style={setBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</button>);
-            if (trickPlays.length === 0 && showdownAvail) setButtons.push(<button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }} style={setBtnStyle}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</button>);
-            if (trickPlays.length === 0 && stealAvail) setButtons.push(<button key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }} style={setBtnStyle}>🌇 The Steal +{THE_STEAL_BONUS*GA}</button>);
-            if (trickPlays.length === 0 && afAvail) setButtons.push(<button key="af" onClick={()=>setPhase("americanfamily_offer")} style={setBtnStyle}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</button>);
-            if (trickPlays.length === 0 && gaAvail) setButtons.push(<button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }} style={setBtnStyle}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</button>);
+            if (riotAvail) {
+              const riotSuit = riotAvail.find(c=>!c.isJoker)?.suit ?? "?";
+              setButtons.push(
+                <button key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>🔥 Riot +{RIOT_BONUS*GA}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>×{riotAvail.length} {riotSuit}</span>
+                </button>
+              );
+            }
+            if (trickPlays.length === 0 && showdownAvail) {
+              const sdCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
+              const sdLabel = sdCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
+              setButtons.push(
+                <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{sdLabel}</span>
+                </button>
+              );
+            }
+            if (trickPlays.length === 0 && stealAvail) {
+              const stCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
+              const stLabel = stCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
+              setButtons.push(
+                <button key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>🌇 The Steal +{THE_STEAL_BONUS*GA}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{stLabel}</span>
+                </button>
+              );
+            }
+            if (trickPlays.length === 0 && afAvail) {
+              setButtons.push(
+                <button key="af" onClick={()=>setPhase("americanfamily_offer")}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>J♦ / Q♦ / K♦ / A♦</span>
+                </button>
+              );
+            }
+            if (trickPlays.length === 0 && gaAvail) {
+              setButtons.push(
+                <button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{letterSpacing:"-0.5px"}}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>A♠ / A♥ / A♣ / A♦</span>
+                </button>
+              );
+            }
             if (!hasLocked && setButtons.length === 0) return null;
             return (
               <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, padding:"5px 6px 5px 5px", overflowY:"auto", maxHeight: isDesktop ? 200 : 96, width:"100%", boxSizing:"border-box", WebkitOverflowScrolling:"touch", display:"flex", flexDirection:"column", gap:4, flexShrink:0 }}>
@@ -6036,7 +6130,7 @@ function DiamondsGame() {
                           <span style={{fontSize:6,opacity:0.6}}>{label}</span>
                         </div>;
                       })}
-                      {riotLocked && <div style={lockedBtnStyle}>🔥 Riot +{RIOT_BONUS*GA}</div>}
+                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span>🔥 Riot +{RIOT_BONUS*GA}</span><span style={{fontSize:6,opacity:0.6}}>×9 {rs}</span></div>; })()}
                     </div>
                   </div>
                 )}
