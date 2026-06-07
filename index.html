@@ -3391,6 +3391,8 @@ function DiamondsGame() {
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
+  const diamondsBrokenRef = useRef(false);
+  useEffect(() => { diamondsBrokenRef.current = diamondsBroken; }, [diamondsBroken]);
   const roundEventLogRef = useRef([]); // accumulates events during the round
   const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
   const [roundEventLog, setRoundEventLog] = useState([]);
@@ -3720,7 +3722,7 @@ function DiamondsGame() {
         }
       }
     }
-  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length]);
+  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length, diamondsBroken, rule1UsedThisTurn]);
 
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
@@ -4508,8 +4510,9 @@ function DiamondsGame() {
     setRule1State(null);
     setRule1UsedThisTurn(true);
     addLog(`💠 ${allNames[giverIdx]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
-    if (!diamondsBroken) {
+    if (!diamondsBrokenRef.current) {
       setDiamondsBroken(true);
+      diamondsBrokenRef.current = true;
       soundCuttingYourTeeth();
       addLog("♦ Cutting Your Teeth — Dimonds are now in play! (via Rule of 1)");
       setPendingPlayContinuation(null);
@@ -5827,7 +5830,7 @@ function DiamondsGame() {
       }}>
         <div style={{color:VM.tealLight+"77",fontSize:9,letterSpacing:3,marginBottom:-1,textTransform:"uppercase",fontFamily:FONT_UI,height:13,lineHeight:"13px"}}>Current Trick</div>
         {/* Led suit row — always present (reserves space); content shown only when ledSuit set */}
-        <div style={{height:22,marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{height:22,marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center"}}>
           {ledSuit && (
             <div style={{color:VM.tealLight,fontSize:11,fontWeight:700,fontFamily:FONT_UI}}>
               Led suit: <span style={{fontSize:16}}>{ledSuit}</span>
