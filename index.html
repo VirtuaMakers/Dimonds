@@ -4703,7 +4703,6 @@ function DiamondsGame() {
   }
   function handleRule1Skip() {
     setRule1State(null);
-    setRule1UsedThisTurn(prev => { const n=[...prev]; n[0]=true; return n; });
     setPhase("playing");
   }
 
@@ -6378,7 +6377,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>💍 Rule of 2</span><span style={{opacity:0.75}}>+{SWINGING_PARADOX_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
@@ -6390,7 +6389,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r3-${i}`} onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:combo,continuation:null}); setPhase("ruleofthree_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🦅 Rule of 3</span><span style={{opacity:0.75}}>+{RULE_OF_THREE_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
@@ -6402,7 +6401,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r4-${i}`} onClick={()=>{ setRuleFourState({playerIdx:0,cards:combo,continuation:null}); setPhase("rulefour_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>💎 Rule of 4</span><span style={{opacity:0.75}}>+{RULE_OF_FOUR_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
@@ -6414,7 +6413,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>×{riotAvail.length} {riotSuit}</span>
@@ -6427,7 +6426,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{sdLabel}</span>
@@ -6440,7 +6439,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🌇 The Steal</span><span style={{opacity:0.75}}>+{THE_STEAL_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{stLabel}</span>
@@ -6451,7 +6450,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="af" onClick={()=>setPhase("americanfamily_offer")}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🏛️ Am. Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>J♦ / Q♦ / K♦ / A♦</span>
@@ -6462,7 +6461,7 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px"}}>
                     <span>🤖 Golden Age</span><span style={{opacity:0.75}}>+{ACES_LOW_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>A♠ / A♥ / A♣ / A♦</span>
