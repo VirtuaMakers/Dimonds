@@ -2982,7 +2982,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[] }) {
+function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -2997,6 +2997,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
         gameTricksPerPlayer={gameTricksPerPlayer}
         gameSetsPerPlayer={gameSetsPerPlayer}
         continueLabel="New Game"
+        winScore={winScore}
       />
     );
   }
@@ -3736,9 +3737,10 @@ function DiamondsGame() {
     if (cp === 0) return; // Human sees buttons in action area
 
     // Rule of 4 (Dimond in the Rough) — four of a kind (checked first; rarer and higher value)
-    if (diamondsBroken) {
+    {
       const quad4 = checkRuleFour(hands[cp] || []);
-      if (quad4) {
+      const quad4OK = quad4 && (!quad4.some(c => c.suit==="♦") || diamondsBroken);
+      if (quad4OK) {
         const rank4 = quad4[0].rank;
         if (ruleFourOffered[cp] !== rank4) {
         setRuleFourOffered(prev => { const n=[...prev]; n[cp]=rank4; return n; });
@@ -3863,7 +3865,7 @@ function DiamondsGame() {
         }
       }
     }
-  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length, diamondsBroken, rule1UsedThisTurn[currentTurn]]);
+  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length, diamondsBroken, rule1UsedThisTurn[turnOrder[currentTurn]]]);
 
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
@@ -3919,6 +3921,7 @@ function DiamondsGame() {
     setTurnOrder(order);
     setSelectedCards([]);
     setHandSortMode('rank');
+    setPendingPlayContinuation(null);
     setPhase("playing");
     setTrickResult(null);
     setKidnapState(null);
@@ -4010,6 +4013,10 @@ function DiamondsGame() {
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
+    setRuleOfThreeOffered([null,null,null,null]);
+    setSwingingParadoxOffered([null,null,null,null]);
+    setHandSortMode('rank');
+    setPendingPlayContinuation(null);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -4116,8 +4123,6 @@ function DiamondsGame() {
   }
 
   function continuePlayFlow(playerIdx, card, newPlays, newHands) {
-    const effectiveDiamondsBroken = diamondsBroken || isDiamond(card);
-
     // (All set checks — R2/R3/R4, American Family, Golden Age, The Steal, Riot —
     //  are handled exclusively by pre-play useEffects which gate on trickPlays.length === 0.
     //  Sets must never be redeemed mid-trick.)
@@ -4664,6 +4669,7 @@ function DiamondsGame() {
   }
   function handleRule1Skip() {
     setRule1State(null);
+    setRule1UsedThisTurn(prev => { const n=[...prev]; n[0]=true; return n; });
     setPhase("playing");
   }
 
@@ -6157,7 +6163,7 @@ function DiamondsGame() {
                 ? true
                 : trickPlays.length === 0
                 ? (!isDiamond(card) || canLeadDiamond)
-                : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit) || availableSetCardIds.has(card.id));
+                : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit));
               const isSelected = selectedCards.some(c => c.id === card.id);
               // Neighbor spread: cards near the selected one ease outward to make room.
               let spread = 0;
@@ -6169,7 +6175,7 @@ function DiamondsGame() {
               const xPos = startX + ci * OVERLAP + spread;
               const showGlow = isPlayerTurn && isLegal && !isSelected;
               const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
-              const isSetCard = !isHonorCard && setGlowIds.has(card.id);
+              const isSetCard = !isHonorCard && !isSelected && setGlowIds.has(card.id);
               const isLockedSetCard = !isHonorCard && !isSetCard && lockedSetGlowIds.has(card.id);
 
               return (
@@ -6199,7 +6205,7 @@ function DiamondsGame() {
                     cursor: isPlayerTurn ? "pointer" : "default",
                     transition:"bottom 0.15s ease, left 0.18s ease, filter 0.2s ease",
                     touchAction:"manipulation",
-                    filter: (!isPlayerTurn || !isLegal)
+                    filter: (!isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id)))
                       ? "brightness(0.55)"
                       : isHonorCard && !isSelected
                       ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
@@ -6964,6 +6970,7 @@ function DiamondsGame() {
           gameNum={gameNum}
           roundScores={roundScores}
           eventLog={roundEventLog}
+          winScore={winScore}
         />
       )}
 
@@ -7062,7 +7069,8 @@ class _ErrorBoundary extends React.Component {
   componentDidCatch(e,i){console.error("DIMONDS CRASH:",e,i);}
   render(){
     if(this.state.err)return React.createElement("div",{style:{padding:24,color:"#ff6b6b",fontFamily:"monospace",fontSize:13,background:"#0a1a17",minHeight:"100dvh",whiteSpace:"pre-wrap"}},
-      "RUNTIME ERROR — please screenshot this and report:\n\n"+String(this.state.err)+"\n\n"+(this.state.err?.stack||""));
+      "RUNTIME ERROR — please screenshot this and report:\n\n"+String(this.state.err)+"\n\n"+(this.state.err?.stack||""),
+      React.createElement("button",{onClick:()=>window.location.reload(),style:{marginTop:16,padding:"8px 16px",background:"#1a3a30",color:"#4bc3af",border:"1px solid #4bc3af",borderRadius:6,fontFamily:"monospace",fontSize:13,cursor:"pointer"}},"Reload Game"));
     return this.props.children;
   }
 }
