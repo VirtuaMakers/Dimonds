@@ -6390,9 +6390,9 @@ function DiamondsGame() {
             const r4AvailCombos = r4AllCombos.filter(c => !c.some(card => card.suit==="♦") || diamondsBroken);
             const r4LockedCombos = r4AllCombos.filter(c => c.some(card => card.suit==="♦") && !diamondsBroken);
             const r4Locked = r4LockedCombos.length > 0;
-            const spCards = checkSwingingParadox(h0);
             const spCombos = diamondsBroken ? allSwingingParadoxCombos(h0) : [];
-            const spLocked = spCards && !diamondsBroken;
+            const spLockedCombos = !diamondsBroken ? allSwingingParadoxCombos(h0) : [];
+            const spLocked = spLockedCombos.length > 0;
             const riotAvail = checkRiot(h0, diamondsBroken);
             const riotLocked = !diamondsBroken && !riotAvail && checkRiot(h0, true);
             const hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked);
@@ -6526,7 +6526,14 @@ function DiamondsGame() {
                   <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
                     <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,width:"100%",textAlign:"center",borderBottom:"1px solid #ff444433",paddingBottom:3}}>🔓 Unlock by Breaking Dimonds</div>
                     <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
-                      {spLocked && <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💍 Rule of 2</span><span style={{opacity:0.6}}>+{SWINGING_PARADOX_BONUS*GA}</span></span></div>}
+                      {spLockedCombos.map((combo,i) => {
+                        const p1 = `${combo[1].id}/${combo[0].id}`;
+                        const p2 = `${combo[3].id}/${combo[2].id}`;
+                        return <div key={`r2l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
+                          <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💍 Rule of 2</span><span style={{opacity:0.6}}>+{SWINGING_PARADOX_BONUS*GA}</span></span>
+                          <span style={{fontSize:6,opacity:0.6}}>{p1} / {p2}</span>
+                        </div>;
+                      })}
                       {r3LockedCombos.map((combo,i) => {
                         const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
                         return <div key={`r3l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
