@@ -1029,7 +1029,7 @@ const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 13;
 const RULE_OF_FOUR_BONUS = 18;
 
-// Riot — 9+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
+// Riot — 8+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
 function checkRiot(hand, diamondsBroken = true) {
   const bySuit = {};
   let joker = null;
@@ -1038,20 +1038,20 @@ function checkRiot(hand, diamondsBroken = true) {
     if (!bySuit[c.suit]) bySuit[c.suit] = [];
     bySuit[c.suit].push(c);
   }
-  // Priority 1: non-diamond suit with 9+ (no Joker needed)
+  // Priority 1: non-diamond suit with 8+ (no Joker needed)
   for (const [suit, cards] of Object.entries(bySuit)) {
-    if (suit !== "♦" && cards.length >= 9) return cards.slice(0, 9);
+    if (suit !== "♦" && cards.length >= 8) return cards.slice(0, 8);
   }
-  // Priority 2: diamond suit with 9+ (if diamonds broken)
-  if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 9) return bySuit["♦"].slice(0, 9);
+  // Priority 2: diamond suit with 8+ (if diamonds broken)
+  if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 8) return bySuit["♦"].slice(0, 8);
   if (joker) {
-    // Priority 3: non-diamond suit with 8 + Joker
+    // Priority 3: non-diamond suit with 7 + Joker
     for (const [suit, cards] of Object.entries(bySuit)) {
-      if (suit !== "♦" && cards.length >= 8) return [...cards.slice(0, 8), joker];
+      if (suit !== "♦" && cards.length >= 7) return [...cards.slice(0, 7), joker];
     }
-    // Priority 4: diamond suit with 8 + Joker (if diamonds broken)
-    if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 8) {
-      return [...(bySuit["♦"]?.slice(0, 8) ?? []), joker];
+    // Priority 4: diamond suit with 7 + Joker (if diamonds broken)
+    if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 7) {
+      return [...(bySuit["♦"]?.slice(0, 7) ?? []), joker];
     }
   }
   return null;
