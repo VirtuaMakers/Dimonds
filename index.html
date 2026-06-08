@@ -5808,15 +5808,24 @@ function DiamondsGame() {
   const afAvailForGlow = cardGlowHints && isPlayerTurn && phase === "playing" && !dealing &&
     trickPlays.length === 0 && checkAmericanFamily(hands[0] || []);
 
-  // Set card glow: cards belonging to any other available playable set pulse gold (R1 excluded)
-  const setGlowIds = (() => {
+  // Cards in any currently redeemable set (R2/3/4/Riot) — used for legality regardless of trick state
+  const availableSetCardIds = (() => {
     const ids = new Set();
-    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
+    if (!isPlayerTurn || phase !== "playing" || dealing) return ids;
     const h0 = hands[0] || [];
     allRuleOfThreeCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     allRuleOfFourCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     if (diamondsBroken) allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
     const riot = checkRiot(h0, diamondsBroken); if (riot) riot.forEach(c => ids.add(c.id));
+    return ids;
+  })();
+
+  // Set card glow: cards belonging to any available playable set pulse gold (R1 excluded)
+  const setGlowIds = (() => {
+    const ids = new Set();
+    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
+    const h0 = hands[0] || [];
+    availableSetCardIds.forEach(id => ids.add(id));
     if (checkTheSteal(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
     if (checkShowdown(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
     if (checkAcesLow(h0))   h0.forEach(c => { if (c.rank==="A") ids.add(c.id); });
@@ -6148,7 +6157,7 @@ function DiamondsGame() {
                 ? true
                 : trickPlays.length === 0
                 ? (!isDiamond(card) || canLeadDiamond)
-                : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit));
+                : (!ledSuit || card.suit===ledSuit || !playerHand.some(c=>!c.isJoker&&c.suit===ledSuit) || availableSetCardIds.has(card.id));
               const isSelected = selectedCards.some(c => c.id === card.id);
               // Neighbor spread: cards near the selected one ease outward to make room.
               let spread = 0;
