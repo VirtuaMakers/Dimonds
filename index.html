@@ -2692,6 +2692,29 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     );
   }
 
+  // ===== ACE OF SPADES — NO CARDS TO RESCUE =====
+  if (result.aceRescueAttempted) {
+    const rescuerIdx = result.winnerIdx;
+    return (
+      <EventBox borderColor="#1a3ab8" emoji="♠️" title="Ace of Spades Wins!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
+          {allNames[rescuerIdx]}
+        </div>
+        <div style={{color:"#8a9fe0",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+          No cards left to rescue.
+        </div>
+        {pointsWon > 0 && (
+          <div style={{
+            background:"#4466ff11", border:"1px solid #4466ff44",
+            borderRadius:10, padding:"8px 20px", display:"inline-block",
+          }}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}</span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
   // ===== NORMAL TRICK WON =====
   return (
     <EventBox borderColor="#c9a84c" emoji="🎩" title="Trick Won" btnLabel={btnLabel} onContinue={onContinue}>
@@ -4402,7 +4425,7 @@ function DiamondsGame() {
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         if (!hasTargets) {
           addLog(`♠ ${allNames[acePlayerIdx]} (Ace of Spades) — no cards to rescue`);
-          setTrickResult(resultObj);
+          setTrickResult({ ...resultObj, aceRescueAttempted: true });
           setPhase("trickresult");
           return;
         }
@@ -4592,6 +4615,13 @@ function DiamondsGame() {
         setPhase("rescue");
         return;
       }
+      // Rescue wanted to fire but no targets — mark for event box
+      addLog(`♠ ${allNames[aceWinnerIdx]} (Ace of Spades) — no cards to rescue`);
+      setTrickResult({ ...finalResult, aceRescueAttempted: true });
+      setAceRobChoiceState(null);
+      if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+      setPhase("trickresult");
+      return;
     }
     setTrickResult(finalResult);
     setAceRobChoiceState(null);
