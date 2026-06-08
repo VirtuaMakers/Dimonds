@@ -2882,7 +2882,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         <div style={{textAlign:"center",marginBottom:16}}>
           <div style={{fontSize:40,marginBottom:6}}>🏁</div>
           <div style={{color:"#c9a84c",fontFamily:FONT_UI,fontSize:20,fontWeight:700,letterSpacing:1}}>Round Over</div>
-          <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {WIN_SCORE} wins · tap a name to review</div>
+          <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {winScore} wins · tap a name to review</div>
         </div>
 
         {sectionLabel("Most Points")}
@@ -3059,7 +3059,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -3100,6 +3100,96 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
               touchAction:"manipulation",
             }}>{autoCompleteTricks ? "ON" : "OFF"}</button>
+          </div>
+          {/* Communiques */}
+          <div style={row}>
+            <div><div style={label}>Communiques</div><div style={sub}>Show in-game event messages</div></div>
+            <button onClick={()=>setShowCommuniques(s=>!s)} style={{
+              background: showCommuniques ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff18",
+              border:`1.5px solid ${showCommuniques ? VM.tealLight : "#ffffff33"}`,
+              borderRadius:20, padding:"6px 16px", cursor:"pointer",
+              color: showCommuniques ? "#0a2320" : "#ffffffaa",
+              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
+              touchAction:"manipulation",
+            }}>{showCommuniques ? "ON" : "OFF"}</button>
+          </div>
+          {/* Card Glow Hints */}
+          <div style={row}>
+            <div><div style={label}>Card Glow Hints</div><div style={sub}>Highlight cards that can form sets</div></div>
+            <button onClick={()=>setCardGlowHints(s=>!s)} style={{
+              background: cardGlowHints ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff18",
+              border:`1.5px solid ${cardGlowHints ? VM.tealLight : "#ffffff33"}`,
+              borderRadius:20, padding:"6px 16px", cursor:"pointer",
+              color: cardGlowHints ? "#0a2320" : "#ffffffaa",
+              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
+              touchAction:"manipulation",
+            }}>{cardGlowHints ? "ON" : "OFF"}</button>
+          </div>
+          {/* Score Showing */}
+          <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
+            <div><div style={label}>Score Showing</div><div style={sub}>When scores are revealed</div></div>
+            <div style={{display:"flex", gap:4, flexWrap:"wrap"}}>
+              {[["point","Every Point"],["round","Every Round"],["game","Every Game"]].map(([val,lbl])=>(
+                <button key={val} onClick={()=>setScoreTally(val)} style={{
+                  background: scoreTally===val ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
+                  border:`1.5px solid ${scoreTally===val ? VM.tealLight : "#ffffff33"}`,
+                  borderRadius:16, padding:"5px 11px", cursor:"pointer",
+                  color: scoreTally===val ? "#0a2320" : "#ffffffaa",
+                  fontWeight:800, fontSize:10, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
+                  textTransform:"uppercase", touchAction:"manipulation",
+                }}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          {/* Win Score Threshold */}
+          <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
+            <div><div style={label}>Win Score</div><div style={sub}>Points needed to win the game</div></div>
+            <div style={{display:"flex", gap:4}}>
+              {[40,80,120].map(s=>(
+                <button key={s} onClick={()=>setWinScore(s)} style={{
+                  background: winScore===s ? `linear-gradient(135deg,${VM.gold},#c9a84c)` : "#ffffff14",
+                  border:`1.5px solid ${winScore===s ? VM.gold : "#ffffff33"}`,
+                  borderRadius:16, padding:"5px 16px", cursor:"pointer",
+                  color: winScore===s ? "#0a2320" : "#ffffffaa",
+                  fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
+                  touchAction:"manipulation",
+                }}>{s}</button>
+              ))}
+            </div>
+          </div>
+          {/* Animation Speed */}
+          <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
+            <div><div style={label}>Animation Speed</div><div style={sub}>Card fly and sweep animations</div></div>
+            <div style={{display:"flex", gap:4}}>
+              {[["fast","Fast"],["normal","Normal"],["off","Off"]].map(([val,lbl])=>(
+                <button key={val} onClick={()=>setAnimSpeed(val)} style={{
+                  background: animSpeed===val ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
+                  border:`1.5px solid ${animSpeed===val ? VM.tealLight : "#ffffff33"}`,
+                  borderRadius:16, padding:"5px 14px", cursor:"pointer",
+                  color: animSpeed===val ? "#0a2320" : "#ffffffaa",
+                  fontWeight:800, fontSize:10, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
+                  textTransform:"uppercase", touchAction:"manipulation",
+                }}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          {/* Number of Players — coming soon */}
+          <div style={{...row, opacity:0.4}}>
+            <div>
+              <div style={label}>Number of Players <span style={{fontSize:9,color:VM.tealLight,fontStyle:"normal",letterSpacing:1,textTransform:"uppercase",fontWeight:700}}> Coming Soon</span></div>
+              <div style={sub}>2 / 3 / 4 player modes</div>
+            </div>
+            <div style={{display:"flex",gap:4,cursor:"not-allowed",pointerEvents:"none"}}>
+              {[2,3,4].map(n=>(
+                <div key={n} style={{
+                  background: n===4 ? "#ffffff22" : "#ffffff08",
+                  border:`1.5px solid ${n===4?"#ffffff44":"#ffffff1a"}`,
+                  borderRadius:16, padding:"5px 12px",
+                  color: n===4?"#ffffffaa":"#ffffff44",
+                  fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY,
+                }}>{n}</div>
+              ))}
+            </div>
           </div>
           {/* Card Back */}
           <div style={{...row, borderBottom:"none", flexDirection:"column", alignItems:"flex-start", gap:10}}>
@@ -3301,6 +3391,21 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 The "Dimonds" spelling is so for at least 4 secret reasons.
                 <div style={{marginTop:8}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
               </div>
+              <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,lineHeight:1.7}}>
+                <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:6,fontStyle:"normal",letterSpacing:0.5}}>Engage</div>
+                <div style={{marginBottom:4}}>
+                  <a href="https://www.VirtuaMakers.studio" target="_blank" rel="noopener noreferrer"
+                    style={{color:VM.tealLight,textDecoration:"none",fontStyle:"normal"}}>
+                    Website — www.VirtuaMakers.studio
+                  </a>
+                </div>
+                <div>
+                  <a href="mailto:VirtuaMakers@Outlook.com"
+                    style={{color:VM.tealLight,textDecoration:"none",fontStyle:"normal"}}>
+                    Email — VirtuaMakers@Outlook.com
+                  </a>
+                </div>
+              </div>
               <div style={{marginTop:18,textAlign:"center",color:"#c9a84c99",fontSize:11,letterSpacing:1.5,fontFamily:FONT_UI}}>
                 VirtuaMakers © 2026
               </div>
@@ -3342,6 +3447,15 @@ function DiamondsGame() {
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
   const [autoCompleteTricks, setAutoCompleteTricks] = useState(true);
+  const [cardGlowHints, setCardGlowHints] = useState(true);
+  const [winScore, setWinScore] = useState(WIN_SCORE);
+  const winScoreRef = useRef(WIN_SCORE);
+  useEffect(() => { winScoreRef.current = winScore; }, [winScore]);
+  const [animSpeed, setAnimSpeed] = useState("normal");
+  const animSpeedRef = useRef("normal");
+  useEffect(() => { animSpeedRef.current = animSpeed; }, [animSpeed]);
+  const [showCommuniques, setShowCommuniques] = useState(true);
+  const [scoreTally, setScoreTally] = useState("round"); // "point" | "round" | "game"
 
   // Keep the module-level sound flag in sync with React state
   useEffect(() => { setSoundEnabled(soundOn); }, [soundOn]);
@@ -3472,7 +3586,7 @@ function DiamondsGame() {
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌆", setName:"Showdown", cards:[] });
       soundTheSteal();
       const newTotal = totalScores.map((s,i) => s + newRS[i]);
-      if (newTotal.some(s => s >= WIN_SCORE)) {
+      if (newTotal.some(s => s >= winScoreRef.current)) {
         setTotalScores(newTotal);
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -3509,7 +3623,7 @@ function DiamondsGame() {
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌇", setName:"The Steal", cards:[] });
       soundTheSteal();
       const newTotal = totalScores.map((s,i) => s + newRS[i]);
-      if (newTotal.some(s => s >= WIN_SCORE)) {
+      if (newTotal.some(s => s >= winScoreRef.current)) {
         setTotalScores(newTotal);
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -3544,7 +3658,7 @@ function DiamondsGame() {
       addLog(`🔥 ${allNames[cp]} triggers RIOT! +${pts} pts. Round ends!`);
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🔥", setName:"Riot", cards:riotCards||[] });
       soundRiot();
-      const gameOver = newTotal.some(s => s >= WIN_SCORE);
+      const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
         setRoundScores(newRound);
         setTotalScores(newTotal);
@@ -3641,7 +3755,7 @@ function DiamondsGame() {
           addLog(`💎 ${allNames[cp]} cashes in Rule of 4! +${pts} pts`);
           logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards:quad4 });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
-          if (newTotal.some(s => s >= WIN_SCORE)) {
+          if (newTotal.some(s => s >= winScoreRef.current)) {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
@@ -3678,7 +3792,7 @@ function DiamondsGame() {
           addLog(`🦅 ${allNames[cp]} cashes in Rule of 3! +${pts} pts`);
           logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🦅", setName:"Rule of 3", cards:trio });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
-          if (newTotal.some(s => s >= WIN_SCORE)) {
+          if (newTotal.some(s => s >= winScoreRef.current)) {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
@@ -3715,7 +3829,7 @@ function DiamondsGame() {
           addLog(`💍 ${allNames[cp]} cashes in Rule of 2! +${pts} pts`);
           logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards:quad });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
-          if (newTotal.some(s => s >= WIN_SCORE)) {
+          if (newTotal.some(s => s >= winScoreRef.current)) {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
@@ -4127,7 +4241,7 @@ function DiamondsGame() {
 
     // Check if any player has hit 80 mid-trick
     const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
-    const gameWon = newTotal.some(s=>s>=WIN_SCORE);
+    const gameWon = newTotal.some(s=>s>=winScoreRef.current);
 
     const resultObj = {
       winnerIdx: winner,
@@ -4318,7 +4432,7 @@ function DiamondsGame() {
     const allEmpty = newHands.every(h=>h.length===0);
     if (allEmpty) {
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
-      if (newTotal.some(s=>s>=WIN_SCORE)) { setTotalScores(newTotal); setPendingFireworks(true); }
+      if (newTotal.some(s=>s>=winScoreRef.current)) { setTotalScores(newTotal); setPendingFireworks(true); }
     }
   }
 
@@ -4370,7 +4484,7 @@ function DiamondsGame() {
     setRoundScores(newRound);
     const newTotal = totalScores.map((s,i) => s + newRound[i]);
     setTotalScores(newTotal);
-    const gameWon = newTotal.some(s=>s>=WIN_SCORE);
+    const gameWon = newTotal.some(s=>s>=winScoreRef.current);
     addLog(`🎴 ${allNames[jackPlayerIdx]} summons The Ace of Spades! Joker BLOCKED! ${allNames[aceHolderIdx]} gets +${bonus}! ${allNames[jackPlayerIdx]} wins the trick!`);
     soundAceBlocks();
     const updatedResult = { ...resultObj, winnerIdx: jackPlayerIdx, jokerWin: false, jackDiamondRob: false, aceBlocked: true, aceBlockedJoker: true, robbinSummon: true };
@@ -4414,7 +4528,7 @@ function DiamondsGame() {
     }
     setRoundScores(finalRound);
     const newTotal = totalScores.map((s,i) => s + finalRound[i]);
-    const gameWon = newTotal.some(s => s >= WIN_SCORE);
+    const gameWon = newTotal.some(s => s >= winScoreRef.current);
     const finalResult = {
       ...baseResultObj,
       aceBlocked: totalBlocked > 0,
@@ -4470,7 +4584,7 @@ function DiamondsGame() {
     setHands(newHands);
     setRoundScores(newRound);
     setTotalScores(newTotal);
-    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -4499,7 +4613,7 @@ function DiamondsGame() {
     setHands(newHands);
     setRoundScores(newRound);
     setTotalScores(newTotal);
-    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -4585,7 +4699,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx:riotState.playerIdx, trickNum:tricksPlayed+1, points:RIOT_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🔥", setName:"Riot", cards:riotState.cards||[] });
     soundRiot();
     setRiotState(null);
-    const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+    const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
       setRoundScores(newRound);
       setTotalScores(newTotal);
@@ -4645,7 +4759,7 @@ function DiamondsGame() {
     if (allEmpty) {
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
       setTotalScores(newTotal);
-      if (newTotal.some(s=>s>=WIN_SCORE)) setPendingFireworks(true);
+      if (newTotal.some(s=>s>=winScoreRef.current)) setPendingFireworks(true);
     }
   }
 
@@ -4758,7 +4872,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🦅", setName:"Rule of 3", cards });
     setRuleOfThreeOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
-    if (newTotal.some(s => s >= WIN_SCORE)) {
+    if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -4800,7 +4914,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards });
     setSwingingParadoxOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
-    if (newTotal.some(s => s >= WIN_SCORE)) {
+    if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -4842,7 +4956,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards });
     setRuleFourOffered(prev => { const n=[...prev]; n[playerIdx]=null; return n; });
     const newTotal = totalScores.map((s,i) => s + newRS[i]);
-    if (newTotal.some(s => s >= WIN_SCORE)) {
+    if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
@@ -4941,7 +5055,7 @@ function DiamondsGame() {
     // American Family win — end round immediately
     if (trickResult?.americanFamily) {
       setTrickResult(null);
-      const gameOver = totalScores.some(s=>s>=WIN_SCORE);
+      const gameOver = totalScores.some(s=>s>=winScoreRef.current);
       if (gameOver) {
         const _place = 1 + totalScores.filter((s,i) => s > totalScores[0] || (s === totalScores[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,_place)));
@@ -4982,7 +5096,7 @@ function DiamondsGame() {
       }
       const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
       setTotalScores(newTotal);
-      const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+      const gameOver = newTotal.some(s=>s>=winScoreRef.current);
       if (gameOver) {
         const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,_place)));
@@ -5005,7 +5119,7 @@ function DiamondsGame() {
       setTrickResult(null);
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
       setTotalScores(newTotal);
-      const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+      const gameOver = newTotal.some(s=>s>=winScoreRef.current);
       if (gameOver) {
         const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,_place)));
@@ -5043,7 +5157,7 @@ function DiamondsGame() {
       setHands([[],[],[],[]]);
       const newTotal = totalScores.map((s,i)=>s+(newRoundScores[i]||0));
       setTotalScores(newTotal);
-      const gameOver = newTotal.some(s=>s>=WIN_SCORE);
+      const gameOver = newTotal.some(s=>s>=winScoreRef.current);
       if (gameOver) {
         const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,_place)));
@@ -5104,9 +5218,10 @@ function DiamondsGame() {
       });
     });
     if (flyers.length === 0) return;
+    const dur = animSpeedRef.current === "off" ? 0 : animSpeedRef.current === "fast" ? 320 : 650;
+    if (dur === 0) return;
     setFlyingCards(flyers);
-    // Clear the flyers after the animation completes
-    setTimeout(() => setFlyingCards([]), 650);
+    setTimeout(() => setFlyingCards([]), dur);
   }
 
   // Anchor point for a player: their score panel for AI/others; the hand area for the human.
@@ -5126,6 +5241,8 @@ function DiamondsGame() {
   // Fly a single card from one player's anchor to another's (kidnap / rescue arc).
   function flyCardBetweenPlayers(card, fromIdx, toIdx, durMs=650) {
     if (typeof window === "undefined") return;
+    const dur = animSpeedRef.current === "off" ? 0 : animSpeedRef.current === "fast" ? Math.round(durMs * 0.5) : durMs;
+    if (dur === 0) return;
     const from = playerAnchor(fromIdx);
     const to = playerAnchor(toIdx);
     if (!from || !to) return;
@@ -5136,11 +5253,11 @@ function DiamondsGame() {
       toX: to.x, toY: to.y,
       arc: true,
     }]);
-    setTimeout(() => setFlyingCards([]), durMs);
+    setTimeout(() => setFlyingCards([]), dur);
   }
 
   function finishRound(fromAF) {
-    const gameOver = totalScores.some(s=>s>=WIN_SCORE);
+    const gameOver = totalScores.some(s=>s>=winScoreRef.current);
     setPhase(gameOver ? "gameover" : "roundover");
     setRoundNum(r=>r+1);
     setPendingAF(false);
@@ -5150,6 +5267,13 @@ function DiamondsGame() {
     startRound(totalScores);
     setRoundNum(r=>r);
   }
+
+  // Auto-advance round-over when scoreTally is "game" (skip the round summary)
+  useEffect(() => {
+    if (phase !== "roundover" || scoreTally !== "game") return;
+    const t = setTimeout(() => { startNextRound(); }, 1400);
+    return () => clearTimeout(t);
+  }, [phase, scoreTally]);
 
   // ---- AI turns ----
   useEffect(() => {
@@ -5243,7 +5367,7 @@ function DiamondsGame() {
       setHands([[],[],[],[]]);
       const newTotal = totalScores.map((s,i) => s + newRoundScores[i]);
       setTotalScores(newTotal);
-      const gameOver = newTotal.some(s => s >= WIN_SCORE);
+      const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
         const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1, Math.min(4, _place)));
@@ -5597,7 +5721,7 @@ function DiamondsGame() {
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks}/>}
+        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
         {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)}/>}
       </div>
     );
@@ -5679,13 +5803,13 @@ function DiamondsGame() {
     ? AMERICAN_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1)
     : 0;
   // Honor card glow: AF cards pulse gold when the set is available and the trick hasn't started
-  const afAvailForGlow = isPlayerTurn && phase === "playing" && !dealing &&
+  const afAvailForGlow = cardGlowHints && isPlayerTurn && phase === "playing" && !dealing &&
     trickPlays.length === 0 && checkAmericanFamily(hands[0] || []);
 
   // Set card glow: cards belonging to any other available playable set pulse gold (R1 excluded)
   const setGlowIds = (() => {
     const ids = new Set();
-    if (!isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
+    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
     const h0 = hands[0] || [];
     allRuleOfThreeCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     allRuleOfFourCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
@@ -5762,7 +5886,7 @@ function DiamondsGame() {
         {allNames.map((n,i)=>{
           const isLeading = i===turnOrder[currentTurn] && phase==="playing";
           const total = totalScores[i]||0;
-          const pct = Math.min(100, Math.round(total/WIN_SCORE*100));
+          const pct = Math.min(100, Math.round(total/winScore*100));
           return (
             <div key={n} ref={el => scorePanelRefs.current[i] = el} style={{
               background: isLeading?"rgba(75,195,175,0.16)":"rgba(255,255,255,0.04)",
@@ -5797,6 +5921,15 @@ function DiamondsGame() {
           );
         })}
       </div>
+
+      {/* COMMUNIQUES — game event log strip */}
+      {showCommuniques && gameLog.length > 0 && (
+        <div style={{padding:"2px 10px",borderBottom:"1px solid #ffffff08",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
+          {gameLog.slice(0,3).map((msg,i)=>(
+            <span key={i} style={{fontSize:9,color: i===0?"#ffffffbb":"#ffffff55",fontFamily:FONT_UI,marginRight:16}}>{msg}</span>
+          ))}
+        </div>
+      )}
 
       {/* AI OPPONENTS */}
       <div style={{display:"flex",gap:6,padding:"4px 12px",flexShrink:0}}>
@@ -6112,7 +6245,7 @@ function DiamondsGame() {
               addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 2"}! +${pts} pts`);
               logRoundEvent({ type:"set", playerIdx:0, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
               const newTotal = totalScores.map((s,i) => s + newRS[i]);
-              if (newTotal.some(s => s >= WIN_SCORE)) {
+              if (newTotal.some(s => s >= winScoreRef.current)) {
                 setTotalScores(newTotal);
                 setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
                 setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
@@ -6773,7 +6906,7 @@ function DiamondsGame() {
           result={trickResult}
           allNames={allNames}
           onContinue={afterTrickResult}
-          isGameOver={pendingFireworks || totalScores.some(s=>s>=WIN_SCORE)}
+          isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
           isGoldenAge={goldenAgeActive}
         />
@@ -6807,7 +6940,7 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
