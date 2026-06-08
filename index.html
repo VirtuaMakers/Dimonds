@@ -5823,6 +5823,18 @@ function DiamondsGame() {
     return ids;
   })();
 
+  // Locked-set glow: dim blue pulse when leading, for combos locked behind unbroken dimonds
+  const lockedSetGlowIds = (() => {
+    const ids = new Set();
+    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0 || diamondsBroken) return ids;
+    const h0 = hands[0] || [];
+    allRuleOfThreeCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
+    allRuleOfFourCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
+    allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
+    const lockedRiot = checkRiot(h0, true); if (lockedRiot) lockedRiot.forEach(c => { if (c.suit==="♦") ids.add(c.id); });
+    return ids;
+  })();
+
   return (
     <div style={{
       height:"100dvh",
@@ -6149,6 +6161,7 @@ function DiamondsGame() {
               const showGlow = isPlayerTurn && isLegal && !isSelected;
               const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
               const isSetCard = !isHonorCard && setGlowIds.has(card.id);
+              const isLockedSetCard = !isHonorCard && !isSetCard && lockedSetGlowIds.has(card.id);
 
               return (
                 <div
@@ -6183,6 +6196,8 @@ function DiamondsGame() {
                       ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
                       : isSetCard
                       ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
+                      : isLockedSetCard
+                      ? "drop-shadow(0 0 0 rgba(100,160,255,0))"
                       : showGlow
                       ? "drop-shadow(0 0 0 rgba(75,195,175,0))"
                       : "none",
@@ -6194,6 +6209,8 @@ function DiamondsGame() {
                       ? `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`
                       : isSetCard
                       ? `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`
+                      : isLockedSetCard
+                      ? `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`
                       : showGlow ? `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite` : "none",
                     // deck origin: cards fly up from bottom-center
                     "--deal-dx": `${-xPos*0.5}px`,
@@ -6964,7 +6981,7 @@ function DiamondsGame() {
           }}>
             Dimonds are broken<br/>
             <span style={{color:"#e2c97e",fontWeight:700}}>— dimonds become trump suit!</span><br/>
-            <span style={{fontSize:12,opacity:0.75}}>Non-Prestige Sets using Dimonds can now be played.</span>
+            <span style={{fontSize:12,opacity:0.75}}>Standard Sets using Dimonds can now be played.</span>
           </div>
         </EventBox>
       )}
@@ -6997,6 +7014,10 @@ function DiamondsGame() {
         @keyframes honorRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
+        }
+        @keyframes lockedRipple {
+          0%,100% { filter: drop-shadow(0 0 0 rgba(100,160,255,0)); }
+          50% { filter: drop-shadow(0 0 5px rgba(100,160,255,0.45)); }
         }
         [data-setpanel]::-webkit-scrollbar { width: 3px; background: transparent; }
         [data-setpanel]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.4); border-radius: 4px; }
