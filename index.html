@@ -2718,7 +2718,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE }) {
+function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
 
@@ -2974,7 +2974,8 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         ))}
         {noteText("Redeeming the most sets does not always win the most points!")}
 
-        <div style={{marginTop:16,textAlign:"center"}}>
+        <div style={{marginTop:16,textAlign:"center",display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
+          {onBack && <GoldBtn onClick={onBack} secondary small>← Back</GoldBtn>}
           <GoldBtn onClick={onContinue}>{continueLabel}</GoldBtn>
         </div>
       </div>
@@ -3001,6 +3002,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
         gameSetsPerPlayer={gameSetsPerPlayer}
         continueLabel="New Game"
         winScore={winScore}
+        onBack={()=>setShowBreakdown(false)}
       />
     );
   }
