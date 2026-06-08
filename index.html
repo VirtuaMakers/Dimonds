@@ -3059,7 +3059,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -3088,6 +3088,18 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
               touchAction:"manipulation",
             }}>{soundOn ? "🔊 ON" : "🔇 OFF"}</button>
+          </div>
+          {/* Auto-complete */}
+          <div style={row}>
+            <div><div style={label}>Auto-Complete Tricks</div><div style={sub}>Skip pointless tricks when no dimonds remain</div></div>
+            <button onClick={()=>setAutoCompleteTricks(s=>!s)} style={{
+              background: autoCompleteTricks ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff18",
+              border:`1.5px solid ${autoCompleteTricks ? VM.tealLight : "#ffffff33"}`,
+              borderRadius:20, padding:"6px 16px", cursor:"pointer",
+              color: autoCompleteTricks ? "#0a2320" : "#ffffffaa",
+              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
+              touchAction:"manipulation",
+            }}>{autoCompleteTricks ? "ON" : "OFF"}</button>
           </div>
           {/* Card Back */}
           <div style={{...row, borderBottom:"none", flexDirection:"column", alignItems:"flex-start", gap:10}}>
@@ -3329,6 +3341,7 @@ function DiamondsGame() {
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
+  const [autoCompleteTricks, setAutoCompleteTricks] = useState(true);
 
   // Keep the module-level sound flag in sync with React state
   useEffect(() => { setSoundEnabled(soundOn); }, [soundOn]);
@@ -4985,7 +4998,7 @@ function DiamondsGame() {
     // AUTO-COMPLETE: no diamonds remain anywhere → skip remaining pointless tricks
     const anyDiamondsLeft = hands.some(h => h.some(c => isDiamond(c)));
     const anyCardsLeft = hands.some(h => h.length > 0);
-    if (anyCardsLeft && !anyDiamondsLeft) {
+    if (autoCompleteTricks && anyCardsLeft && !anyDiamondsLeft) {
       const totalLeft = hands.reduce((s,h) => s+h.length, 0);
       addLog(`✨ No dimonds remain — ${totalLeft} pointless trick${totalLeft!==1?"s":""} auto-completed`);
       setHands([[],[],[],[]]);
@@ -5012,7 +5025,7 @@ function DiamondsGame() {
     const humanNoDiamonds = soloIsHuman && !hands[0].some(c => isDiamond(c));
     const soloCards = playersWithCards.length === 1 ? hands[playersWithCards[0]] : [];
     const soloNoDiamonds = !soloCards.some(c => isDiamond(c));
-    if (playersWithCards.length === 1 && soloNoDiamonds && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
+    if (autoCompleteTricks && playersWithCards.length === 1 && soloNoDiamonds && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
       const soloPlayer = playersWithCards[0];
       const GA = goldenAgeRef.current ? 2 : 1;
       const dimondPts = soloCards.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
@@ -5584,7 +5597,7 @@ function DiamondsGame() {
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
+        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks}/>}
         {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)}/>}
       </div>
     );
@@ -6161,7 +6174,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r2-${i}`} onClick={()=>{ setSwingingParadoxState({playerIdx:0,cards:combo,continuation:null}); setPhase("swingingparadox_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>💍 Rule of 2</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>💍 Rule of 2</span><span style={{opacity:0.75}}>+{SWINGING_PARADOX_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
                 </button>
               );
@@ -6171,7 +6186,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r3-${i}`} onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:combo,continuation:null}); setPhase("ruleofthree_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🦅 Rule of 3 +{RULE_OF_THREE_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🦅 Rule of 3</span><span style={{opacity:0.75}}>+{RULE_OF_THREE_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
                 </button>
               );
@@ -6181,7 +6198,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key={`r4-${i}`} onClick={()=>{ setRuleFourState({playerIdx:0,cards:combo,continuation:null}); setPhase("rulefour_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>💎 Rule of 4 +{RULE_OF_FOUR_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>💎 Rule of 4</span><span style={{opacity:0.75}}>+{RULE_OF_FOUR_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
                 </button>
               );
@@ -6191,7 +6210,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="riot" onClick={()=>{ setRiotState({playerIdx:0,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🔥 Riot +{RIOT_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>×{riotAvail.length} {riotSuit}</span>
                 </button>
               );
@@ -6202,7 +6223,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🌆 Showdown +{SHOWDOWN_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{sdLabel}</span>
                 </button>
               );
@@ -6213,7 +6236,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="st" onClick={()=>{ setTheStealState({playerIdx:0,hands:hands.map(h=>[...h])}); setPhase("thesteal"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🌇 The Steal +{THE_STEAL_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🌇 The Steal</span><span style={{opacity:0.75}}>+{THE_STEAL_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{stLabel}</span>
                 </button>
               );
@@ -6222,7 +6247,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="af" onClick={()=>setPhase("americanfamily_offer")}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🏛️ Am. Family +{AMERICAN_FAMILY_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🏛️ Am. Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>J♦ / Q♦ / K♦ / A♦</span>
                 </button>
               );
@@ -6231,7 +6258,9 @@ function DiamondsGame() {
               setButtons.push(
                 <button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{letterSpacing:"-0.5px"}}>🤖 Golden Age +{ACES_LOW_BONUS*GA}</span>
+                  <span style={{display:"flex",alignItems:"center",gap:6,letterSpacing:"-0.5px"}}>
+                    <span>🤖 Golden Age</span><span style={{opacity:0.75}}>+{ACES_LOW_BONUS*GA}</span>
+                  </span>
                   <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>A♠ / A♥ / A♣ / A♦</span>
                 </button>
               );
@@ -6778,7 +6807,7 @@ function DiamondsGame() {
 
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
