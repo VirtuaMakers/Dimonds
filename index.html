@@ -3407,7 +3407,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
-                {num:"e.",title:"🔥 Riot",text:(<>Any nine cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"e.",title:"🔥 Riot",text:(<>Any eight cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (A, J, Q, K, Joker) — always available, even before Dimonds are broken.",color:"#7ae8ff99"},
                 {num:"f.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
                 {num:"g.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
@@ -6174,7 +6174,7 @@ function DiamondsGame() {
               { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",      pts:"+13" },
               { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",           pts:"+16" },
               { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",           pts:"+18" },
-              { emoji:"🔥", name:"Riot",         desc:"9 of a Kind",           pts:"+21" },
+              { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",           pts:"+21" },
               { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+25" },
               { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+30" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
@@ -6589,7 +6589,7 @@ function DiamondsGame() {
                           <span style={{fontSize:6,opacity:0.6}}>{label}</span>
                         </div>;
                       })}
-                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:6,opacity:0.6}}>×9 {rs}</span></div>; })()}
+                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:6,opacity:0.6}}>×8 {rs}</span></div>; })()}
                     </div>
                   </div>
                 )}
@@ -6728,7 +6728,7 @@ function DiamondsGame() {
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Set</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>RIOT</h2>
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
-              You hold 9 {riotState.suit} cards!
+              You hold 8 {riotState.suit} cards!
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
               End the Round: +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
@@ -6751,7 +6751,7 @@ function DiamondsGame() {
       {phase==="riot_event" && riotState && (
         <EventBox borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>9 {riotState.suit} cards redeemed — Round over!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>8 {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{riotState.points} pts 🔥</span>
           </div>
