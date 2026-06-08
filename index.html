@@ -5960,7 +5960,7 @@ function DiamondsGame() {
     const h0 = hands[0] || [];
     allRuleOfThreeCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
     allRuleOfFourCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
-    allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
+    // SP combos are always diamond-locked and the locked button already communicates them — no card glow needed
     const lockedRiot = checkRiot(h0, true); if (lockedRiot) lockedRiot.forEach(c => { if (c.suit==="♦") ids.add(c.id); });
     return ids;
   })();
@@ -6323,28 +6323,26 @@ function DiamondsGame() {
                     cursor: isPlayerTurn ? "pointer" : "default",
                     transition:"bottom 0.15s ease, left 0.18s ease, filter 0.2s ease",
                     touchAction:"manipulation",
-                    filter: (!isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id)))
-                      ? "brightness(0.55)"
-                      : isHonorCard && !isSelected
-                      ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
-                      : isSetCard
-                      ? "drop-shadow(0 0 0 rgba(201,168,76,0))"
-                      : isLockedSetCard
-                      ? "drop-shadow(0 0 0 rgba(100,160,255,0))"
-                      : showGlow
-                      ? "drop-shadow(0 0 0 rgba(75,195,175,0))"
-                      : "none",
-                    animation: dealing
-                      ? `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`
-                      : ci === dealRevealIdx - 1
-                      ? "cardFlip 0.18s ease-out"
-                      : isHonorCard && !isSelected
-                      ? `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`
-                      : isSetCard
-                      ? `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`
-                      : isLockedSetCard
-                      ? `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`
-                      : showGlow ? `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite` : "none",
+                    filter: (() => {
+                      const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
+                      if (isDimmed) return "brightness(0.55)";
+                      if (isHonorCard && !isSelected) return "drop-shadow(0 0 0 rgba(201,168,76,0))";
+                      if (isSetCard)       return "drop-shadow(0 0 0 rgba(201,168,76,0))";
+                      if (isLockedSetCard) return "drop-shadow(0 0 0 rgba(100,160,255,0))";
+                      if (showGlow)        return "drop-shadow(0 0 0 rgba(75,195,175,0))";
+                      return "none";
+                    })(),
+                    animation: (() => {
+                      const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
+                      if (dealing) return `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`;
+                      if (ci === dealRevealIdx - 1) return "cardFlip 0.18s ease-out";
+                      if (isDimmed) return "none";
+                      if (isHonorCard && !isSelected) return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      if (isSetCard)       return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      if (isLockedSetCard) return `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`;
+                      if (showGlow)        return `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      return "none";
+                    })(),
                     // deck origin: cards fly up from bottom-center
                     "--deal-dx": `${-xPos*0.5}px`,
                     "--deal-dy": "120px",
@@ -6462,7 +6460,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>💍 Rule of 2</span><span style={{opacity:0.75}}>+{SWINGING_PARADOX_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{p1} / {p2}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
                 </button>
               );
             });
@@ -6474,7 +6472,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🦅 Rule of 3</span><span style={{opacity:0.75}}>+{RULE_OF_THREE_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
                 </button>
               );
             });
@@ -6486,7 +6484,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>💎 Rule of 4</span><span style={{opacity:0.75}}>+{RULE_OF_FOUR_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{label}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
                 </button>
               );
             });
@@ -6498,7 +6496,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>×{riotAvail.length} {riotSuit}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>×{riotAvail.length} {riotSuit}</span>
                 </button>
               );
             }
@@ -6511,7 +6509,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{sdLabel}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{sdLabel}</span>
                 </button>
               );
             }
@@ -6524,7 +6522,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🌇 The Steal</span><span style={{opacity:0.75}}>+{THE_STEAL_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>{stLabel}</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{stLabel}</span>
                 </button>
               );
             }
@@ -6535,7 +6533,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🏛️ Am. Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>J♦ / Q♦ / K♦ / A♦</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>J♦ / Q♦ / K♦ / A♦</span>
                 </button>
               );
             }
@@ -6546,7 +6544,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🤖 Golden Age</span><span style={{opacity:0.75}}>+{ACES_LOW_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85}}>A♠ / A♥ / A♣ / A♦</span>
+                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>A♠ / A♥ / A♣ / A♦</span>
                 </button>
               );
             }
@@ -6572,24 +6570,24 @@ function DiamondsGame() {
                         const p2 = `${combo[3].id}/${combo[2].id}`;
                         return <div key={`r2l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💍 Rule of 2</span><span style={{opacity:0.6}}>+{SWINGING_PARADOX_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6}}>{p1} / {p2}</span>
+                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
                         </div>;
                       })}
                       {r3LockedCombos.map((combo,i) => {
                         const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
                         return <div key={`r3l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🦅 Rule of 3</span><span style={{opacity:0.6}}>+{RULE_OF_THREE_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6}}>{label}</span>
+                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                         </div>;
                       })}
                       {r4LockedCombos.map((combo,i) => {
                         const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
                         return <div key={`r4l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💎 Rule of 4</span><span style={{opacity:0.6}}>+{RULE_OF_FOUR_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6}}>{label}</span>
+                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                         </div>;
                       })}
-                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:6,opacity:0.6}}>×8 {rs}</span></div>; })()}
+                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>×8 {rs}</span></div>; })()}
                     </div>
                   </div>
                 )}
