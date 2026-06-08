@@ -6861,22 +6861,9 @@ function DiamondsGame() {
   );
 }
 
-class _ErrorBoundary extends React.Component {
-  constructor(p) { super(p); this.state = {err: null}; }
-  static getDerivedStateFromError(e) { return {err: e}; }
-  render() {
-    if (this.state.err) {
-      return React.createElement("div", {style:{padding:20,color:"#ff8888",fontFamily:"monospace",background:"#0a1f14",minHeight:"100dvh"}},
-        React.createElement("h2", null, "Runtime Error"),
-        React.createElement("pre", {style:{whiteSpace:"pre-wrap",wordBreak:"break-all"}}, String(this.state.err))
-      );
-    }
-    return this.props.children;
-  }
-}
 const _container = document.getElementById("root");
 const _root = ReactDOM.createRoot(_container);
-_root.render(React.createElement(_ErrorBoundary, null, React.createElement(DiamondsGame)));
+_root.render(React.createElement(DiamondsGame));
 </script>
 </body>
 </html>
