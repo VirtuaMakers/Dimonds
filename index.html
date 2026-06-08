@@ -3509,6 +3509,8 @@ function DiamondsGame() {
   useEffect(() => { animSpeedRef.current = animSpeed; }, [animSpeed]);
   const [showCommuniques, setShowCommuniques] = useState(true);
   const [scoreTally, setScoreTally] = useState("round"); // "point" | "round" | "game"
+  const scoreTallyRef = useRef("round");
+  useEffect(() => { scoreTallyRef.current = scoreTally; }, [scoreTally]);
 
   // Keep the module-level sound flag in sync with React state
   useEffect(() => { setSoundEnabled(soundOn); }, [soundOn]);
@@ -5348,11 +5350,12 @@ function DiamondsGame() {
   }
 
   // Auto-advance round-over when scoreTally is "game" (skip the round summary)
+  // Depends only on phase so switching to "game" mode mid-roundover doesn't skip the current summary
   useEffect(() => {
-    if (phase !== "roundover" || scoreTally !== "game") return;
+    if (phase !== "roundover" || scoreTallyRef.current !== "game") return;
     const t = setTimeout(() => { startNextRound(); }, 1400);
     return () => clearTimeout(t);
-  }, [phase, scoreTally]);
+  }, [phase]);
 
   // ---- AI turns ----
   useEffect(() => {
