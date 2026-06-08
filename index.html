@@ -7055,9 +7055,19 @@ function DiamondsGame() {
   );
 }
 
+class _ErrorBoundary extends React.Component {
+  constructor(p){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e){return{err:e};}
+  componentDidCatch(e,i){console.error("DIMONDS CRASH:",e,i);}
+  render(){
+    if(this.state.err)return React.createElement("div",{style:{padding:24,color:"#ff6b6b",fontFamily:"monospace",fontSize:13,background:"#0a1a17",minHeight:"100dvh",whiteSpace:"pre-wrap"}},
+      "RUNTIME ERROR — please screenshot this and report:\n\n"+String(this.state.err)+"\n\n"+(this.state.err?.stack||""));
+    return this.props.children;
+  }
+}
 const _container = document.getElementById("root");
 const _root = ReactDOM.createRoot(_container);
-_root.render(React.createElement(DiamondsGame));
+_root.render(React.createElement(_ErrorBoundary,null,React.createElement(DiamondsGame)));
 </script>
 </body>
 </html>
