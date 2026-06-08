@@ -140,18 +140,15 @@ function soundAceSuccess() {
   );
 }
 
-// Ace of Spades Rescue — heroic yet dark 5-note melody
-// E3 → G3 → B3 → C4 → G3, brass-like timbre with octave-below shadow
+// Ace of Spades Rescue — bright triumphant E major arpeggio, warm and uplifting
 function soundAceRescue() {
-  const notes = [164.81, 196.00, 246.94, 261.63, 196.00];
+  const notes = [329.63, 415.30, 493.88, 659.25, 523.25]; // E4 G#4 B4 E5 C5
   notes.forEach((f, i) => {
-    // Heroic brass-like layer
-    playTone({ freq:f, type:"sawtooth", volume:0.15, attack:0.015, decay:0.42, delay:i*0.11 });
-    // Warm body
-    playTone({ freq:f, type:"triangle", volume:0.18, attack:0.01,  decay:0.40, delay:i*0.11 });
-    // Dark octave-below shadow for gravitas
-    playTone({ freq:f/2, type:"sine",   volume:0.14, attack:0.02,  decay:0.45, delay:i*0.11 });
+    playTone({ freq:f, type:"sine",     volume:0.17, attack:0.012, decay:0.46, delay:i*0.10 });
+    playTone({ freq:f, type:"triangle", volume:0.13, attack:0.01,  decay:0.43, delay:i*0.10 });
   });
+  playTone({ freq:82.41,  type:"sine",     volume:0.12, attack:0.02, decay:0.55, delay:0.0  });
+  playTone({ freq:164.81, type:"triangle", volume:0.09, attack:0.02, decay:0.50, delay:0.12 });
 }
 
 // Aces Low — flying ace bugle motif. Rising military fanfare on a bugle's natural
@@ -294,11 +291,47 @@ function soundAceBlocks() {
   playTone({ freq:329, type:"sine", volume:0.22, attack:0.005, decay:0.55, delay:0.35 });
 }
 
-// Robbin Jack passes — brief resigned two-note shrug
+// Robbin Jack passes — gracious three-note major descent, at peace with passing
 function soundRobbinPass() {
-  [311, 233].forEach((f, i) =>
-    playTone({ freq:f, type:"triangle", volume:0.12, attack:0.01, decay:0.20, delay:i*0.11 })
+  [523, 440, 349].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.13, attack:0.012, decay:0.32, delay:i*0.13 })
   );
+  [261, 196].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.08, attack:0.02, decay:0.42, delay:i*0.16 })
+  );
+}
+
+// Robbin Jack robs — nimble ascending card-sharp run, quick pickpocket snap
+function soundRobbinJackRobs() {
+  [311, 370, 415, 466, 392].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.14, attack:0.007, decay:0.18, delay:i*0.07 })
+  );
+  playTone({ freq:233, type:"sawtooth", volume:0.11, attack:0.005, decay:0.28, delay:0.40 });
+}
+
+// Queen of Clubs thieves — sharp aristocratic descending steal, sparkle entry
+function soundQueenClubsThieves() {
+  playTone({ freq:1047, type:"sine", volume:0.08, attack:0.003, decay:0.10, delay:0.0 });
+  [784, 698, 622, 554].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.14, attack:0.008, decay:0.22, delay:0.06 + i*0.08 })
+  );
+  playTone({ freq:415, type:"sawtooth", volume:0.10, attack:0.01, decay:0.30, delay:0.44 });
+}
+
+// Queen of Clubs reallocates — smooth ascending-descending arc, neutral and decisive
+function soundQueenClubsReallocates() {
+  [523, 659, 784, 659, 523].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.13, attack:0.01, decay:0.26, delay:i*0.09 })
+  );
+  playTone({ freq:392, type:"triangle", volume:0.10, attack:0.02, decay:0.36, delay:0.42 });
+}
+
+// Ace of Spades — no rescue targets, bittersweet hollow win
+function soundAceNoTargets() {
+  [220, 277, 330, 277, 220].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.14, attack:0.01, decay:0.34, delay:i*0.11 })
+  );
+  playTone({ freq:110, type:"sine", volume:0.10, attack:0.02, decay:0.50, delay:0.0 });
 }
 
 // Riot — chaotic descending sawtooth burst + low rumble
@@ -4358,6 +4391,7 @@ function DiamondsGame() {
         const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
         if (!hasTargets) {
           addLog(`🃏 ${allNames[winner]} wins with the Joker (no cards left to kidnap)`);
+          soundJokerKidnaps();
           setTrickResult({ ...resultObj, jokerWin: true });
           if (gameWon) {
             setTotalScores(newTotal);
@@ -4433,6 +4467,7 @@ function DiamondsGame() {
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         if (!hasTargets) {
           addLog(`♠ ${allNames[acePlayerIdx]} (Ace of Spades) — no cards to rescue`);
+          soundAceNoTargets();
           setTrickResult({ ...resultObj, aceRescueAttempted: true });
           setPhase("trickresult");
           return;
@@ -4478,7 +4513,7 @@ function DiamondsGame() {
     addLog(isRobbin
       ? `🎴 ${allNames[jokerPlayerIdx]} (Robbin Jack) robs from ${allNames[fromPlayer]}!`
       : `🃏 ${allNames[jokerPlayerIdx]} kidnaps from ${allNames[fromPlayer]}!`);
-    soundJokerKidnaps();
+    if (isRobbin) soundRobbinJackRobs(); else soundJokerKidnaps();
     // Steal arc — card flies from victim to the thief
     flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
@@ -4625,6 +4660,7 @@ function DiamondsGame() {
       }
       // Rescue wanted to fire but no targets — mark for event box
       addLog(`♠ ${allNames[aceWinnerIdx]} (Ace of Spades) — no cards to rescue`);
+      soundAceNoTargets();
       setTrickResult({ ...finalResult, aceRescueAttempted: true });
       setAceRobChoiceState(null);
       if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
@@ -4855,6 +4891,7 @@ function DiamondsGame() {
       return h;
     });
     addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) thieves ${stolenCard.rank}${stolenCard.suit} from ${allNames[fromPlayer]}!`);
+    soundQueenClubsThieves();
     flyCardBetweenPlayers(stolenCard, fromPlayer, playerIdx);
     setHands(newHands);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
@@ -4874,6 +4911,7 @@ function DiamondsGame() {
       return h;
     });
     addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) moves ${movedCard.rank}${movedCard.suit} from ${allNames[fromPlayer]} to ${allNames[toPlayer]}!`);
+    soundQueenClubsReallocates();
     flyCardBetweenPlayers(movedCard, fromPlayer, toPlayer);
     setHands(newHands);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
@@ -5112,6 +5150,7 @@ function DiamondsGame() {
       const hasTargets = hands.some((h, i) => i !== jokerPlayerIdx && h.length > 0);
       if (!hasTargets) {
         addLog(`🃏 ${allNames[jokerPlayerIdx]} wins with the Joker (no cards left to kidnap)`);
+        soundJokerKidnaps();
         setTrickResult({ ...cleanResult, jokerWin: true });
         setPhase("trickresult");
         return;
@@ -5528,6 +5567,7 @@ function DiamondsGame() {
             return h;
           });
           addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${bestDiamond.rank}${bestDiamond.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
+          soundQueenClubsReallocates();
           flyCardBetweenPlayers(bestDiamond, takFrom, leader);
           setHands(newHandsRealloc);
           if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
@@ -5562,6 +5602,7 @@ function DiamondsGame() {
           return h;
         });
         addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) thieves ${stolenCard.rank}${stolenCard.suit} from ${allNames[target.fromPlayer]}!`);
+        soundQueenClubsThieves();
         flyCardBetweenPlayers(stolenCard, target.fromPlayer, playerIdx);
         setHands(newHands);
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
