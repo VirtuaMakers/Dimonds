@@ -2700,7 +2700,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const rescuerIdx = result.aceRescuerIdx ?? result.winnerIdx;
     const rescuedIsJoker = result.rescuedCard?.isJoker;
     const title = result.jokerLockedUp ? "Joker Locked Up + Rescue!"
-      : rescuedIsJoker ? "Ace of Spades Locks Up the Joker!"
+      : rescuedIsJoker ? (<>Ace of Spades<br/>Locks Up The Joker!</>)
       : "Ace of Spades Rescues!";
     return (
       <EventBox borderColor="#1a3ab8" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue}>
