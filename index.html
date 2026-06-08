@@ -2230,10 +2230,11 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
   );
 }
 
-function Rule1Modal({ hand, allNames, onGive, onSkip, deckTheme }) {
+function Rule1Modal({ hand, allNames, onGive, onSkip, deckTheme, roundScores=[], scoreTally="round" }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
+  const showScores = scoreTally !== "game";
   return (
     <Modal>
       <div>
@@ -2264,6 +2265,11 @@ function Rule1Modal({ hand, allNames, onGive, onSkip, deckTheme }) {
                 }}>
                   <div style={{fontSize:18}}>{AI_PERSONAS[i-1]?.emoji}</div>
                   <div style={{color:selectedTarget===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
+                  {showScores && (
+                    <div style={{color:selectedTarget===i?"#c9a84c99":"#ffffff44",fontSize:10,marginTop:2,fontFamily:FONT_UI}}>
+                      {roundScores[i]||0} pts
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -6573,6 +6579,8 @@ function DiamondsGame() {
           onGive={handleRule1Give}
           onSkip={handleRule1Skip}
           deckTheme={deckTheme}
+          roundScores={roundScores}
+          scoreTally={scoreTally}
         />
       )}
 
