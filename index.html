@@ -3519,7 +3519,7 @@ function DiamondsGame() {
   const [showdownState, setShowdownState] = useState(null);
   const [showdownOffered, setShowdownOffered] = useState([false,false,false,false]);
   const [rule1State, setRule1State] = useState(null);
-  const [rule1UsedThisTurn, setRule1UsedThisTurn] = useState(false);
+  const [rule1UsedThisTurn, setRule1UsedThisTurn] = useState([false,false,false,false]);
   const [riotState, setRiotState] = useState(null);
   const [riotOffered, setRiotOffered] = useState([false,false,false,false]);
   const [ruleOfThreeState, setRuleOfThreeState] = useState(null);
@@ -3846,7 +3846,7 @@ function DiamondsGame() {
     }
 
     // Rule of 1 (Girl's Best Friend) — AI may give a diamond to burden the leader
-    if (!rule1UsedThisTurn) {
+    if (!rule1UsedThisTurn[cp]) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
       if (aiDimonds.length > 0 && Math.random() < 0.25) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
@@ -3863,7 +3863,7 @@ function DiamondsGame() {
         }
       }
     }
-  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length, diamondsBroken, rule1UsedThisTurn]);
+  }, [phase, currentTurn, dealing, dealRevealIdx, trickPlays.length, diamondsBroken, rule1UsedThisTurn[currentTurn]]);
 
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
@@ -3913,7 +3913,7 @@ function DiamondsGame() {
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
     setTrickPlays([]);
-    setRule1UsedThisTurn(false);
+    setRule1UsedThisTurn([false,false,false,false]);
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -3984,7 +3984,7 @@ function DiamondsGame() {
     const order = [0,1,2,3].map(i=>(leader+i)%4);
     setHands(newHands);
     setTrickPlays([]);
-    setRule1UsedThisTurn(false);
+    setRule1UsedThisTurn([false,false,false,false]);
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -4649,7 +4649,7 @@ function DiamondsGame() {
     });
     setHands(newHands);
     setRule1State(null);
-    setRule1UsedThisTurn(true);
+    setRule1UsedThisTurn(prev => { const n=[...prev]; n[giverIdx]=true; return n; });
     addLog(`💠 ${allNames[giverIdx]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
     if (!diamondsBrokenRef.current) {
       setDiamondsBroken(true);
@@ -5180,7 +5180,7 @@ function DiamondsGame() {
     setTurnOrder(newOrder);
     setCurrentTurn(0);
     setTrickPlays([]);
-    setRule1UsedThisTurn(false);
+    setRule1UsedThisTurn([false,false,false,false]);
     setSelectedCards([]);
     setTricksPlayed(t=>t+1);
     setIsFirstTrick(false);
@@ -6292,7 +6292,7 @@ function DiamondsGame() {
             const afAvail = checkAmericanFamily(h0);
             const gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
-            const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn;
+            const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
             const cardBtnBase = {
               borderRadius:8, padding:"4px 6px", fontSize:9, fontWeight:800,
               letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
