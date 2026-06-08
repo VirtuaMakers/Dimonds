@@ -2341,7 +2341,7 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
       <div>
         <div style={{textAlign:"center",marginBottom:16}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Ace of Spades Rescues</div>
-          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose a card to rescue.</h2>
+          <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose a card to Rescue/Lock Up into your hand.</h2>
           <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Inspect any hand, then take your pick.</p>
         </div>
         {jokerLockedUp && (
@@ -2401,9 +2401,15 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
         )}
 
         <div style={{textAlign:"center"}}>
-          <GoldBtn onClick={confirm} disabled={chosenCardIdx===null}>
-            Rescue This Card 🗡️
-          </GoldBtn>
+          {(() => {
+            const sel = chosenPlayer !== null && chosenCardIdx !== null ? hands[chosenPlayer]?.[chosenCardIdx] : null;
+            const isLockUp = sel && (sel.isJoker || isQueenClubs(sel));
+            return (
+              <GoldBtn onClick={confirm} disabled={chosenCardIdx===null}>
+                {isLockUp ? "Lock Up This Card 🔒" : "Rescue This Card 🗡️"}
+              </GoldBtn>
+            );
+          })()}
         </div>
       </div>
     </Modal>
