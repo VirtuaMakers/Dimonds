@@ -2233,7 +2233,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
 function Rule1Modal({ hand, allNames, onGive, onSkip, deckTheme }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
-  const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker);
+  const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
   return (
     <Modal>
       <div>
