@@ -3403,8 +3403,6 @@ function DiamondsGame() {
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
-  const diamondsBrokenRef = useRef(false);
-  useEffect(() => { diamondsBrokenRef.current = diamondsBroken; }, [diamondsBroken]);
   const roundEventLogRef = useRef([]); // accumulates events during the round
   const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
   const [roundEventLog, setRoundEventLog] = useState([]);
@@ -3414,6 +3412,8 @@ function DiamondsGame() {
   const [showAceCelebration, setShowAceCelebration] = useState(false);
   const [pendingFireworks, setPendingFireworks] = useState(false);
   const [diamondsBroken, setDiamondsBroken] = useState(false);
+  const diamondsBrokenRef = useRef(false);
+  useEffect(() => { diamondsBrokenRef.current = diamondsBroken; }, [diamondsBroken]);
   const [pendingPlayContinuation, setPendingPlayContinuation] = useState(null); // CYT interrupt
   const allNames = [playerName, ...AI_NAMES];
 
