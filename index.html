@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="Dimonds">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Dimonds</title>
+<!-- Preload card portrait images so they're ready before first render -->
+<link rel="preload" href="images/acespades.jpg" as="image">
+<link rel="preload" href="images/joker.jpg" as="image">
 <style>
   html, body {
     margin: 0; padding: 0;
@@ -1722,8 +1725,11 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
           }}>
             <img
               src={JOKER_IMG}
+              loading="eager"
+              fetchPriority="high"
               style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}
               alt="The Joker"
+              onError={e=>{e.currentTarget.style.display="none";}}
             />
           </div>
         </>
@@ -1741,11 +1747,16 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
               borderRadius:4,
               overflow:"hidden",
               zIndex:1,
+              display:"flex", alignItems:"center", justifyContent:"center",
+              background:"#0a1f14",
             }}>
               <img
                 src={ACESPADES_IMG}
+                loading="eager"
+                fetchPriority="high"
                 style={{width:"100%", height:"100%", objectFit:"cover", display:"block"}}
                 alt="Ace of Spades"
+                onError={e=>{e.currentTarget.style.display="none";}}
               />
             </div>
             {/* Top-left index */}
