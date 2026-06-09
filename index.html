@@ -3461,7 +3461,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"1.",title:"🎯 Objective",text:"Be first to 80 points across multiple rounds.",sub:false},
                 {num:"2.",title:"🃏 The Deck",text:(<>53 cards: standard 52 + 1 Joker.<br/>Aces are low.</>),sub:false},
                 {num:"3.",title:"Gameplay",text:"",sub:false},
-                {num:"a.",title:"🔄 Leading",text:"The player with the lowest ♣ leads the first trick each round with that card.",sub:true},
+                {num:"a.",title:"🔄 Leading",text:"The player with the lowest ♣ leads the first trick each round, and must open with a Club.",sub:true},
                 {num:"b.",title:"🎩 Trick Rules",text:"Follow led suit. Highest card wins. After Dimonds broken, they beat any other suit (becoming trump suit).",sub:true},
                 {num:"c.",title:"🏁 End of Round",text:"Play to the end of any trick you can; any dimonds held at the end you add to your score!",sub:true},
                 {num:"d.",title:"📝 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e",fontSize:13}}>K♦️+5 pts., Q♦️+4 pts., J♦️+3 pts., A♦️+2 pts., #s♦️1 pt.</strong></>),sub:true},
@@ -3720,10 +3720,8 @@ function DiamondsGame() {
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
   const ledSuit = trickPlays.length > 0 && !trickPlays[0].card.isJoker ? trickPlays[0].card.suit : null;
-  const openingClub = (isFirstTrick && trickPlays.length === 0 && isPlayerTurn)
-    ? (hands[0]?.filter(c => c.suit==="♣" && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank])[0] ?? null)
-    : null;
-  const mustOpenWithClub = openingClub !== null;
+  const mustOpenWithClub = isFirstTrick && trickPlays.length === 0 && isPlayerTurn
+    && (hands[0]?.some(c => c.suit==="♣" && !c.isJoker) ?? false);
 
   // Auto-skip human player if their hand is empty
   useEffect(() => {
@@ -4271,7 +4269,7 @@ function DiamondsGame() {
     if (!isPlayerTurn) return;
     // Guard against ghost plays: card must still be in hand
     if (!card.isJoker && !hands[0].some(c => c.id === card.id)) return;
-    if (mustOpenWithClub && card.id !== openingClub.id) return;
+    if (mustOpenWithClub && !(card.suit==="♣" && !card.isJoker)) return;
     // Joker is ALWAYS playable — no other restrictions
     if (card.isJoker) { submitPlay(0, card); return; }
     // Trump rule: can't lead with a diamond until diamonds are broken
@@ -6020,7 +6018,7 @@ function DiamondsGame() {
   // Validate if selected card is legal to play
   const selectedIsLegal = selectedCard && (
     mustOpenWithClub
-      ? (selectedCard.id === openingClub.id)
+      ? (selectedCard.suit==="♣" && !selectedCard.isJoker)
       : selectedCard.isJoker
       ? true
       : trickPlays.length === 0
@@ -6361,7 +6359,7 @@ function DiamondsGame() {
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
             fontWeight:700, fontFamily:FONT_UI, lineHeight:"14px",
           }}>
-            {isPlayerTurn ? mustOpenWithClub ? `Play your ${openingClub.rank}♣ to open` : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+            {isPlayerTurn ? mustOpenWithClub ? "Lead with a ♣ to open" : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
           </div>
           {/* Playing + Re-Sort — aligned with left/right edges of the card fan */}
           {(() => {
@@ -6429,7 +6427,7 @@ function DiamondsGame() {
             const selIdx = selectedCards.length === 1 ? playerHand.findIndex(c => c.id === selectedCards[0]?.id) : -1;
             return playerHand.map((card, ci) => {
               const isLegal = mustOpenWithClub
-                ? (card.id === openingClub.id)
+                ? (card.suit==="♣" && !card.isJoker)
                 : card.isJoker
                 ? true
                 : trickPlays.length === 0
