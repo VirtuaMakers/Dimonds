@@ -2133,7 +2133,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
 }
 
 // ===== Queen of Clubs modal — Thievin' or Reallocate =====
-function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme }) {
+function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme, totalScores=[] }) {
   const [mode, setMode] = React.useState("thieve");
   const others = [0,1,2,3].filter(i => i !== playerIdx && hands[i].length > 0);
 
@@ -2234,6 +2234,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
               }}>
                 <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
                 <div style={{color:realFrom===i?"#8a9fe0":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
+                {totalScores[i] !== undefined && <div style={{color:"#ffffff44",fontSize:10}}>{totalScores[i]} pts</div>}
               </div>
             ))}
           </div>
@@ -2266,6 +2267,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
                 }}>
                   <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
                   <div style={{color:realTo===i?"#7ec8a4":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
+                  {totalScores[i] !== undefined && <div style={{color:"#ffffff44",fontSize:10}}>{totalScores[i]} pts</div>}
                 </div>
               ))}
             </div>
@@ -6971,6 +6973,7 @@ function DiamondsGame() {
           onReallocate={handleQueenClubsReallocate}
           onSkip={handleQueenClubsSkip}
           deckTheme={deckTheme}
+          totalScores={totalScores}
         />
       )}
 
