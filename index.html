@@ -2148,7 +2148,8 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
 
   const thieveHand = thieveFrom !== null ? sortHandBySuit(hands[thieveFrom]) : [];
   const realHand   = realFrom  !== null ? sortHandBySuit(hands[realFrom])   : [];
-  const realToOptions = others.filter(i => i !== realFrom);
+  // Reallocate destination: any player except Q♣ player and source — empty hands allowed as recipients
+  const realToOptions = [0,1,2,3].filter(i => i !== playerIdx && i !== realFrom);
 
   function getOrigIdx(hand, rawHands, playerI, card) {
     return rawHands[playerI].findIndex(c => c.id === card.id);
@@ -3647,8 +3648,8 @@ function DiamondsGame() {
   const [kidnapState, setKidnapState] = useState(null);
   const [rescueState, setRescueState] = useState(null);
   const [queenClubsState, setQueenClubsState] = useState(null);
-  const queenClubsStateRef = useRef(null);
-  useEffect(() => { queenClubsStateRef.current = queenClubsState; }, [queenClubsState]);
+  const queenClubsStateRef = useRef(queenClubsState);
+  queenClubsStateRef.current = queenClubsState;
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -5642,12 +5643,14 @@ function DiamondsGame() {
       if (!state || state.playerIdx === 0) return;
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
 
-      // 30% chance to reallocate: take best diamond from a non-leader, give to the leader
+      // 30% chance to reallocate: take best diamond from a player with cards, give to the lowest-score player
+      // Destination can be any player (even with 0 cards) — only source must have cards
       const othersWithCards = [0,1,2,3].filter(i => i !== playerIdx && (currentHands[i]||[]).length > 0);
-      if (othersWithCards.length >= 2 && Math.random() < 0.30) {
-        const sortedByScore = [...othersWithCards].sort((a, b) => newTotal[a] - newTotal[b]);
-        const leader = sortedByScore[0];
-        const nonLeaders = sortedByScore.slice(1);
+      const allOthers = [0,1,2,3].filter(i => i !== playerIdx);
+      if (othersWithCards.length >= 1 && Math.random() < 0.30) {
+        const sortedByScore = [...allOthers].sort((a, b) => newTotal[a] - newTotal[b]);
+        const leader = sortedByScore[0]; // can be empty-handed
+        const nonLeaders = othersWithCards.filter(i => i !== leader); // source must have cards
         let bestDiamond = null, takFrom = -1, takFromIdx = -1, bestVal = -1;
         for (const p of nonLeaders) {
           (currentHands[p]||[]).forEach((card, ci) => {
