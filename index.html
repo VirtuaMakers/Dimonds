@@ -2841,7 +2841,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null }) {
+function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null, onMainMenu=null }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
 
@@ -3100,6 +3100,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         <div style={{marginTop:16,textAlign:"center",display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
           {onBack && <GoldBtn onClick={onBack} secondary small>← Back</GoldBtn>}
           <GoldBtn onClick={onContinue}>{continueLabel}</GoldBtn>
+          {onMainMenu && <GoldBtn onClick={onMainMenu} secondary small>Main Menu</GoldBtn>}
         </div>
       </div>
     </Modal>
@@ -3109,7 +3110,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0 }) {
+function GameOverModal({ scores, allNames, onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0 }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -3126,6 +3127,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
         continueLabel="New Game"
         winScore={winScore}
         onBack={()=>setShowBreakdown(false)}
+        onMainMenu={onMainMenu}
       />
     );
   }
@@ -3195,6 +3197,7 @@ function GameOverModal({ scores, allNames, onRestart, onShowCredits, gameTricksP
         )}
         <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:8,width:200,margin:"14px auto 0"}}>
           <GoldBtn onClick={onRestart} small>New Game</GoldBtn>
+          {onMainMenu && <GoldBtn onClick={onMainMenu} secondary small>Main Menu</GoldBtn>}
           <GoldBtn onClick={onShowCredits} secondary small>Credits</GoldBtn>
           <GoldBtn onClick={()=>setShowBreakdown(true)} secondary small>Round Tally</GoldBtn>
         </div>
@@ -7197,7 +7200,8 @@ function DiamondsGame() {
         <GameOverModal
           scores={totalScores}
           allNames={allNames}
-          onRestart={()=>{ setScreen("menu"); }}
+          onRestart={()=>{ startGame(); }}
+          onMainMenu={()=>{ setScreen("menu"); }}
           onShowCredits={()=>setShowCredits(true)}
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
