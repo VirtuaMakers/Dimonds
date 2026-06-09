@@ -3556,6 +3556,7 @@ function DiamondsGame() {
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
+  const [carouselPage, setCarouselPage] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
   const [autoCompleteTricks, setAutoCompleteTricks] = useState(true);
   const [cardGlowHints, setCardGlowHints] = useState(true);
@@ -5762,29 +5763,60 @@ function DiamondsGame() {
             </div>
           </div>
         </div>
-        {/* Single-row thumbnail strip — no wrapping */}
-        <div style={{display:"flex",gap:isWide?6:3,justifyContent:"center",flexWrap:"nowrap"}}>
-          {DECK_THEMES.map(t=>(
-            <div key={t.id} onClick={()=>setDeckTheme(t.id)} style={{
-              cursor:"pointer",textAlign:"center",flexShrink:0,
-              background: deckTheme===t.id?VM.tealLight+"22":"rgba(255,255,255,0.04)",
-              border:`1.5px solid ${deckTheme===t.id?VM.tealLight:"rgba(255,255,255,0.10)"}`,
-              borderRadius:7,padding:isWide?"6px 4px":"4px 2px",
-              transition:"all 0.15s",width:thumbW,
-              touchAction:"manipulation",
-            }}>
-              <div style={{
-                width:thumbCardW,height:thumbCardH,borderRadius:3,
-                border:`1px solid ${deckTheme===t.id?"#fff":"#ffffff55"}`,
-                margin:"0 auto 3px",
-                position:"relative",overflow:"hidden",
-              }}>
-                <PixelCardBack theme={t.id} w={thumbCardW} h={thumbCardH}/>
+        {/* Paged carousel — 4 thumbs visible at a time */}
+        {(()=>{
+          const pageSize = 4;
+          const totalPages = Math.ceil(DECK_THEMES.length / pageSize);
+          const pageDECK = DECK_THEMES.slice(carouselPage*pageSize, (carouselPage+1)*pageSize);
+          const arrowBtn = (disabled) => ({
+            width:28,height:28,borderRadius:"50%",padding:0,flexShrink:0,
+            background: disabled?"transparent":"rgba(255,255,255,0.08)",
+            border:`1.5px solid ${disabled?"rgba(255,255,255,0.12)":"rgba(255,255,255,0.28)"}`,
+            color: disabled?"rgba(255,255,255,0.2)":"#fff",
+            fontSize:20,lineHeight:"1",cursor:disabled?"default":"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            transition:"all 0.15s",touchAction:"manipulation",
+          });
+          return (
+            <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center"}}>
+              <div style={{display:"flex",alignItems:"center",gap:isWide?8:4}}>
+                <button onClick={()=>setCarouselPage(p=>Math.max(0,p-1))} disabled={carouselPage===0} style={arrowBtn(carouselPage===0)}>‹</button>
+                <div style={{display:"flex",gap:isWide?6:3}}>
+                  {pageDECK.map(t=>(
+                    <div key={t.id} onClick={()=>setDeckTheme(t.id)} style={{
+                      cursor:"pointer",textAlign:"center",flexShrink:0,
+                      background:deckTheme===t.id?VM.tealLight+"22":"rgba(255,255,255,0.04)",
+                      border:`1.5px solid ${deckTheme===t.id?VM.tealLight:"rgba(255,255,255,0.10)"}`,
+                      borderRadius:7,padding:isWide?"6px 4px":"4px 2px",
+                      transition:"all 0.15s",width:thumbW,touchAction:"manipulation",
+                    }}>
+                      <div style={{
+                        width:thumbCardW,height:thumbCardH,borderRadius:3,
+                        border:`1px solid ${deckTheme===t.id?"#fff":"#ffffff55"}`,
+                        margin:"0 auto 3px",position:"relative",overflow:"hidden",
+                      }}>
+                        <PixelCardBack theme={t.id} w={thumbCardW} h={thumbCardH}/>
+                      </div>
+                      <div style={{fontSize:isWide?11:9,lineHeight:1}}>{t.emoji}</div>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={()=>setCarouselPage(p=>Math.min(totalPages-1,p+1))} disabled={carouselPage>=totalPages-1} style={arrowBtn(carouselPage>=totalPages-1)}>›</button>
               </div>
-              <div style={{fontSize:isWide?11:9,lineHeight:1}}>{t.emoji}</div>
+              {totalPages>1&&(
+                <div style={{display:"flex",gap:5,justifyContent:"center"}}>
+                  {Array.from({length:totalPages},(_,i)=>(
+                    <div key={i} onClick={()=>setCarouselPage(i)} style={{
+                      width:6,height:6,borderRadius:"50%",cursor:"pointer",
+                      background:i===carouselPage?VM.tealLight:"rgba(255,255,255,0.25)",
+                      transition:"all 0.15s",
+                    }}/>
+                  ))}
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })()}
       </div>
     );
     const buttons = (
