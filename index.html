@@ -3823,7 +3823,7 @@ function DiamondsGame() {
     if (playersWithCards.length !== 1) return;
     const solo = playersWithCards[0];
     if (solo === 0) return; // Human plays their own cards out
-    if (hands[solo].some(c => isDiamond(c))) return; // Diamonds remain — play tricks out normally
+    if (hands[solo].some(c => isDiamond(c) || isAceSpades(c) || c.isJoker || isQueenClubs(c))) return; // Pointed or special-move cards remain — play out normally
     const timer = setTimeout(() => {
       setTrickResult({ winnerIdx: solo, plays: [], diamondsCaptured: [], autoClaim: true });
       setPhase("trickresult");
