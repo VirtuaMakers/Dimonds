@@ -6470,7 +6470,14 @@ function DiamondsGame() {
             const lockedBtnStyle = { ...cardBtnBase, background:"transparent", color:"#ffffff28", border:"1.5px solid #ffffff15", cursor:"default" };
             const setBtnStyle = { ...cardBtnBase, background:"linear-gradient(135deg,#c9a84c1a,#c9a84c0a)", color:VM.gold, border:"1.5px solid #c9a84c55", cursor:"pointer", touchAction:"manipulation" };
             const setButtons = [];
-            if (rule1Avail) setButtons.push(<button key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }} style={setBtnStyle}>💠 Rule of 1</button>);
+            if (rule1Avail) setButtons.push(
+              <button key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }} style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                <span style={{display:"flex",alignItems:"center",justifyContent:"flex-start",letterSpacing:"-0.5px",width:"100%"}}>
+                  <span>💠 Rule of 1</span>
+                </span>
+                <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>-1♦</span>
+              </button>
+            );
             spCombos.forEach((combo, i) => {
               const p1 = `${combo[1].id}/${combo[0].id}`;
               const p2 = `${combo[3].id}/${combo[2].id}`;
