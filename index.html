@@ -2290,7 +2290,7 @@ function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, round
           <div style={{marginBottom:14}}>
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>Give to which player?</div>
             <div style={{display:"flex",gap:6,justifyContent:"center"}}>
-              {[1,2,3].filter(i => (hands[i]?.length ?? 0) > 0).map(i => (
+              {[1,2,3].map(i => (
                 <div key={i} onClick={()=>setSelectedTarget(i)} style={{
                   background:selectedTarget===i?"#c9a84c22":"#ffffff08",
                   border:`1.5px solid ${selectedTarget===i?"#c9a84c":"#ffffff22"}`,
@@ -3959,7 +3959,6 @@ function DiamondsGame() {
         let bestTarget = -1, lowestScore = Infinity;
         for (let i = 0; i < 4; i++) {
           if (i === cp) continue;
-          if ((hands[i]?.length ?? 0) === 0) continue;
           if (combined[i] < lowestScore) { lowestScore = combined[i]; bestTarget = i; }
         }
         if (bestTarget !== -1) {
