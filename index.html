@@ -5736,9 +5736,9 @@ function DiamondsGame() {
         />
       </div>
     );
-    const thumbW = isWide ? 70 : 32;
-    const thumbCardW = isWide ? 44 : 20;
-    const thumbCardH = isWide ? 62 : 28;
+    const thumbW = isWide ? 84 : 42;
+    const thumbCardW = isWide ? 56 : 28;
+    const thumbCardH = isWide ? 78 : 39;
     const previewW = isWide ? 140 : 90;
     const previewH = isWide ? 196 : 126;
     const cardSelector = (
@@ -5765,10 +5765,10 @@ function DiamondsGame() {
             </div>
           </div>
         </div>
-        {/* 3D coverflow carousel — swipeable, bends cards around the sides */}
+        {/* 3D coverflow carousel — swipeable, arrows on each side */}
         {(()=>{
           const n = DECK_THEMES.length;
-          const spacing = isWide ? 76 : 44;
+          const spacing = isWide ? 88 : 50;
           const containerH = isWide ? thumbCardH + 26 : thumbCardH + 20;
           const totalPages = Math.ceil(n / 4);
 
@@ -5801,58 +5801,59 @@ function DiamondsGame() {
           };
 
           const arrowBtn = {
-            width:26,height:26,borderRadius:"50%",padding:0,flexShrink:0,
+            width:28,height:28,borderRadius:"50%",padding:0,flexShrink:0,
             background:"rgba(255,255,255,0.07)",border:"1.5px solid rgba(255,255,255,0.25)",
-            color:"#fff",fontSize:16,cursor:"pointer",touchAction:"manipulation",
+            color:"#fff",fontSize:18,cursor:"pointer",touchAction:"manipulation",
             display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.15s",
           };
 
           return (
             <div style={{display:"flex",flexDirection:"column",gap:6,alignItems:"center",width:"100%"}}>
-              {/* 3D viewport */}
-              <div
-                style={{
-                  position:"relative",width:"100%",height:containerH,overflow:"hidden",
-                  perspective:"560px",cursor:carouselDragging?"grabbing":"grab",
-                  touchAction:"none",userSelect:"none",
-                }}
-                onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
-              >
-                {DECK_THEMES.map((t,i) => {
-                  const offset = i - carouselPos;
-                  if (Math.abs(offset) > 3.5) return null;
-                  const { angle, tx, scale, opacity, zIdx } = xform(offset);
-                  const isSel = deckTheme === t.id;
-                  return (
-                    <div key={t.id}
-                      onClick={() => { if (carouselDrag.current.moved) { carouselDrag.current.moved=false; return; } setDeckTheme(t.id); setCarouselPos(i); }}
-                      style={{
-                        position:"absolute",left:"50%",top:0,width:thumbW,textAlign:"center",
-                        transform:`translateX(calc(-50% + ${tx}px)) rotateY(${angle}deg) scale(${scale})`,
-                        transformOrigin:"center center",opacity,zIndex:zIdx,
-                        transition: carouselDragging ? "none" : "transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.38s ease",
-                        cursor:"pointer",
-                      }}
-                    >
-                      <div style={{
-                        width:thumbCardW,height:thumbCardH,borderRadius:3,
-                        border:`1.5px solid ${isSel?"#fff":"#ffffff55"}`,
-                        margin:"0 auto 3px",position:"relative",overflow:"hidden",
-                        boxShadow: isSel ? `0 0 ${isWide?14:8}px rgba(75,195,175,0.55)` : "none",
-                      }}>
-                        <PixelCardBack theme={t.id} w={thumbCardW} h={thumbCardH}/>
-                      </div>
-                      <div style={{fontSize:isWide?11:9,lineHeight:1}}>{t.emoji}</div>
-                    </div>
-                  );
-                })}
-                {/* Left and right fade to hint at more cards */}
-                <div style={{position:"absolute",left:0,top:0,bottom:0,width:"20%",background:"linear-gradient(to right,rgba(4,22,18,0.94),transparent)",pointerEvents:"none",zIndex:150}}/>
-                <div style={{position:"absolute",right:0,top:0,bottom:0,width:"20%",background:"linear-gradient(to left,rgba(4,22,18,0.94),transparent)",pointerEvents:"none",zIndex:150}}/>
-              </div>
-              {/* Arrows + dots */}
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {/* Arrow | viewport | Arrow */}
+              <div style={{display:"flex",alignItems:"center",gap:isWide?6:4,width:"100%"}}>
                 <button style={arrowBtn} onClick={()=>setCarouselPos(p=>Math.max(0,Math.round(p)-1))}>‹</button>
+                {/* 3D viewport */}
+                <div
+                  style={{
+                    flex:1,position:"relative",height:containerH,overflow:"hidden",
+                    perspective:"560px",cursor:carouselDragging?"grabbing":"grab",
+                    touchAction:"none",userSelect:"none",
+                  }}
+                  onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+                >
+                  {DECK_THEMES.map((t,i) => {
+                    const offset = i - carouselPos;
+                    if (Math.abs(offset) > 3.5) return null;
+                    const { angle, tx, scale, opacity, zIdx } = xform(offset);
+                    const isSel = deckTheme === t.id;
+                    return (
+                      <div key={t.id}
+                        onClick={() => { if (carouselDrag.current.moved) { carouselDrag.current.moved=false; return; } setDeckTheme(t.id); setCarouselPos(i); }}
+                        style={{
+                          position:"absolute",left:"50%",top:0,width:thumbW,textAlign:"center",
+                          transform:`translateX(calc(-50% + ${tx}px)) rotateY(${angle}deg) scale(${scale})`,
+                          transformOrigin:"center center",opacity,zIndex:zIdx,
+                          transition: carouselDragging ? "none" : "transform 0.38s cubic-bezier(0.25,0.46,0.45,0.94), opacity 0.38s ease",
+                          cursor:"pointer",
+                        }}
+                      >
+                        <div style={{
+                          width:thumbCardW,height:thumbCardH,borderRadius:3,
+                          border:`1.5px solid ${isSel?"#fff":"#ffffff55"}`,
+                          margin:"0 auto 3px",position:"relative",overflow:"hidden",
+                          boxShadow: isSel ? `0 0 ${isWide?14:8}px rgba(75,195,175,0.55)` : "none",
+                        }}>
+                          <PixelCardBack theme={t.id} w={thumbCardW} h={thumbCardH}/>
+                        </div>
+                        <div style={{fontSize:isWide?11:9,lineHeight:1}}>{t.emoji}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <button style={arrowBtn} onClick={()=>setCarouselPos(p=>Math.min(n-1,Math.round(p)+1))}>›</button>
+              </div>
+              {/* Page dots */}
+              {totalPages > 1 && (
                 <div style={{display:"flex",gap:5}}>
                   {Array.from({length:totalPages},(_,i)=>{
                     const activeDot = Math.min(totalPages-1, Math.floor((carouselPos + 2) / 4));
@@ -5863,8 +5864,7 @@ function DiamondsGame() {
                     }}/>;
                   })}
                 </div>
-                <button style={arrowBtn} onClick={()=>setCarouselPos(p=>Math.min(n-1,Math.round(p)+1))}>›</button>
-              </div>
+              )}
             </div>
           );
         })()}
