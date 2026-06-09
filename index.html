@@ -3654,6 +3654,11 @@ function DiamondsGame() {
   const [diamondsBroken, setDiamondsBroken] = useState(false);
   const diamondsBrokenRef = useRef(false);
   useEffect(() => { diamondsBrokenRef.current = diamondsBroken; }, [diamondsBroken]);
+  // Always-current refs so AI timer callbacks never read stale state
+  const handsRef = useRef(hands);
+  handsRef.current = hands;
+  const trickPlaysRef = useRef(trickPlays);
+  trickPlaysRef.current = trickPlays;
   useEffect(() => {
     if (screen !== "gameover") return;
     if (sessionWinRecordedGame.current === gameNum) return;
@@ -4227,8 +4232,12 @@ function DiamondsGame() {
   function submitPlay(playerIdx, card) {
     soundCardPlay();
 
-    const newPlays = [...trickPlays, { playerIdx, card }];
-    const newHands = hands.map((h,i) => i===playerIdx ? h.filter(c=>c.id!==card.id) : h);
+    // Use always-current refs to avoid stale closure overwrites (e.g. Rule of 1 running
+    // on the same render as the AI card-play timer)
+    const currentHands = handsRef.current;
+    const currentTrickPlays = trickPlaysRef.current;
+    const newPlays = [...currentTrickPlays, { playerIdx, card }];
+    const newHands = currentHands.map((h,i) => i===playerIdx ? h.filter(c=>c.id!==card.id) : h);
     setHands(newHands);
     setTrickPlays(newPlays);
 
@@ -5428,24 +5437,26 @@ function DiamondsGame() {
     if (currentPlayer === undefined || currentPlayer === 0) return; // human's turn or out of bounds
 
     const timer = setTimeout(() => {
-      const hand = hands[currentPlayer];
+      // Read from ref so we always see the latest hands even if Rule of 1 or another
+      // set fired on the same render and updated hands before this timer fired.
+      const hand = handsRef.current[currentPlayer];
 
       // If AI has no cards, skip their turn — advance to next player with cards
       if (!hand || hand.length === 0) {
         // Find next player in turn order who has cards
         let nextTurn = currentTurn + 1;
-        while (nextTurn < 4 && (hands[turnOrder[nextTurn]]?.length || 0) === 0) {
-          if (turnOrder[nextTurn] === 0 && (hands[0]?.length ?? 0) > 0) break; // never skip human with cards
+        while (nextTurn < 4 && (handsRef.current[turnOrder[nextTurn]]?.length || 0) === 0) {
+          if (turnOrder[nextTurn] === 0 && (handsRef.current[0]?.length ?? 0) > 0) break; // never skip human with cards
           nextTurn++;
         }
         if (nextTurn >= 4) {
           // No one else has cards — resolve whatever plays we have, or fall through to auto-claim
-          if (trickPlays.length > 0) {
-            resolveTrickComplete(trickPlays, hands);
+          if (trickPlaysRef.current.length > 0) {
+            resolveTrickComplete(trickPlaysRef.current, handsRef.current);
           } else {
             // No plays AND no players with cards — auto-claim path: pretend a trick just ended
             // by setting a synthetic trickResult so afterTrickResult fires the auto-claim
-            const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
+            const playersWithCards = handsRef.current.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
             if (playersWithCards.length === 1) {
               setTrickResult({ winnerIdx: playersWithCards[0], plays: [], diamondsCaptured: [] });
               setPhase("trickresult");
@@ -5458,12 +5469,12 @@ function DiamondsGame() {
       }
 
       // First trick: AI leader must play 2♣
-      if (isFirstTrick && trickPlays.length === 0) {
+      if (isFirstTrick && trickPlaysRef.current.length === 0) {
         const twoClub = hand.find(c => c.rank==="2" && c.suit==="♣");
         if (twoClub) { submitPlay(currentPlayer, twoClub); return; }
       }
       const role = aiRoleForRound(currentPlayer, roundNum);
-      const card = aiChooseCard(hand, role, trickPlays, ledSuit, { trumpBroken: diamondsBroken });
+      const card = aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
       if (card) {
         submitPlay(currentPlayer, card);
       } else {
