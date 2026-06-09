@@ -2702,6 +2702,24 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     );
   }
 
+  // ===== QUEEN OF CLUBS — NO TARGETS =====
+  if (result.queenClubsNoTargets) {
+    const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
+    return (
+      <EventBox borderColor="#4db8e8" emoji="♣" title="Queen of Clubs Plays!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
+        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+          No cards to thieve or reallocate.
+        </div>
+        {pointsWon > 0 && (
+          <div style={{background:"#4db8e811",border:"1px solid #4db8e844",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""} (to {allNames[result.winnerIdx]})</span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
   // ===== QUEEN OF CLUBS — THIEVED =====
   if (result.queenClubsThieved) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
@@ -4509,7 +4527,7 @@ function DiamondsGame() {
         const hasTargets = currentHands.some((h, i) => i !== queenClubsPlayerIdx2 && h.length > 0);
         if (!hasTargets) {
           addLog(`♣ ${allNames[queenClubsPlayerIdx2]} (Queen of Clubs) — no cards to thieve`);
-          setTrickResult(resultObj);
+          setTrickResult({ ...resultObj, queenClubsNoTargets: true, queenClubsPlayerIdx: queenClubsPlayerIdx2 });
           if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
           setPhase("trickresult");
           return;
@@ -5501,7 +5519,7 @@ function DiamondsGame() {
             // by setting a synthetic trickResult so afterTrickResult fires the auto-claim
             const playersWithCards = handsRef.current.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
             if (playersWithCards.length === 1) {
-              setTrickResult({ winnerIdx: playersWithCards[0], plays: [], diamondsCaptured: [] });
+              setTrickResult({ winnerIdx: playersWithCards[0], plays: [], diamondsCaptured: [], autoClaim: true });
               setPhase("trickresult");
             }
           }
@@ -5692,7 +5710,7 @@ function DiamondsGame() {
         // Truly no targets (all other hands empty — hasTargets check should have caught this)
         addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) — no cards to thieve`);
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-        setTrickResult(resultObj);
+        setTrickResult({ ...resultObj, queenClubsNoTargets: true, queenClubsPlayerIdx: playerIdx });
         setQueenClubsState(null);
         setPhase("trickresult");
       }
