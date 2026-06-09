@@ -6439,6 +6439,7 @@ function DiamondsGame() {
 
           // ── Sets panel (shared between desktop/non-desktop) ──
           const setsPanel = (isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0)) ? (() => {
+            if (trickPlays.some(p => p.playerIdx === 0)) return null;
             const h0 = hands[0] || [];
             const GA = goldenAgeRef.current ? 2 : 1;
             const r3AllCombos = allRuleOfThreeCombos(h0);
