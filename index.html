@@ -2545,27 +2545,37 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",whiteSpace:"pre-line",textAlign:"center"}}>
           {blockDesc}
         </div>
-        <div style={{
-          background:"#4466ff11", border:"1px solid #4466ff44",
-          borderRadius:10, padding:"8px 20px", display:"inline-block",
-        }}>
-          <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{aceBlockBonus} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
-        </div>
-        {result.robbinSummon && (() => {
+        {result.robbinSummon ? (() => {
           const wi = result.aceHolderIdx ?? result.winnerIdx;
           const roundPts = roundScores[wi] ?? 0;
           const grandTotal = (totalScores[wi] ?? 0) + roundPts;
           return (
-            <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:2,alignItems:"center"}}>
-              <span style={{color:"#ffffffaa",fontSize:12,fontFamily:FONT_UI}}>
-                Round total: <strong style={{color:"#e2c97e"}}>{roundPts} pts</strong>
-              </span>
-              <span style={{color:"#ffffffaa",fontSize:12,fontFamily:FONT_UI}}>
-                Grand total: <strong style={{color:"#e2c97e"}}>{grandTotal} pts</strong>
-              </span>
+            <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"10px 20px",minWidth:210,display:"flex",flexDirection:"column",gap:4}}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+                <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus{isGoldenAge?" 🤖 2×":""}:</span>
+                <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{aceBlockBonus} pts</span>
+              </div>
+              {pointsWon > 0 && (
+                <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+                  <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Trick diamonds:</span>
+                  <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{pointsWon} pts 💎</span>
+                </div>
+              )}
+              <div style={{borderTop:"1px solid #4466ff55",marginTop:2,paddingTop:6,display:"flex",justifyContent:"space-between",gap:24}}>
+                <span style={{color:"#fff",fontSize:14,fontWeight:700,fontFamily:FONT_UI}}>This round:</span>
+                <span style={{color:"#e2c97e",fontWeight:800,fontSize:14}}>{roundPts} pts</span>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+                <span style={{color:"#ffffff88",fontSize:12,fontFamily:FONT_UI}}>Grand total:</span>
+                <span style={{color:"#e2c97e",fontWeight:700,fontSize:12}}>{grandTotal} pts</span>
+              </div>
             </div>
           );
-        })()}
+        })() : (
+          <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{aceBlockBonus} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
+          </div>
+        )}
       </EventBox>
     );
   }
