@@ -2546,28 +2546,22 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
           {blockDesc}
         </div>
         {result.robbinSummon ? (() => {
-          const wi = result.aceHolderIdx ?? result.winnerIdx;
-          const roundPts = roundScores[wi] ?? 0;
-          const grandTotal = (totalScores[wi] ?? 0) + roundPts;
+          const trickTotal = pointsWon + aceBlockBonus;
           return (
             <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"10px 20px",minWidth:210,display:"flex",flexDirection:"column",gap:4}}>
-              <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
-                <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus{isGoldenAge?" 🤖 2×":""}:</span>
-                <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{aceBlockBonus} pts</span>
-              </div>
               {pointsWon > 0 && (
                 <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
                   <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Trick diamonds:</span>
                   <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{pointsWon} pts 💎</span>
                 </div>
               )}
-              <div style={{borderTop:"1px solid #4466ff55",marginTop:2,paddingTop:6,display:"flex",justifyContent:"space-between",gap:24}}>
-                <span style={{color:"#fff",fontSize:14,fontWeight:700,fontFamily:FONT_UI}}>This round:</span>
-                <span style={{color:"#e2c97e",fontWeight:800,fontSize:14}}>{roundPts} pts</span>
-              </div>
               <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
-                <span style={{color:"#ffffff88",fontSize:12,fontFamily:FONT_UI}}>Grand total:</span>
-                <span style={{color:"#e2c97e",fontWeight:700,fontSize:12}}>{grandTotal} pts</span>
+                <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus{isGoldenAge?" 🤖 2×":""}:</span>
+                <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{aceBlockBonus} pts</span>
+              </div>
+              <div style={{borderTop:"1px solid #4466ff55",marginTop:2,paddingTop:6,display:"flex",justifyContent:"space-between",gap:24}}>
+                <span style={{color:"#fff",fontSize:14,fontWeight:700,fontFamily:FONT_UI}}>This trick:</span>
+                <span style={{color:"#e2c97e",fontWeight:800,fontSize:14}}>+{trickTotal} pts</span>
               </div>
             </div>
           );
