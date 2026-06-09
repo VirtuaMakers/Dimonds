@@ -2239,14 +2239,14 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
           </div>
           {/* Step 2: pick card */}
           {realFrom !== null && (
-            <div style={{background:"#ffffff08",borderRadius:12,padding:"8px 6px",marginBottom:10,minHeight:70}}>
-              <div style={{color:"#4466ff66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:5,textTransform:"uppercase"}}>{allNames[realFrom]}'s Hand</div>
-              <div style={{display:"flex",flexWrap:"wrap",gap:10,justifyContent:"center",padding:"2px 0"}}>
+            <div style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:10,minHeight:80}}>
+              <div style={{color:"#4466ff66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[realFrom]}'s Hand</div>
+              <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"4px 0"}}>
                 {realHand.map(card => {
                   const origIdx = getOrigIdx(realHand, hands, realFrom, card);
                   const isSel = realCardIdx === origIdx;
                   return (
-                    <div key={card.id} onClick={()=>setRealCardIdx(origIdx)} style={{cursor:"pointer",transform:"scale(1.3)",transformOrigin:"center",margin:"7px 4px"}}>
+                    <div key={card.id} onClick={()=>setRealCardIdx(origIdx)} style={{cursor:"pointer",transform:"scale(1.35)",transformOrigin:"center",margin:"8px 5px"}}>
                       <CardComp card={card} selected={isSel} tiny deckTheme={deckTheme}/>
                     </div>
                   );
