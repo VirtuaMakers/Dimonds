@@ -2473,7 +2473,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false }) {
+function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[] }) {
   if (!result) return null;
 
   const aceCard = result.plays?.find(p => isAceSpades(p.card))?.card;
@@ -2484,7 +2484,6 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   const btnLabel = isGameOver ? "END"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
-    : result.pendingJackRobAfterSummon ? "PROCEED"
     : isHandOver ? "PROCEED"
     : "NEXT TRICK";
 
@@ -2552,6 +2551,21 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         }}>
           <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{aceBlockBonus} pts bonus!{isGoldenAge ? " 🤖 2×" : ""}</span>
         </div>
+        {result.robbinSummon && (() => {
+          const wi = result.aceHolderIdx ?? result.winnerIdx;
+          const roundPts = roundScores[wi] ?? 0;
+          const grandTotal = (totalScores[wi] ?? 0) + roundPts;
+          return (
+            <div style={{marginTop:6,display:"flex",flexDirection:"column",gap:2,alignItems:"center"}}>
+              <span style={{color:"#ffffffaa",fontSize:12,fontFamily:FONT_UI}}>
+                Round total: <strong style={{color:"#e2c97e"}}>{roundPts} pts</strong>
+              </span>
+              <span style={{color:"#ffffffaa",fontSize:12,fontFamily:FONT_UI}}>
+                Grand total: <strong style={{color:"#e2c97e"}}>{grandTotal} pts</strong>
+              </span>
+            </div>
+          );
+        })()}
       </EventBox>
     );
   }
@@ -4591,33 +4605,23 @@ function DiamondsGame() {
 
   function handleRobbinSummonYes() {
     if (!robbinSummonState) return;
-    const { jackPlayerIdx, jokerPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = robbinSummonState;
-    const GA = goldenAgeRef.current ? 2 : 1;
-    const bonus = 30 * GA; // blocking the Joker
+    const { jackPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = robbinSummonState;
     const newHands = currentHands.map((h,i) => i===aceHolderIdx ? h.filter(c=>!isAceSpades(c)) : h);
     setHands(newHands);
-    const newRound = [...roundScores]; newRound[aceHolderIdx] += bonus;
-    setRoundScores(newRound);
-    addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) summons The Ace of Spades! Joker BLOCKED! ${allNames[aceHolderIdx]} gets +${bonus} pts!`);
+    addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) summons The Ace of Spades!`);
     soundAceBlocks();
-    const updatedResult = {
-      ...resultObj,
-      winnerIdx: aceHolderIdx,   // A♠ wins the trick
-      jokerWin: false,
-      jackDiamondRob: true,      // J♦ may still choose to rob or pass
-      aceBlocked: true,
+    setAceRobChoiceState({
+      acePlayerIdx: aceHolderIdx,
+      jackDPlayerIdx: jackPlayerIdx,
       aceBlockedJoker: true,
-      robbinSummon: true,
-      pendingJackRobAfterSummon: {
-        jackPlayerIdx,
-        aceHolderIdx,
-        savedHands: newHands,
-        baseRoundScores: newRound,
-      }
-    };
-    setTrickResult(updatedResult);
+      aceBlockedQueenClubs: false,
+      baseRoundScores: [...roundScores],
+      baseResultObj: { ...resultObj, winnerIdx: aceHolderIdx, jokerWin: false, aceBlocked: true, aceBlockedJoker: true, robbinSummon: true },
+      currentHands: newHands,
+      passConsolation: 5,
+    });
     setRobbinSummonState(null);
-    setPhase("trickresult");
+    setPhase("acerobchoice");
   }
 
   function handleRobbinSummonNo() {
@@ -5185,25 +5189,6 @@ function DiamondsGame() {
       const robbinResultObj = { ...trickResult, pendingRobbinKidnap: undefined, jackDiamondRob: false };
       setKidnapState({ jokerPlayerIdx: jackPlayerIdx, isRobbinJack: true, hands: savedHands, resultObj: robbinResultObj });
       setPhase("kidnap");
-      setTrickResult(null);
-      return;
-    }
-
-    // A♠ summoned & Joker blocked — now open J♦ rob/pass choice (+5 consolation for passing)
-    if (trickResult?.pendingJackRobAfterSummon) {
-      const { jackPlayerIdx, aceHolderIdx, savedHands, baseRoundScores } = trickResult.pendingJackRobAfterSummon;
-      const cleanResult = { ...trickResult, pendingJackRobAfterSummon: undefined, jackDiamondRob: false };
-      setAceRobChoiceState({
-        acePlayerIdx: aceHolderIdx,
-        jackDPlayerIdx: jackPlayerIdx,
-        aceBlockedJoker: true,
-        aceBlockedQueenClubs: false,
-        baseRoundScores,
-        baseResultObj: cleanResult,
-        currentHands: savedHands,
-        passConsolation: 5,
-      });
-      setPhase("acerobchoice");
       setTrickResult(null);
       return;
     }
@@ -7107,6 +7092,8 @@ function DiamondsGame() {
           isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
           isGoldenAge={goldenAgeActive}
+          roundScores={roundScores}
+          totalScores={totalScores}
         />
       )}
 
