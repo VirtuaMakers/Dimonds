@@ -3699,14 +3699,14 @@ function DiamondsGame() {
   const trickPlaysRef = useRef(trickPlays);
   trickPlaysRef.current = trickPlays;
   useEffect(() => {
-    if (screen !== "gameover") return;
+    if (screen !== "gameover" && phase !== "gameover") return;
     if (sessionWinRecordedGame.current === gameNum) return;
     sessionWinRecordedGame.current = gameNum;
     const maxScore = Math.max(...totalScores);
     const winnerIdx = totalScores.indexOf(maxScore);
     setSessionWins(prev => { const n=[...prev]; n[winnerIdx]++; return n; });
     setSessionGamesPlayed(p => p + 1);
-  }, [screen, gameNum]);
+  }, [screen, phase, gameNum]);
   const [pendingPlayContinuation, setPendingPlayContinuation] = useState(null); // CYT interrupt
   const [sessionWins, setSessionWins] = useState([0,0,0,0]);
   const [sessionGamesPlayed, setSessionGamesPlayed] = useState(0);
@@ -4187,6 +4187,7 @@ function DiamondsGame() {
     setSwingingParadoxOffered([null,null,null,null]);
     setHandSortMode('rank');
     setPendingPlayContinuation(null);
+    setPendingFireworks(false);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
