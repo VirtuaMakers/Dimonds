@@ -1180,10 +1180,16 @@ function resolveTrick(plays, trumpBroken=true) {
       jackDiamondPlayerIdx: jackDPlay?.playerIdx,
     };
   }
-  // Jack of Dimonds in trick (no Ace of Spades) — Q♣ silenced when J♦ also fires
+  // Jack of Dimonds in trick (no Ace of Spades) — J♦ robs first; Q♣ fires independently after
   const normalResult = resolveNormal(plays, ledSuit, trumpBroken);
   if (jackDPlay && !acePlay) {
-    return { ...normalResult, jackDiamondRob: true, jackDiamondPlayerIdx: jackDPlay.playerIdx };
+    return {
+      ...normalResult,
+      jackDiamondRob: true,
+      jackDiamondPlayerIdx: jackDPlay.playerIdx,
+      queenClubsThieve: !!queenClubsPlay,
+      queenClubsPlayerIdx: queenClubsPlay?.playerIdx,
+    };
   }
   // Normal trick — Q♣ fires if present
   return {
@@ -4469,17 +4475,21 @@ function DiamondsGame() {
       // Robbin Jack robs — uses same modal/flow as Kidnap but attributed to J♦ player
       setTimeout(() => {
         const hasTargets = currentHands.some((h, i) => i !== jackDPlayerIdx && h.length > 0);
+        const pendingQC = result.queenClubsThieve ? {
+          playerIdx: result.queenClubsPlayerIdx,
+          hands: currentHands,
+          gameWon,
+          newTotal,
+        } : null;
         if (!hasTargets) {
           addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) — no cards left to rob`);
-          setTrickResult({ ...resultObj, jackDiamondRob: false, jackDiamondPassed: true });
-          if (gameWon) {
-            setTotalScores(newTotal);
-            setPendingFireworks(true);
-          }
+          const baseResult = { ...resultObj, jackDiamondRob: false, jackDiamondPassed: true };
+          setTrickResult(pendingQC ? { ...baseResult, pendingQueenClubs: pendingQC } : baseResult);
+          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
           setPhase("trickresult");
           return;
         }
-        setKidnapState({ jokerPlayerIdx: jackDPlayerIdx, isRobbinJack: true, hands: currentHands, resultObj });
+        setKidnapState({ jokerPlayerIdx: jackDPlayerIdx, isRobbinJack: true, hands: currentHands, resultObj, pendingQueenClubs: pendingQC });
         setPhase("kidnap");
       }, 600);
     } else if (queenClubsTriggered) {
@@ -4568,7 +4578,12 @@ function DiamondsGame() {
       addLog(`🎴 ${allNames[pendingRobbinIdx]} (Robbin Jack) — no cards left to rob`);
     }
 
-    setTrickResult(resultObj);
+    // If Q♣ was also in this trick, chain her move after J♦'s rob
+    const pendingQC = isRobbin && kidnapState.pendingQueenClubs ? {
+      ...kidnapState.pendingQueenClubs,
+      hands: newHands, // use post-rob hands so Q♣ sees the updated state
+    } : null;
+    setTrickResult(pendingQC ? { ...resultObj, pendingQueenClubs: pendingQC } : resultObj);
     setKidnapState(null);
     setPhase("trickresult");
 
@@ -4602,7 +4617,9 @@ function DiamondsGame() {
     } else {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
-    const passResultObj = { ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined };
+    // If Q♣ was also in the trick, chain her move after the pass resolution
+    const pendingQC = kidnapState.pendingQueenClubs || null;
+    const passResultObj = { ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined, ...(pendingQC && { pendingQueenClubs: pendingQC }) };
     const savedHands = kidnapState.hands;
     // Rescue fires for whoever holds A♠, even if A♠ wasn't in this trick
     const aceHolderIdx = savedHands.findIndex(h => h.some(c => isAceSpades(c)));
@@ -5206,6 +5223,20 @@ function DiamondsGame() {
       return;
     }
 
+    // Q♣ was in the same trick as J♦ — fire her move now that J♦ has resolved
+    if (trickResult?.pendingQueenClubs) {
+      const { playerIdx: qcIdx, hands: qcHands, gameWon: qcGameWon, newTotal: qcNewTotal } = trickResult.pendingQueenClubs;
+      const hasTargets = qcHands.some((h, i) => i !== qcIdx && h.length > 0);
+      const resultWithoutQC = { ...trickResult, pendingQueenClubs: undefined };
+      if (hasTargets) {
+        setQueenClubsState({ playerIdx: qcIdx, hands: qcHands, resultObj: resultWithoutQC, gameWon: qcGameWon, newTotal: qcNewTotal });
+        setPhase("queenclubs");
+        return;
+      }
+      addLog(`♣ ${allNames[qcIdx]} (Queen of Clubs) — no cards to thieve`);
+      // No targets — fall through to normal next-trick logic
+    }
+
     // American Family win — end round immediately
     if (trickResult?.americanFamily) {
       setTrickResult(null);
@@ -5607,7 +5638,7 @@ function DiamondsGame() {
           flyCardBetweenPlayers(bestDiamond, takFrom, leader);
           setHands(newHandsRealloc);
           if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-          setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: bestDiamond, queenClubsFrom: takFrom, queenClubsPlayerIdx: leader });
+          setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: bestDiamond, queenClubsFrom: takFrom, queenClubsTo: leader, queenClubsPlayerIdx: playerIdx });
           setQueenClubsState(null);
           setPhase("trickresult");
           return;
