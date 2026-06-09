@@ -3804,7 +3804,6 @@ function DiamondsGame() {
       const newTotal = totalScores.map((s,i) => s + newRound[i]);
       addLog(`🔥 ${allNames[cp]} triggers RIOT! +${pts} pts. Round ends!`);
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🔥", setName:"Riot", cards:riotCards||[] });
-      soundRiot();
       const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
         setRoundScores(newRound);
@@ -3879,6 +3878,8 @@ function DiamondsGame() {
     if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (cp === 0) return; // Human sees buttons in action area
+    // Riot qualifies and fires via its own effect on this same render — let it win
+    if (checkRiot(hands[cp] || [], diamondsBroken)) return;
 
     // Rule of 4 (Dimond in the Rough) — four of a kind (checked first; rarer and higher value)
     {
@@ -5731,6 +5732,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase === "ruleofthree_event") soundRuleOfThree();
     else if (phase === "swingingparadox_event") soundSwingingParadox();
+    else if (phase === "riot_event") soundRiot();
   }, [phase]);
 
   // ============================================================
