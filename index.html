@@ -6469,19 +6469,21 @@ function DiamondsGame() {
                     }
                   </div>
                 )}
-                <button onClick={toggleHandSort} style={{
-                  position:"absolute", right:8, top:16, zIndex:10,
-                  display:"flex", flexDirection:"column", alignItems:"center",
-                  cursor:"pointer", border:"none", borderRadius:6,
-                  padding:"2px 7px", gap:1, touchAction:"manipulation",
-                  background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
-                  boxShadow:`0 3px 10px ${VM.gold}44`,
-                }}>
-                  <span style={{color:"#0a2320",fontWeight:800,fontSize:10,fontFamily:FONT_DISPLAY,letterSpacing:0.5}}>Re-Sort</span>
-                  <span style={{color:"#0a232099",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
-                    {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
-                  </span>
-                </button>
+                {!isDesktop && (
+                  <button onClick={toggleHandSort} style={{
+                    position:"absolute", right:8, top:16, zIndex:10,
+                    display:"flex", flexDirection:"column", alignItems:"center",
+                    cursor:"pointer", border:"none", borderRadius:6,
+                    padding:"2px 7px", gap:1, touchAction:"manipulation",
+                    background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+                    boxShadow:`0 3px 10px ${VM.gold}44`,
+                  }}>
+                    <span style={{color:"#0a2320",fontWeight:800,fontSize:10,fontFamily:FONT_DISPLAY,letterSpacing:0.5}}>Re-Sort</span>
+                    <span style={{color:"#0a232099",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
+                      {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
+                    </span>
+                  </button>
+                )}
               </>
             );
           })()}
@@ -6679,9 +6681,9 @@ function DiamondsGame() {
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
             const cardBtnBase = {
-              borderRadius:8, padding:"4px 6px", fontSize:9, fontWeight:800,
+              borderRadius:8, padding: isDesktop ? "7px 10px" : "4px 6px", fontSize: isDesktop ? 12 : 9, fontWeight:800,
               letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
-              minHeight:26, textAlign:"center", width:"100%", boxSizing:"border-box",
+              minHeight: isDesktop ? 36 : 26, textAlign:"center", width:"100%", boxSizing:"border-box",
               display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1.2,
             };
             const lockedBtnStyle = { ...cardBtnBase, background:"transparent", color:"#ffffff28", border:"1.5px solid #ffffff15", cursor:"default" };
@@ -6798,17 +6800,17 @@ function DiamondsGame() {
               </div>
             );
             return (
-              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, padding:"5px 6px 5px 5px", overflowY:"auto", maxHeight: isDesktop ? 200 : 96, width:"100%", boxSizing:"border-box", WebkitOverflowScrolling:"touch", display:"flex", flexDirection:"column", gap:4, flexShrink:0 }}>
+              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, padding: isDesktop ? "8px 10px 8px 10px" : "5px 6px 5px 5px", overflowY:"auto", maxHeight: isDesktop ? 340 : 96, width: isDesktop ? 280 : "100%", boxSizing:"border-box", WebkitOverflowScrolling:"touch", display:"flex", flexDirection:"column", gap: isDesktop ? 6 : 4, flexShrink:0 }}>
                 {setButtons.length > 0 && (
                   <>
-                    <div style={{ color:"#7ae8ff", fontSize:8, fontWeight:900, letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_DISPLAY, textAlign:"center", borderBottom:`1px solid ${VM.tealLight}22`, paddingBottom:3 }}>⛏️ Sets Playable</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,alignItems:"stretch"}}>{setButtons}</div>
+                    <div style={{ color:"#7ae8ff", fontSize: isDesktop ? 11 : 8, fontWeight:900, letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_DISPLAY, textAlign:"center", borderBottom:`1px solid ${VM.tealLight}22`, paddingBottom: isDesktop ? 5 : 3 }}>⛏️ Sets Playable</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap: isDesktop ? 6 : 4,alignItems:"stretch"}}>{setButtons}</div>
                   </>
                 )}
                 {hasLocked && (
-                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding:"5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
-                    <div style={{color:"#ff6644",fontSize:9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,width:"100%",textAlign:"center",borderBottom:"1px solid #ff444433",paddingBottom:3}}>🔓 Unlock by Breaking Dimonds</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,width:"100%"}}>
+                  <div style={{background:"#ff222208",border:"1px solid #ff444422",borderRadius:6,padding: isDesktop ? "7px 10px" : "5px 8px",display:"flex",flexDirection:"column",alignItems:"center",gap: isDesktop ? 5 : 3}}>
+                    <div style={{color:"#ff6644",fontSize: isDesktop ? 11 : 9,fontWeight:900,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,width:"100%",textAlign:"center",borderBottom:"1px solid #ff444433",paddingBottom: isDesktop ? 5 : 3}}>🔓 Unlock by Breaking Dimonds</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap: isDesktop ? 6 : 4,width:"100%"}}>
                       {spLockedCombos.map((combo,i) => {
                         const p1 = `${combo[1].id}/${combo[0].id}`;
                         const p2 = `${combo[3].id}/${combo[2].id}`;
@@ -6857,6 +6859,18 @@ function DiamondsGame() {
                   </div>
                 )}
                 {playBtn}
+                <button onClick={toggleHandSort} style={{
+                  display:"flex", flexDirection:"column", alignItems:"center",
+                  cursor:"pointer", border:"none", borderRadius:6,
+                  padding:"3px 9px", gap:1, touchAction:"manipulation",
+                  background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+                  boxShadow:`0 3px 10px ${VM.gold}44`,
+                }}>
+                  <span style={{color:"#0a2320",fontWeight:800,fontSize:10,fontFamily:FONT_DISPLAY,letterSpacing:0.5}}>Re-Sort</span>
+                  <span style={{color:"#0a232099",fontSize:8,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>
+                    {handSortMode === 'rank' ? 'By Rank' : 'By Suit'}
+                  </span>
+                </button>
               </div>
               {setsPanel}
             </div>
