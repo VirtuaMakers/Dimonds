@@ -2089,9 +2089,9 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
 
         {/* Face-up hand display */}
         {chosenPlayer !== null && (
-          <div style={{
+          <div data-modal="1" style={{
             background:"#ffffff08", borderRadius:12, padding:"12px 8px",
-            marginBottom:16, minHeight:100,
+            marginBottom:16, minHeight:100, overflowY:"auto", maxHeight:"50vh",
           }}>
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>
               {allNames[chosenPlayer]}'s Hand — tap to select
@@ -2206,7 +2206,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
             ))}
           </div>
           {thieveFrom !== null && (
-            <div style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:14,minHeight:80}}>
+            <div data-modal="1" style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:14,minHeight:80,overflowY:"auto",maxHeight:"50vh"}}>
               <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[thieveFrom]}'s Hand</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"18px 0 4px"}}>
                 {thieveHand.map(card => {
@@ -2250,7 +2250,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
           </div>
           {/* Step 2: pick card */}
           {realFrom !== null && (
-            <div style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:10,minHeight:80}}>
+            <div data-modal="1" style={{background:"#ffffff08",borderRadius:12,padding:"10px 6px",marginBottom:10,minHeight:80,overflowY:"auto",maxHeight:"50vh"}}>
               <div style={{color:"#4466ff66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[realFrom]}'s Hand</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"18px 0 4px"}}>
                 {realHand.map(card => {
@@ -2401,9 +2401,9 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
 
         {/* Face-up hand display */}
         {chosenPlayer !== null && (
-          <div style={{
+          <div data-modal="1" style={{
             background:"#ffffff08", borderRadius:12, padding:"12px 8px",
-            marginBottom:16, minHeight:100,
+            marginBottom:16, minHeight:100, overflowY:"auto", maxHeight:"50vh",
           }}>
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>
               {allNames[chosenPlayer]}'s Hand — tap to select
@@ -7498,9 +7498,11 @@ function DiamondsGame() {
         }
         ::-webkit-scrollbar { width: 0; height: 0; background: transparent; }
         * { scrollbar-width: none; }
-        [data-modal]::-webkit-scrollbar { width: 6px; background: rgba(0,0,0,0.2); }
-        [data-modal]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.6); border-radius: 4px; }
-        [data-modal] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.6) rgba(0,0,0,0.2); }
+        [data-modal]::-webkit-scrollbar { width: 8px; background: rgba(0,0,0,0.35); border-radius: 4px; }
+        [data-modal]::-webkit-scrollbar-track { background: rgba(0,0,0,0.35); border-radius: 4px; }
+        [data-modal]::-webkit-scrollbar-thumb { background: rgba(75,195,175,0.85); border-radius: 4px; }
+        [data-modal]::-webkit-scrollbar-thumb:hover { background: rgba(75,195,175,1); }
+        [data-modal] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.85) rgba(0,0,0,0.35); }
       `}</style>
     </div>
   );
