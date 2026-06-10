@@ -6877,9 +6877,9 @@ function DiamondsGame() {
         />
       )}
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&peekingModal==="kidnap"&&(
-        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a1a2a",border:"1.5px solid #8833cc",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
+        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:kidnapState.isRobbinJack?"#0d2018":"#1a1a2a",border:`1.5px solid ${kidnapState.isRobbinJack?"#1a6b30":"#8833cc"}`,borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
           <span style={{fontSize:16}}>{kidnapState.isRobbinJack?"🎴":"🃏"}</span>
-          <span style={{color:"#c084f5",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>{kidnapState.isRobbinJack?"Return to Robbin Jack":"Return to Joker Kidnap"}</span>
+          <span style={{color:kidnapState.isRobbinJack?"#7ec8a4":"#c084f5",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>{kidnapState.isRobbinJack?"Return to Robbin Jack":"Return to Joker Kidnap"}</span>
         </div>
       )}
 
@@ -7050,12 +7050,12 @@ function DiamondsGame() {
       {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&queenClubsPeeking&&(
         <div onClick={()=>setQueenClubsPeeking(false)} style={{
           position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",
-          background:"#1a2a1a",border:"1.5px solid #c9a84c",borderRadius:24,
+          background:"#0d2230",border:"1.5px solid #4db8e8",borderRadius:24,
           padding:"10px 22px",cursor:"pointer",zIndex:9999,
           display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a",
         }}>
           <span style={{fontSize:16}}>♣</span>
-          <span style={{color:"#c9a84c",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Queen of Clubs</span>
+          <span style={{color:"#4db8e8",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Queen of Clubs</span>
         </div>
       )}
 
@@ -7071,9 +7071,9 @@ function DiamondsGame() {
         />
       )}
       {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&peekingModal==="rescue"&&(
-        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a1a2a",border:"1.5px solid #1a6b30",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
+        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#0d1020",border:"1.5px solid #1a3ab8",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
           <span style={{fontSize:16}}>🗡️</span>
-          <span style={{color:"#7ec8a4",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Ace of Spades Rescue</span>
+          <span style={{color:"#8a9fe0",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Ace of Spades Rescue</span>
         </div>
       )}
 
