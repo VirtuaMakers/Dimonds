@@ -2133,7 +2133,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
 }
 
 // ===== Queen of Clubs modal — Thievin' or Reallocate =====
-function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme, totalScores=[] }) {
+function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme, totalScores=[], onPeek }) {
   const [mode, setMode] = React.useState("thieve");
   const others = [0,1,2,3].filter(i => i !== playerIdx && hands[i].length > 0);
 
@@ -2166,9 +2166,18 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
   return (
     <Modal>
       <div>
-        <div style={{textAlign:"center",marginBottom:14}}>
+        <div style={{textAlign:"center",marginBottom:14,position:"relative"}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Queen of Clubs</div>
           <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose your action.</h2>
+          {onPeek && (
+            <div onClick={onPeek} style={{
+              position:"absolute",top:0,right:0,cursor:"pointer",
+              color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,
+              display:"flex",alignItems:"center",gap:4,padding:"2px 0",
+            }}>
+              <span>👁</span><span>Peek</span>
+            </div>
+          )}
         </div>
         {/* Mode tabs */}
         <div style={{display:"flex",gap:6,marginBottom:14}}>
@@ -3670,6 +3679,7 @@ function DiamondsGame() {
   const [queenClubsState, setQueenClubsState] = useState(null);
   const queenClubsStateRef = useRef(queenClubsState);
   queenClubsStateRef.current = queenClubsState;
+  const [queenClubsPeeking, setQueenClubsPeeking] = useState(false);
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -5027,6 +5037,7 @@ function DiamondsGame() {
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setTrickResult({ ...resultObj, queenClubsThieved: true, queenClubsCard: stolenCard, queenClubsFrom: fromPlayer, queenClubsPlayerIdx: playerIdx });
     setQueenClubsState(null);
+    setQueenClubsPeeking(false);
     setPhase("trickresult");
   }
 
@@ -5047,6 +5058,7 @@ function DiamondsGame() {
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: fromPlayer, queenClubsTo: toPlayer, queenClubsPlayerIdx: playerIdx });
     setQueenClubsState(null);
+    setQueenClubsPeeking(false);
     setPhase("trickresult");
   }
 
@@ -5058,6 +5070,7 @@ function DiamondsGame() {
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setTrickResult(resultObj);
     setQueenClubsState(null);
+    setQueenClubsPeeking(false);
     setPhase("trickresult");
   }
 
@@ -6997,7 +7010,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&(
+      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&!queenClubsPeeking&&(
         <QueenClubsModal
           hands={queenClubsState.hands}
           playerIdx={0}
@@ -7007,7 +7020,19 @@ function DiamondsGame() {
           onSkip={handleQueenClubsSkip}
           deckTheme={deckTheme}
           totalScores={totalScores}
+          onPeek={()=>setQueenClubsPeeking(true)}
         />
+      )}
+      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&queenClubsPeeking&&(
+        <div onClick={()=>setQueenClubsPeeking(false)} style={{
+          position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",
+          background:"#1a2a1a",border:"1.5px solid #c9a84c",borderRadius:24,
+          padding:"10px 22px",cursor:"pointer",zIndex:9999,
+          display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a",
+        }}>
+          <span style={{fontSize:16}}>♣</span>
+          <span style={{color:"#c9a84c",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Queen of Clubs</span>
+        </div>
       )}
 
       {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&(
