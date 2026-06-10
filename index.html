@@ -1916,27 +1916,28 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
 // ============================================================
 function Modal({ children, dim=true }) {
   return (
-    <div data-modal="1" style={{
+    <div style={{
       position:"fixed",inset:0,
       background: dim?"rgba(4,18,15,0.78)":"transparent",
       display:"flex",flexDirection:"column",alignItems:"center",
-      justifyContent:"flex-start",overflowY:"scroll",overflowX:"hidden",
+      justifyContent:"flex-start",overflowY:"hidden",overflowX:"hidden",
       zIndex:200, padding:16, boxSizing:"border-box",
       backdropFilter: dim?"blur(4px)":"none",
       WebkitBackdropFilter: dim?"blur(4px)":"none",
-      WebkitOverflowScrolling:"touch",
-      overscrollBehavior:"none",
-      touchAction:"pan-y",
     }}>
-      <div style={{
+      <div data-modal="1" style={{
         background:"linear-gradient(155deg,#0f3c38,#08231f)",
         border:`1px solid ${VM.tealLight}33`,
         borderRadius:20,padding:"24px 24px",
         maxWidth:420,width:"100%",
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,
-        margin:"auto 0",
-        overflowX:"hidden",
+        overflowY:"scroll",overflowX:"hidden",
+        maxHeight:"calc(100dvh - 32px)",
+        boxSizing:"border-box",
+        WebkitOverflowScrolling:"touch",
+        overscrollBehavior:"contain",
+        touchAction:"pan-y",
       }}>
         {children}
       </div>
