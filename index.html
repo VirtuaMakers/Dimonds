@@ -6680,10 +6680,12 @@ function DiamondsGame() {
             const gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
+            const subLabelSize = isDesktop ? 11 : 7;
+            const lockedSubSize = isDesktop ? 10 : 6;
             const cardBtnBase = {
-              borderRadius:8, padding: isDesktop ? "7px 10px" : "4px 6px", fontSize: isDesktop ? 12 : 9, fontWeight:800,
+              borderRadius:8, padding: isDesktop ? "10px 12px" : "4px 6px", fontSize: isDesktop ? 14 : 9, fontWeight:800,
               letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
-              minHeight: isDesktop ? 36 : 26, textAlign:"center", width:"100%", boxSizing:"border-box",
+              minHeight: isDesktop ? 52 : 26, textAlign:"center", width:"100%", boxSizing:"border-box",
               display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1.2,
             };
             const lockedBtnStyle = { ...cardBtnBase, background:"transparent", color:"#ffffff28", border:"1.5px solid #ffffff15", cursor:"default" };
@@ -6694,7 +6696,7 @@ function DiamondsGame() {
                 <span style={{display:"flex",alignItems:"center",justifyContent:"flex-start",letterSpacing:"-0.5px",width:"100%"}}>
                   <span>💠 Rule of 1</span>
                 </span>
-                <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>-1♦</span>
+                <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>-1♦</span>
               </button>
             );
             spCombos.forEach((combo, i) => {
@@ -6706,7 +6708,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>💍 Rule of 2</span><span style={{opacity:0.75}}>+{SWINGING_PARADOX_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
                 </button>
               );
             });
@@ -6718,7 +6720,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🦅 Rule of 3</span><span style={{opacity:0.75}}>+{RULE_OF_THREE_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
                 </button>
               );
             });
@@ -6730,7 +6732,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>💎 Rule of 4</span><span style={{opacity:0.75}}>+{RULE_OF_FOUR_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{label}</span>
                 </button>
               );
             });
@@ -6742,7 +6744,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>×{riotAvail.length} {riotSuit}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>×{riotAvail.length} {riotSuit}</span>
                 </button>
               );
             }
@@ -6755,7 +6757,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{sdLabel}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{sdLabel}</span>
                 </button>
               );
             }
@@ -6768,7 +6770,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🌇 The Steal</span><span style={{opacity:0.75}}>+{THE_STEAL_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{stLabel}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{stLabel}</span>
                 </button>
               );
             }
@@ -6779,7 +6781,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🏛️ Am. Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>J♦ / Q♦ / K♦ / A♦</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>J♦ / Q♦ / K♦ / A♦</span>
                 </button>
               );
             }
@@ -6790,7 +6792,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🤖 Golden Age</span><span style={{opacity:0.75}}>+{ACES_LOW_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:7,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>A♠ / A♥ / A♣ / A♦</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>A♠ / A♥ / A♣ / A♦</span>
                 </button>
               );
             }
@@ -6800,7 +6802,7 @@ function DiamondsGame() {
               </div>
             );
             return (
-              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, padding: isDesktop ? "8px 10px 8px 10px" : "5px 6px 5px 5px", overflowY:"auto", maxHeight: isDesktop ? 340 : 96, width: isDesktop ? 280 : "100%", boxSizing:"border-box", WebkitOverflowScrolling:"touch", display:"flex", flexDirection:"column", gap: isDesktop ? 6 : 4, flexShrink:0 }}>
+              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, padding: isDesktop ? "8px 10px 8px 10px" : "5px 6px 5px 5px", overflowY:"auto", maxHeight: isDesktop ? 360 : 96, width: isDesktop ? 360 : "100%", boxSizing:"border-box", WebkitOverflowScrolling:"touch", display:"flex", flexDirection:"column", gap: isDesktop ? 6 : 4, flexShrink:0 }}>
                 {setButtons.length > 0 && (
                   <>
                     <div style={{ color:"#7ae8ff", fontSize: isDesktop ? 11 : 8, fontWeight:900, letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_DISPLAY, textAlign:"center", borderBottom:`1px solid ${VM.tealLight}22`, paddingBottom: isDesktop ? 5 : 3 }}>⛏️ Sets Playable</div>
@@ -6816,24 +6818,24 @@ function DiamondsGame() {
                         const p2 = `${combo[3].id}/${combo[2].id}`;
                         return <div key={`r2l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💍 Rule of 2</span><span style={{opacity:0.6}}>+{SWINGING_PARADOX_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
+                          <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{p1} / {p2}</span>
                         </div>;
                       })}
                       {r3LockedCombos.map((combo,i) => {
                         const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
                         return <div key={`r3l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🦅 Rule of 3</span><span style={{opacity:0.6}}>+{RULE_OF_THREE_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
+                          <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                         </div>;
                       })}
                       {r4LockedCombos.map((combo,i) => {
                         const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
                         return <div key={`r4l-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                           <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>💎 Rule of 4</span><span style={{opacity:0.6}}>+{RULE_OF_FOUR_BONUS*GA}</span></span>
-                          <span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
+                          <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                         </div>;
                       })}
-                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:6,opacity:0.6,width:"100%",textAlign:"center"}}>×8 {rs}</span></div>; })()}
+                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×8 {rs}</span></div>; })()}
                     </div>
                   </div>
                 )}
