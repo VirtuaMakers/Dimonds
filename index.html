@@ -2740,6 +2740,21 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     );
   }
 
+  // ===== RULE OF 1 — AI ANNOUNCEMENT =====
+  if (result.rule1Announced) {
+    return (
+      <EventBox borderColor="#4466ee" emoji="💠" title="Rule of 1 — Girl's Best Friend" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:20,fontWeight:800,fontFamily:FONT_UI}}>{allNames[result.rule1Giver]}</div>
+        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",marginTop:4}}>
+          Gives the{" "}
+          <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.rule1Card?.isJoker?"🃏 Joker":`${result.rule1Card?.rank}${result.rule1Card?.suit}`}</strong>
+          {" "}to <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rule1Recipient]}</strong>
+          {result.rule1BrokeDiamonds && <><br/><span style={{color:"#ff7755",fontStyle:"normal"}}>🦷 Breaking Dimonds!</span></>}
+        </div>
+      </EventBox>
+    );
+  }
+
   // ===== QUEEN OF CLUBS — REALLOCATED =====
   if (result.queenClubsReallocated) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
@@ -4036,8 +4051,8 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 1 (Girl's Best Friend) — AI may give a diamond to burden the leader
-    if (!rule1UsedThisTurn[cp]) {
+    // Rule of 1 (Girl's Best Friend) — AI uses it to break dimonds; pointless once broken
+    if (!rule1UsedThisTurn[cp] && !diamondsBroken) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
       if (aiDimonds.length > 0 && Math.random() < 0.25) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
@@ -4875,15 +4890,21 @@ function DiamondsGame() {
     setRule1State(null);
     setRule1UsedThisTurn(prev => { const n=[...prev]; n[giverIdx]=true; return n; });
     addLog(`💠 ${allNames[giverIdx]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
-    if (!diamondsBrokenRef.current) {
+    const brokeNow = !diamondsBrokenRef.current;
+    if (brokeNow) {
       setDiamondsBroken(true);
       diamondsBrokenRef.current = true;
       soundCuttingYourTeeth();
       addLog("♦ Cutting Your Teeth — Dimonds are now in play! (via Rule of 1)");
       setPendingPlayContinuation(null);
-      setPhase("cuttingteeth_interrupt");
+    }
+    if (giverIdx === 0) {
+      // Human: existing phase flow
+      setPhase(brokeNow ? "cuttingteeth_interrupt" : "playing");
     } else {
-      setPhase("playing");
+      // AI: show announcement modal, afterTrickResult handles the next phase
+      setTrickResult({ rule1Announced: true, rule1Giver: giverIdx, rule1Recipient: targetIdx, rule1Card: card, rule1BrokeDiamonds: brokeNow });
+      setPhase("trickresult");
     }
   }
   function handleRule1Skip() {
@@ -5293,6 +5314,14 @@ function DiamondsGame() {
       }
       addLog(`♣ ${allNames[qcIdx]} (Queen of Clubs) — no cards to thieve`);
       // No targets — fall through to normal next-trick logic
+    }
+
+    // Rule of 1 announcement (AI only) — resume turn after modal dismissed
+    if (trickResult?.rule1Announced) {
+      const brokeDiamonds = trickResult.rule1BrokeDiamonds;
+      setTrickResult(null);
+      setPhase(brokeDiamonds ? "cuttingteeth_interrupt" : "playing");
+      return;
     }
 
     // American Family win — end round immediately
