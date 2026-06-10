@@ -2649,13 +2649,14 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.jackDiamondPassed) {
     const robbinIdx = result.jackDiamondPlayerIdx;
     const trickWinner = result.winnerIdx;
+    const noTargets = result.jackDiamondNoTargets;
     return (
       <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {robbinIdx != null ? allNames[robbinIdx] : "?"}
         </div>
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-          Chose not to rob.
+          {noTargets ? "No cards left to rob." : "Chose not to rob."}
         </div>
         {pointsWon > 0 && !result.pendingJokerKidnap && (
           <div style={{
@@ -2665,6 +2666,28 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
               +{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}{trickWinner !== robbinIdx ? ` (to ${allNames[trickWinner]})` : ""}
             </span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
+  // ===== THE JOKER — NO TARGETS =====
+  if (result.jokerWin && result.jokerNoTargets) {
+    return (
+      <EventBox borderColor="#8833cc" emoji="🃏" title="The Joker Wins!" btnLabel={btnLabel} onContinue={onContinue}>
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
+          {allNames[result.winnerIdx]}
+        </div>
+        <div style={{color:"#c084f5",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+          No cards left to kidnap.
+        </div>
+        {pointsWon > 0 && (
+          <div style={{
+            background:"#7700cc11", border:"1px solid #7700cc44",
+            borderRadius:10, padding:"8px 20px", display:"inline-block",
+          }}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}</span>
           </div>
         )}
       </EventBox>
@@ -4520,7 +4543,7 @@ function DiamondsGame() {
         if (!hasTargets) {
           addLog(`🃏 ${allNames[winner]} wins with the Joker (no cards left to kidnap)`);
           soundJokerKidnaps();
-          setTrickResult({ ...resultObj, jokerWin: true });
+          setTrickResult({ ...resultObj, jokerWin: true, jokerNoTargets: true });
           if (gameWon) {
             setTotalScores(newTotal);
             setPendingFireworks(true);
@@ -4535,7 +4558,7 @@ function DiamondsGame() {
           if (jackDTurnPos !== -1 && jackDTurnPos < jokerTurnPos) {
             const jackDIdx = result.jackDiamondPlayerIdx;
             const jackFirstHasTargets = currentHands.some((h, i) => i !== jackDIdx && h.length > 0);
-            const jackFirstResultObj = { ...resultObj, jokerWin: false, jackDiamondRob: jackFirstHasTargets, jackDiamondPassed: !jackFirstHasTargets, pendingJokerKidnap: { jokerPlayerIdx: winner } };
+            const jackFirstResultObj = { ...resultObj, jokerWin: false, jackDiamondRob: jackFirstHasTargets, jackDiamondPassed: !jackFirstHasTargets, jackDiamondNoTargets: !jackFirstHasTargets, pendingJokerKidnap: { jokerPlayerIdx: winner } };
             if (!jackFirstHasTargets) {
               addLog(`🎴 ${allNames[jackDIdx]} (Robbin Jack) — no cards left to rob`);
               setTrickResult(jackFirstResultObj);
@@ -4571,7 +4594,7 @@ function DiamondsGame() {
         } : null;
         if (!hasTargets) {
           addLog(`🎴 ${allNames[jackDPlayerIdx]} (Robbin Jack) — no cards left to rob`);
-          const baseResult = { ...resultObj, jackDiamondRob: false, jackDiamondPassed: true };
+          const baseResult = { ...resultObj, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondNoTargets: true };
           setTrickResult(pendingQC ? { ...baseResult, pendingQueenClubs: pendingQC } : baseResult);
           if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
           setPhase("trickresult");
@@ -5737,7 +5760,7 @@ function DiamondsGame() {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
         // No valid target — show result directly (preserve rob vs kidnap)
-        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin, pendingRobbinKidnap: undefined, ...(isRobbin && { jackDiamondPlayerIdx: jokerPlayer }) });
+        setTrickResult({ ...kidnapState.resultObj, jokerWin: !isRobbin, jokerNoTargets: !isRobbin, jackDiamondRob: false, jackDiamondPassed: isRobbin, jackDiamondNoTargets: isRobbin, pendingRobbinKidnap: undefined, ...(isRobbin && { jackDiamondPlayerIdx: jokerPlayer }) });
         setKidnapState(null);
         setPhase("trickresult");
       }
