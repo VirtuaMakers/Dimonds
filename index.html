@@ -6910,11 +6910,11 @@ function DiamondsGame() {
             );
             return (
               <>
-                <div style={{position:"fixed",left:275,top:"50%",transform:"translateY(-50%)",zIndex:50}}>
+                <div style={{position:"fixed",left:275,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
                   {buttonsPanel}
                 </div>
                 {setsPanel && (
-                  <div style={{position:"fixed",right:20,top:"50%",transform:"translateY(-50%)",zIndex:50}}>
+                  <div style={{position:"fixed",right:20,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
                     {setsPanel}
                   </div>
                 )}
