@@ -4627,6 +4627,7 @@ function DiamondsGame() {
           setPhase("trickresult");
           return;
         }
+        soundAceSuccess();
         setRescueState({ acePlayerIdx, hands: currentHands, resultObj, jokerLockedUp: false });
         setPhase("rescue");
       }, 600);
@@ -4738,6 +4739,7 @@ function DiamondsGame() {
     setKidnapState(null);
     setPeekingModal(null);
     if (aceHolderIdx >= 0) {
+      soundAceSuccess();
       setRescueState({ acePlayerIdx: aceHolderIdx, hands: savedHands, resultObj: passResultObj, jokerLockedUp: false });
       setPhase("rescue");
     } else {
@@ -4817,6 +4819,7 @@ function DiamondsGame() {
       const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && h.length > 0);
       if (hasTargets) {
         setAceRobChoiceState(null);
+        soundAceSuccess();
         setRescueState({ acePlayerIdx: aceWinnerIdx, hands: currentHands, resultObj: finalResult, jokerLockedUp: autoBlockedJoker });
         if (gameWon) setPendingFireworks(true);
         setPhase("rescue");
@@ -6437,9 +6440,9 @@ function DiamondsGame() {
           flexShrink:0,
           position:"relative",
         }}>
-          {/* YOUR TURN — sits 5px above the lifted selected card */}
+          {/* YOUR TURN — sits above the lifted selected card */}
           <div style={{
-            position:"absolute", top: isDesktop ? 5 : 10, left:0, right:0, zIndex:5,
+            position:"absolute", top: isDesktop ? 10 : 10, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
             color: isPlayerTurn?VM.tealLight:"#ffffff44",
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
