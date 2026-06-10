@@ -3501,7 +3501,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
           </div>
         </div>
         {/* ── Scrollable body ── */}
-        <div style={{flex:1, minHeight:0, overflowY:"scroll", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch"}}>
+        <div data-modal="1" style={{flex:1, minHeight:0, overflowY:"scroll", padding:"14px 22px 20px", WebkitOverflowScrolling:"touch"}}>
           <div>
           {view === "rules" ? (
             <>
@@ -6416,15 +6416,15 @@ function DiamondsGame() {
               { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",           pts:"+16" },
               { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",           pts:"+18" },
               { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",           pts:"+21" },
-              { emoji:"🌇", name:"The Steal",    desc:"A♠ J♦ J🃏",            pts:"+25" },
+              { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+25", descFont:10 },
               { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+30" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
               { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ J🃏",        pts:"+40" },
-            ].map(({emoji,name,desc,pts,ptsColor}) => (
+            ].map(({emoji,name,desc,pts,ptsColor,descFont}) => (
               <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
                 <span style={{color:"#ffffffcc",fontSize:12,fontFamily:FONT_UI,width:82,fontWeight:600}}>{name}</span>
-                <span style={{color:"#ffffff66",fontSize:12,fontFamily:FONT_UI,width:104}}>{desc}</span>
+                <span style={{color:"#ffffff66",fontSize:descFont??12,fontFamily:FONT_UI,width:104}}>{desc}</span>
                 <span style={{color:ptsColor??VM.tealLight,fontSize:12,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
               </div>
             ))}
@@ -6704,7 +6704,7 @@ function DiamondsGame() {
               minHeight: isDesktop ? 52 : 26, textAlign:"center", width:"100%", boxSizing:"border-box",
               display:"flex", alignItems:"center", justifyContent:"center", lineHeight:1.2,
             };
-            const lockedBtnStyle = { ...cardBtnBase, background:"transparent", color:"#ffffff28", border:"1.5px solid #ffffff15", cursor:"default" };
+            const lockedBtnStyle = { ...cardBtnBase, background:"transparent", color:"#ffffff55", border:"1.5px solid #ffffff35", cursor:"default" };
             const setBtnStyle = { ...cardBtnBase, background:"linear-gradient(135deg,#c9a84c1a,#c9a84c0a)", color:VM.gold, border:"1.5px solid #c9a84c55", cursor:"pointer", touchAction:"manipulation" };
             if (showSets) {
             if (rule1Avail) setButtons.push(
@@ -6914,7 +6914,7 @@ function DiamondsGame() {
                   {buttonsPanel}
                 </div>
                 {setsPanel && (
-                  <div style={{position:"fixed",right:20,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
+                  <div style={{position:"fixed",right:10,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
                     {setsPanel}
                   </div>
                 )}
