@@ -6632,7 +6632,6 @@ function DiamondsGame() {
 
           // ── Sets panel (shared between desktop/non-desktop) ──
           const setsPanel = (isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0)) ? (() => {
-            if (openingConstraint) return null;
             if (trickPlays.some(p => p.playerIdx === 0)) return null;
             const h0 = hands[0] || [];
             const GA = goldenAgeRef.current ? 2 : 1;
@@ -6655,7 +6654,7 @@ function DiamondsGame() {
             const afAvail = checkAmericanFamily(h0);
             const gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
-            const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
+            const rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0] && !openingConstraint;
             const cardBtnBase = {
               borderRadius:8, padding:"4px 6px", fontSize:9, fontWeight:800,
               letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
