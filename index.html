@@ -5704,13 +5704,13 @@ function DiamondsGame() {
       if (!state || state.playerIdx === 0) return;
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
 
-      // 30% chance to reallocate: take best diamond from a player with cards, give to the lowest-score player
-      // Destination can be any player (even with 0 cards) — only source must have cards
+      // 30% chance to reallocate: take best diamond from any player, give to lowest-score AI
+      // Never give to the human (player 0) — that just helps them win
       const othersWithCards = [0,1,2,3].filter(i => i !== playerIdx && (currentHands[i]||[]).length > 0);
-      const allOthers = [0,1,2,3].filter(i => i !== playerIdx);
-      if (othersWithCards.length >= 1 && Math.random() < 0.30) {
-        const sortedByScore = [...allOthers].sort((a, b) => newTotal[a] - newTotal[b]);
-        const leader = sortedByScore[0]; // can be empty-handed
+      const aiDestOptions = [1,2,3].filter(i => i !== playerIdx); // only AI players as destination
+      if (othersWithCards.length >= 1 && aiDestOptions.length > 0 && Math.random() < 0.30) {
+        const sortedByScore = [...aiDestOptions].sort((a, b) => newTotal[a] - newTotal[b]);
+        const leader = sortedByScore[0]; // lowest-score AI receives
         const nonLeaders = othersWithCards.filter(i => i !== leader); // source must have cards
         let bestDiamond = null, takFrom = -1, takFromIdx = -1, bestVal = -1;
         for (const p of nonLeaders) {
