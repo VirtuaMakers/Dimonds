@@ -2044,7 +2044,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
 // ============================================================
 // KIDNAP MODAL — full hand inspection, pick best card
 // ============================================================
-function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckTheme, isRobbinJack=false }) {
+function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckTheme, isRobbinJack=false, onPeek }) {
   const targets = [0,1,2,3].filter(i => i!==jokerPlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
@@ -2064,10 +2064,11 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
   return (
     <Modal>
       <div>
-        <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{textAlign:"center",marginBottom:16,position:"relative"}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>{isRobbinJack ? "Robbin Jack Strikes" : "The Joker Strikes"}</div>
           <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>{isRobbinJack ? "Choose a card to rob." : "Choose a card to kidnap."}</h2>
           <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Inspect any hand, then take your pick.</p>
+          {onPeek && <div onClick={onPeek} style={{position:"absolute",top:0,right:0,cursor:"pointer",color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,display:"flex",alignItems:"center",gap:4,padding:"2px 0"}}><span>👁</span><span>Peek</span></div>}
         </div>
 
         {/* Player tabs */}
@@ -2292,7 +2293,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
   );
 }
 
-function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round" }) {
+function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round", onPeek }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
@@ -2300,10 +2301,11 @@ function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, round
   return (
     <Modal>
       <div>
-        <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{textAlign:"center",marginBottom:16,position:"relative"}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Girl's Best Friend</div>
           <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>💠 Rule of 1</h2>
           <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Give one Dimond card to another player.</p>
+          {onPeek && <div onClick={onPeek} style={{position:"absolute",top:0,right:0,cursor:"pointer",color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,display:"flex",alignItems:"center",gap:4,padding:"2px 0"}}><span>👁</span><span>Peek</span></div>}
         </div>
         <div style={{marginBottom:14}}>
           <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>Your Dimond cards — tap to select</div>
@@ -2349,7 +2351,7 @@ function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, round
 }
 
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
-function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, jokerLockedUp }) {
+function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, jokerLockedUp, onPeek }) {
   const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
@@ -2368,10 +2370,11 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
   return (
     <Modal>
       <div>
-        <div style={{textAlign:"center",marginBottom:16}}>
+        <div style={{textAlign:"center",marginBottom:16,position:"relative"}}>
           <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Ace of Spades Rescues</div>
           <h2 style={{color:"#fff",margin:"0 0 4px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose a card to Rescue/Lock Up into your hand.</h2>
           <p style={{color:"#ffffff55",fontSize:11,margin:0}}>Inspect any hand, then take your pick.</p>
+          {onPeek && <div onClick={onPeek} style={{position:"absolute",top:0,right:0,cursor:"pointer",color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,display:"flex",alignItems:"center",gap:4,padding:"2px 0"}}><span>👁</span><span>Peek</span></div>}
         </div>
         {jokerLockedUp && (
           <div style={{background:"#4466ff18",border:"1px solid #4466ff55",borderRadius:10,padding:"8px 14px",marginBottom:14,textAlign:"center"}}>
@@ -3680,6 +3683,8 @@ function DiamondsGame() {
   const queenClubsStateRef = useRef(queenClubsState);
   queenClubsStateRef.current = queenClubsState;
   const [queenClubsPeeking, setQueenClubsPeeking] = useState(false);
+  // Shared peek state for other steal/action modals
+  const [peekingModal, setPeekingModal] = useState(null); // "kidnap"|"rescue"|"rule1"|null
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -4668,6 +4673,7 @@ function DiamondsGame() {
     } : null;
     setTrickResult(pendingQC ? { ...resultObj, pendingQueenClubs: pendingQC } : resultObj);
     setKidnapState(null);
+    setPeekingModal(null);
     setPhase("trickresult");
 
     const allEmpty = newHands.every(h=>h.length===0);
@@ -4707,6 +4713,7 @@ function DiamondsGame() {
     // Rescue fires for whoever holds A♠, even if A♠ wasn't in this trick
     const aceHolderIdx = savedHands.findIndex(h => h.some(c => isAceSpades(c)));
     setKidnapState(null);
+    setPeekingModal(null);
     if (aceHolderIdx >= 0) {
       setRescueState({ acePlayerIdx: aceHolderIdx, hands: savedHands, resultObj: passResultObj, jokerLockedUp: false });
       setPhase("rescue");
@@ -4910,6 +4917,7 @@ function DiamondsGame() {
     }
     if (giverIdx === 0) {
       // Human: existing phase flow
+      setPeekingModal(null);
       setPhase(brokeNow ? "cuttingteeth_interrupt" : "playing");
     } else {
       // AI: show announcement modal, afterTrickResult handles the next phase
@@ -4919,6 +4927,7 @@ function DiamondsGame() {
   }
   function handleRule1Skip() {
     setRule1State(null);
+    setPeekingModal(null);
     setPhase("playing");
   }
 
@@ -5010,6 +5019,7 @@ function DiamondsGame() {
     const resultObj = { ...rescueState.resultObj, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
     setTrickResult(resultObj);
     setRescueState(null);
+    setPeekingModal(null);
     setPhase("trickresult");
 
     const allEmpty = newHands.every(h=>h.length===0);
@@ -6833,7 +6843,7 @@ function DiamondsGame() {
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* MODALS */}
-      {phase==="rule1"&&rule1State&&(
+      {phase==="rule1"&&rule1State&&peekingModal!=="rule1"&&(
         <Rule1Modal
           hand={hands[0]||[]}
           allNames={allNames}
@@ -6844,10 +6854,17 @@ function DiamondsGame() {
           roundScores={roundScores}
           totalScores={totalScores}
           scoreTally={scoreTally}
+          onPeek={()=>setPeekingModal("rule1")}
         />
       )}
+      {phase==="rule1"&&rule1State&&peekingModal==="rule1"&&(
+        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a2a1a",border:"1.5px solid #c9a84c",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
+          <span style={{fontSize:16}}>💠</span>
+          <span style={{color:"#c9a84c",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Rule of 1</span>
+        </div>
+      )}
 
-      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&(
+      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&peekingModal!=="kidnap"&&(
         <KidnapModal
           hands={hands}
           jokerPlayerIdx={0}
@@ -6856,7 +6873,14 @@ function DiamondsGame() {
           onSkip={kidnapState.isRobbinJack ? handleKidnapSkip : undefined}
           deckTheme={deckTheme}
           isRobbinJack={!!kidnapState.isRobbinJack}
+          onPeek={()=>setPeekingModal("kidnap")}
         />
+      )}
+      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&peekingModal==="kidnap"&&(
+        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a1a2a",border:"1.5px solid #8833cc",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
+          <span style={{fontSize:16}}>{kidnapState.isRobbinJack?"🎴":"🃏"}</span>
+          <span style={{color:"#c084f5",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>{kidnapState.isRobbinJack?"Return to Robbin Jack":"Return to Joker Kidnap"}</span>
+        </div>
       )}
 
       {phase==="thesteal" && theStealState && (
@@ -7035,7 +7059,7 @@ function DiamondsGame() {
         </div>
       )}
 
-      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&(
+      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&peekingModal!=="rescue"&&(
         <RescueModal
           hands={hands}
           acePlayerIdx={0}
@@ -7043,7 +7067,14 @@ function DiamondsGame() {
           onRescue={handleRescue}
           deckTheme={deckTheme}
           jokerLockedUp={rescueState.jokerLockedUp}
+          onPeek={()=>setPeekingModal("rescue")}
         />
+      )}
+      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&peekingModal==="rescue"&&(
+        <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a1a2a",border:"1.5px solid #1a6b30",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
+          <span style={{fontSize:16}}>🗡️</span>
+          <span style={{color:"#7ec8a4",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Ace of Spades Rescue</span>
+        </div>
       )}
 
       {/* Aces Low — offer modal (only when it's the human's choice) */}
