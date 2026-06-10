@@ -6873,7 +6873,7 @@ function DiamondsGame() {
             if (!setsInner) return null;
             return (
               <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, width:360, display:"flex", flexDirection:"column", boxSizing:"border-box", flexShrink:0 }}>
-                <div data-modal="1" style={{overflowY:"scroll",maxHeight:360,padding:"8px 10px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",gap:6}}>
+                <div data-modal="1" style={{overflowY:"scroll",maxHeight:"min(360px, calc(100dvh - 64px))",padding:"8px 10px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",gap:6}}>
                   {setsInner}
                 </div>
               </div>
@@ -6910,11 +6910,11 @@ function DiamondsGame() {
             );
             return (
               <>
-                <div style={{position:"absolute",left:275,top:"54%",transform:"translateY(-50%)",zIndex:50}}>
+                <div style={{position:"fixed",left:275,top:"50%",transform:"translateY(-50%)",zIndex:50}}>
                   {buttonsPanel}
                 </div>
                 {setsPanel && (
-                  <div style={{position:"absolute",right:20,top:"54%",transform:"translateY(-50%)",zIndex:50}}>
+                  <div style={{position:"fixed",right:20,top:"50%",transform:"translateY(-50%)",zIndex:50}}>
                     {setsPanel}
                   </div>
                 )}
