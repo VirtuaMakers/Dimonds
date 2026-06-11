@@ -6869,13 +6869,27 @@ function DiamondsGame() {
               );
             }
 
-            // ── Desktop: outer box with scrollable sets content only ──
-            if (!setsInner) return null;
+            // ── Desktop: Dimonds header + scrollable sets content ──
             return (
-              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, width:360, display:"flex", flexDirection:"column", boxSizing:"border-box", flexShrink:0 }}>
-                <div data-modal="1" style={{overflowY:"scroll",maxHeight:"min(360px, calc(100dvh - 64px))",padding:"8px 10px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",gap:6}}>
-                  {setsInner}
+              <div data-setpanel="1" style={{ background:`${VM.tealLight}0d`, border:`1px solid ${VM.tealLight}44`, borderRadius:8, width:360, display:"flex", flexDirection:"column", boxSizing:"border-box", flexShrink:0, maxHeight:"calc(100dvh - 30px)" }}>
+                {/* Dimonds scoring reference */}
+                <div style={{flexShrink:0, padding:"7px 10px 6px", borderBottom:`1px solid ${VM.tealLight}22`}}>
+                  <div style={{color:VM.gold+"99",fontSize:10,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:4}}>Dimonds</div>
+                  <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+                    {[["K♦","+5"],["Q♦","+4"],["J♦","+3"],["A♦","+2"],["2-10♦","+1"]].map(([card,pts]) => (
+                      <div key={card} style={{display:"flex",alignItems:"center",gap:2}}>
+                        <span style={{color:VM.red,fontSize:12,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
+                        <span style={{color:VM.tealLight,fontSize:12,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+                {/* Scrollable sets area */}
+                {setsInner && (
+                  <div data-modal="1" style={{flex:"1 1 auto",minHeight:0,overflowY:"scroll",padding:"8px 10px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",gap:6}}>
+                    {setsInner}
+                  </div>
+                )}
               </div>
             );
           })();
@@ -6913,11 +6927,9 @@ function DiamondsGame() {
                 <div style={{position:"fixed",left:275,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
                   {buttonsPanel}
                 </div>
-                {setsPanel && (
-                  <div style={{position:"fixed",right:10,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
-                    {setsPanel}
-                  </div>
-                )}
+                <div style={{position:"fixed",right:10,bottom:10,zIndex:50}}>
+                  {setsPanel}
+                </div>
               </>
             );
           }
