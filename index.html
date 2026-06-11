@@ -6696,8 +6696,8 @@ function DiamondsGame() {
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
             } // end if (showSets)
-            const subLabelSize = isDesktop ? 11 : 7;
-            const lockedSubSize = isDesktop ? 10 : 6;
+            const subLabelSize = isDesktop ? 13 : 7;
+            const lockedSubSize = isDesktop ? 12 : 6;
             const cardBtnBase = {
               borderRadius:8, padding: isDesktop ? "10px 12px" : "4px 6px", fontSize: isDesktop ? 14 : 9, fontWeight:800,
               letterSpacing:0, textTransform:"uppercase", fontFamily:FONT_DISPLAY,
