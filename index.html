@@ -2453,7 +2453,7 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
 // ============================================================
 // TRICK RESULT MODAL — 4 distinct event styles
 // ============================================================
-function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue }) {
+function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, footer }) {
   const firedRef = React.useRef(false);
   const handleContinue = () => { if (firedRef.current) return; firedRef.current = true; onContinue(); };
   return (
@@ -2491,6 +2491,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
         }}>
           {children}
         </div>
+        {footer}
         <button onClick={handleContinue} style={{
           background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
           color:"#0a2320", border:"none", borderRadius:10,
@@ -2506,8 +2507,27 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue })
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[] }) {
+function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round" }) {
   if (!result) return null;
+
+  const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (roundScores[i]||0));
+  const maxRunning = Math.max(...runningTotals);
+  const scoreSummary = scoreTally === "point" ? (
+    <div style={{width:"100%", marginTop:8, borderTop:"1px solid rgba(75,195,175,0.2)", paddingTop:10, display:"flex", flexDirection:"column", gap:3}}>
+      <div style={{fontSize:9, color:"rgba(75,195,175,0.55)", letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_UI, marginBottom:3, textAlign:"center"}}>Running Totals</div>
+      {allNames.map((n, i) => {
+        const isTop = runningTotals[i] === maxRunning;
+        return (
+          <div key={i} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"2px 8px", borderRadius:6, background: isTop ? "rgba(75,195,175,0.1)" : "transparent"}}>
+            <span style={{fontSize:11, fontFamily:FONT_UI, color: isTop ? VM.tealLight : "#ffffffaa", fontWeight: isTop ? 700 : 400}}>
+              {i === 0 ? "😎" : AI_PERSONAS[i-1].emoji} {n}
+            </span>
+            <span style={{fontSize:13, fontWeight:800, fontFamily:FONT_DISPLAY, color: isTop ? VM.gold : "#ffffffbb"}}>{runningTotals[i]}</span>
+          </div>
+        );
+      })}
+    </div>
+  ) : null;
 
   const aceCard = result.plays?.find(p => isAceSpades(p.card))?.card;
   const winningPlay = result.plays?.find(p => p.playerIdx === result.winnerIdx);
@@ -2523,7 +2543,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== AMERICAN FAMILY =====
   if (result.americanFamily) {
     return (
-      <EventBox borderColor="#ffffff" emoji="🏛️" title="The American Family Together!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#ffffff" emoji="🏛️" title="The American Family Together!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -2564,7 +2584,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
       : blockedRobbin ? "Robbin Jack is foiled — no robbing this trick!"
       : "The Joker is Locked Up — no kidnapping this trick!";
     return (
-      <EventBox borderColor="#1a3ab8" emoji={blockEmoji} title={blockTitle} btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a3ab8" emoji={blockEmoji} title={blockTitle} btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.aceHolderIdx ?? result.winnerIdx]}
         </div>
@@ -2613,7 +2633,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const trickWinner = result.winnerIdx;
     const robbinWonTrick = robbinIdx === trickWinner;
     return (
-      <EventBox borderColor="#1a6b30" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a6b30" emoji="🎴" title="Robbin Jack Robs!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[robbinIdx]}{" "}
           <span style={{color:"#7ec8a4",fontWeight:500,fontSize:15}}>robs</span>{" "}
@@ -2652,7 +2672,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
     const trickWinner = result.winnerIdx;
     const noTargets = result.jackDiamondNoTargets;
     return (
-      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {robbinIdx != null ? allNames[robbinIdx] : "?"}
         </div>
@@ -2676,7 +2696,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== THE JOKER — NO TARGETS =====
   if (result.jokerWin && result.jokerNoTargets) {
     return (
-      <EventBox borderColor="#8833cc" emoji="🃏" title="The Joker Wins!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#8833cc" emoji="🃏" title="The Joker Wins!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -2698,7 +2718,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== THE JOKER KIDNAPS =====
   if (result.jokerWin) {
     return (
-      <EventBox borderColor="#8833cc" emoji="💸" title="The Joker Kidnaps!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#8833cc" emoji="💸" title="The Joker Kidnaps!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}{" "}
           <span style={{color:"#c084f5",fontWeight:500,fontSize:15}}>kidnaps</span>{" "}
@@ -2727,7 +2747,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== AUTO-CLAIM SWEEP =====
   if (result.autoClaim) {
     return (
-      <EventBox borderColor="#c9a84c" emoji="✨" title="Unopposed Sweep" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#c9a84c" emoji="✨" title="Unopposed Sweep" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -2745,7 +2765,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.queenClubsNoTargets) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
-      <EventBox borderColor="#4db8e8" emoji="♣" title="Queen of Clubs Plays!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4db8e8" emoji="♣" title="Queen of Clubs Plays!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
           No cards to thieve or reallocate.
@@ -2763,7 +2783,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.queenClubsThieved) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
-      <EventBox borderColor="#4db8e8" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4db8e8" emoji="🔷" title="Queen of Clubs Thieved!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -2779,7 +2799,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== RULE OF 1 — AI ANNOUNCEMENT =====
   if (result.rule1Announced) {
     return (
-      <EventBox borderColor="#4466ee" emoji="💠" title="Rule of 1 — Girl's Best Friend" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4466ee" emoji="💠" title="Rule of 1 — Girl's Best Friend" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:20,fontWeight:800,fontFamily:FONT_UI}}>{allNames[result.rule1Giver]}</div>
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",marginTop:4}}>
           Gives the{" "}
@@ -2795,7 +2815,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.queenClubsReallocated) {
     const qcIdx = result.queenClubsPlayerIdx ?? result.winnerIdx;
     return (
-      <EventBox borderColor="#4db8e8" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#4db8e8" emoji="🔶" title="Queen of Clubs Reallocates!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[qcIdx]}</div>
         {result.queenClubsCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -2817,7 +2837,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
       : rescuedIsJoker ? (<>Ace of Spades<br/>Locks Up The Joker!</>)
       : "Ace of Spades Rescues!";
     return (
-      <EventBox borderColor="#1a3ab8" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a3ab8" emoji="🗡️" title={title} btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         {result.jokerLockedUp && (
           <div style={{color:"#8a9fe0",fontSize:12,fontWeight:700,marginBottom:6}}>🔒 The Joker is Locked Up — no kidnapping this trick!</div>
         )}
@@ -2849,7 +2869,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   if (result.aceRescueAttempted) {
     const rescuerIdx = result.winnerIdx;
     return (
-      <EventBox borderColor="#1a3ab8" emoji="♠️" title="Ace of Spades Wins!" btnLabel={btnLabel} onContinue={onContinue}>
+      <EventBox borderColor="#1a3ab8" emoji="♠️" title="Ace of Spades Wins!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[rescuerIdx]}
         </div>
@@ -2870,7 +2890,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 
   // ===== NORMAL TRICK WON =====
   return (
-    <EventBox borderColor="#c9a84c" emoji="🎩" title="Trick Won" btnLabel={btnLabel} onContinue={onContinue}>
+    <EventBox borderColor="#c9a84c" emoji="🎩" title="Trick Won" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
       <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
         {allNames[result.winnerIdx]}
       </div>
@@ -7436,6 +7456,7 @@ function DiamondsGame() {
           isGoldenAge={goldenAgeActive}
           roundScores={roundScores}
           totalScores={totalScores}
+          scoreTally={scoreTally}
         />
       )}
 
