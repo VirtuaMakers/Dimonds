@@ -2512,7 +2512,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 
   const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (roundScores[i]||0));
   const maxRunning = Math.max(...runningTotals);
-  const scoreSummary = scoreTally === "point" ? (
+  const scoreSummary = scoreTally === "trick" ? (
     <div style={{width:"100%", marginTop:8, borderTop:"1px solid rgba(75,195,175,0.2)", paddingTop:10, display:"flex", flexDirection:"column", gap:3}}>
       <div style={{fontSize:9, color:"rgba(75,195,175,0.55)", letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_UI, marginBottom:3, textAlign:"center"}}>Running Totals</div>
       {allNames.map((n, i) => {
@@ -3352,7 +3352,7 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
           <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
             <div><div style={label}>Score Showing</div><div style={sub}>When scores are revealed</div></div>
             <div style={{display:"flex", gap:4, flexWrap:"wrap"}}>
-              {[["point","Per Trick"],["round","Per Round"],["game","Per Game"]].map(([val,lbl])=>(
+              {[["point","Per Point"],["trick","Per Trick"],["round","Per Round"],["game","Per Game"]].map(([val,lbl])=>(
                 <button key={val} onClick={()=>setScoreTally(val)} style={{
                   background: scoreTally===val ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
                   border:`1.5px solid ${scoreTally===val ? VM.tealLight : "#ffffff33"}`,
@@ -3602,7 +3602,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {role:"Coding", name:"Claude (Anthropic)"},
                 {role:"Concepts", name:"ChatGPT (OpenAI)"},
                 {role:"Graphics", name:"Copilot (Microsoft)"},
-                {role:"Playtesting", name:"Donnie Swing, Rob Vasseur"},
+                {role:"Playtesting", name:"Donnie Swing, Rob Vasseur, Thomas Bruckmann"},
               ].map(({role,name})=>(
                 <div key={role} style={{marginBottom:10, paddingLeft:8}}>
                   <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
@@ -6289,7 +6289,7 @@ function DiamondsGame() {
       }}>
         {allNames.map((n,i)=>{
           const isLeading = i===turnOrder[currentTurn] && phase==="playing";
-          const total = totalScores[i]||0;
+          const total = (totalScores[i]||0) + (scoreTally === "point" ? (roundScores[i]||0) : 0);
           const pct = Math.min(100, Math.round(total/winScore*100));
           return (
             <div key={n} ref={el => scorePanelRefs.current[i] = el} style={{
