@@ -3332,7 +3332,7 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
           <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
             <div><div style={label}>Score Showing</div><div style={sub}>When scores are revealed</div></div>
             <div style={{display:"flex", gap:4, flexWrap:"wrap"}}>
-              {[["point","Every Point"],["round","Every Round"],["game","Every Game"]].map(([val,lbl])=>(
+              {[["point","Per Trick"],["round","Per Round"],["game","Per Game"]].map(([val,lbl])=>(
                 <button key={val} onClick={()=>setScoreTally(val)} style={{
                   background: scoreTally===val ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
                   border:`1.5px solid ${scoreTally===val ? VM.tealLight : "#ffffff33"}`,
@@ -3658,8 +3658,8 @@ function DiamondsGame() {
   const animSpeedRef = useRef("normal");
   useEffect(() => { animSpeedRef.current = animSpeed; }, [animSpeed]);
   const [showCommuniques, setShowCommuniques] = useState(true);
-  const [scoreTally, setScoreTally] = useState("round"); // "point" | "round" | "game"
-  const scoreTallyRef = useRef("round");
+  const [scoreTally, setScoreTally] = useState("point"); // "point" | "round" | "game"
+  const scoreTallyRef = useRef("point");
   useEffect(() => { scoreTallyRef.current = scoreTally; }, [scoreTally]);
 
   // Keep the module-level sound flag in sync with React state
