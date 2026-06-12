@@ -3819,8 +3819,8 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "playing") return;
     if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
-    if (trickPlays.length > 0) return;
     const cp = turnOrder[currentTurn];
+    if (trickPlays.some(p => p.playerIdx === cp)) return;
     if (showdownOffered[cp]) return;
     if (!checkShowdown(hands[cp] || [])) return;
     setShowdownOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
@@ -3854,8 +3854,8 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "playing") return;
     if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
-    if (trickPlays.length > 0) return;
     const cp = turnOrder[currentTurn];
+    if (trickPlays.some(p => p.playerIdx === cp)) return;
     if (theStealOffered[cp]) return;
     if (checkShowdown(hands[cp] || [])) return; // Showdown takes priority
     if (!checkTheSteal(hands[cp] || [])) return;
@@ -6794,7 +6794,7 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (trickPlays.length === 0 && showdownAvail) {
+            if (showdownAvail) {
               const sdCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
               const sdLabel = sdCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
               setButtons.push(
@@ -6807,7 +6807,7 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (trickPlays.length === 0 && stealAvail) {
+            if (stealAvail) {
               const stCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
               const stLabel = stCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
               setButtons.push(
