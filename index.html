@@ -3492,26 +3492,29 @@ function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
           {[0,1,2].map(slotIdx => {
             const seatNum = slotIdx + 2;
             const currentId = opponentSlots[slotIdx];
-            return (
-              <div key={slotIdx} style={{marginBottom:18}}>
-                <div style={{fontSize:11,color:"#ffffffbb",fontFamily:FONT_UI,fontWeight:700,marginBottom:8}}>
-                  Seat {seatNum}
-                </div>
+            const takenIds = new Set(opponentSlots.filter((_,i) => i !== slotIdx));
+            const computers = OPPONENT_OPTIONS.filter(o => o.type === 'computer');
+            const llms      = OPPONENT_OPTIONS.filter(o => o.type === 'llm');
+            const renderRow = (opts, rowLabel) => (
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:9,color:"#ffffff44",fontFamily:FONT_UI,letterSpacing:1,textTransform:"uppercase",marginBottom:5}}>{rowLabel}</div>
                 <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                  {OPPONENT_OPTIONS.map(opt => {
+                  {opts.map(opt => {
                     const isSelected = currentId === opt.id;
+                    const isTaken = takenIds.has(opt.id);
                     return (
-                      <button key={opt.id} onClick={()=>{
+                      <button key={opt.id} onClick={isTaken ? undefined : ()=>{
                         setOpponentSlots(prev => { const n=[...prev]; n[slotIdx]=opt.id; return n; });
                       }} style={{
-                        background: isSelected ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
-                        border:`1.5px solid ${isSelected ? VM.tealLight : "#ffffff33"}`,
-                        borderRadius:10, padding:"6px 10px", cursor:"pointer",
-                        color: isSelected ? "#0a2320" : "#ffffffaa",
+                        background: isSelected ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : isTaken ? "#ffffff07" : "#ffffff14",
+                        border:`1.5px solid ${isSelected ? VM.tealLight : isTaken ? "#ffffff18" : "#ffffff33"}`,
+                        borderRadius:10, padding:"6px 10px",
+                        cursor: isTaken ? "not-allowed" : "pointer",
+                        color: isSelected ? "#0a2320" : isTaken ? "#ffffff33" : "#ffffffaa",
                         fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
                         touchAction:"manipulation",
                         display:"flex", flexDirection:"column", alignItems:"center", gap:2,
-                        minWidth:60,
+                        minWidth:60, opacity: isTaken ? 0.45 : 1,
                       }}>
                         <span style={{fontSize:15}}>{opt.emoji}</span>
                         <span>{opt.label}</span>
@@ -3524,8 +3527,17 @@ function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
                     );
                   })}
                 </div>
+              </div>
+            );
+            return (
+              <div key={slotIdx} style={{marginBottom:18}}>
+                <div style={{fontSize:11,color:"#ffffffbb",fontFamily:FONT_UI,fontWeight:700,marginBottom:8}}>
+                  Seat {seatNum}
+                </div>
+                {renderRow(computers, "Computer Players")}
+                {renderRow(llms, "AI (LLM) Players")}
                 {/* Show desc of selected */}
-                <div style={{fontSize:10,color:VM.tealLight+"99",fontFamily:FONT_UI,marginTop:5,paddingLeft:2}}>
+                <div style={{fontSize:10,color:VM.tealLight+"99",fontFamily:FONT_UI,marginTop:2,paddingLeft:2}}>
                   {OPPONENT_OPTIONS.find(o=>o.id===currentId)?.desc}
                 </div>
               </div>
