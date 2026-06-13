@@ -942,6 +942,14 @@ const AI_PERSONAS = [
   { name:"Vicky", emoji:"📰", style:"Conservative", desc:"safe, hoards diamonds" },
   { name:"Guy",   emoji:"🌴", style:"Chaotic",      desc:"unpredictable wildcard" },
 ];
+const OPPONENT_OPTIONS = [
+  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family' },
+  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds' },
+  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard' },
+  { id:'haiku',   type:'llm',      label:'Clyde',   emoji:'🤖', style:'Haiku AI',     desc:'powered by Claude Haiku' },
+  { id:'chatgpt', type:'llm',      label:'ChatGPT', emoji:'⚡', style:'GPT AI',       desc:'powered by OpenAI' },
+  { id:'copilot', type:'llm',      label:'Copilot', emoji:'✈️', style:'Copilot AI',   desc:'powered by Microsoft' },
+];
 
 // ============================================================
 // DECK HELPERS
@@ -2520,7 +2528,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         return (
           <div key={i} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"2px 8px", borderRadius:6, background: isTop ? "rgba(75,195,175,0.1)" : "transparent"}}>
             <span style={{fontSize:11, fontFamily:FONT_UI, color: isTop ? VM.tealLight : "#ffffffaa", fontWeight: isTop ? 700 : 400}}>
-              {i === 0 ? "😎" : AI_PERSONAS[i-1].emoji} {n}
+              {i === 0 ? "😎 " : ""}{n}
             </span>
             <span style={{fontSize:13, fontWeight:800, fontFamily:FONT_DISPLAY, color: isTop ? VM.gold : "#ffffffbb"}}>{runningTotals[i]}</span>
           </div>
@@ -3456,8 +3464,12 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
 // ============================================================
 // RULES PANEL
 // ============================================================
-function MultiplayerPanel({ onClose }) {
+function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
+  const sectionLabel = txt => (
+    <div style={{fontSize:9,color:VM.tealLight+"99",letterSpacing:2,textTransform:"uppercase",
+      fontFamily:FONT_UI,fontWeight:700,marginBottom:10,marginTop:4}}>{txt}</div>
+  );
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,zIndex:200,background:"rgba(4,18,15,0.80)",
       display:"flex",alignItems:"flex-start",justifyContent:"center",
@@ -3467,19 +3479,80 @@ function MultiplayerPanel({ onClose }) {
         maxHeight:Math.min(maxH,740),
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {/* Header */}
         <div style={{padding:"18px 22px 13px",borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Multiplayer</h2>
+            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Multiplayer</h2>
             <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
           </div>
         </div>
-        <div style={{flex:1,overflowY:"auto",padding:"40px 22px",WebkitOverflowScrolling:"touch",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-          <div style={{fontSize:48,lineHeight:1}}>🎮</div>
-          <div style={{color:"#ffffffcc",fontSize:15,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
-            Multiplayer coming soon.
+        {/* Scrollable body */}
+        <div style={{flex:1,overflowY:"auto",padding:"14px 22px 22px",WebkitOverflowScrolling:"touch"}}>
+          {sectionLabel("Configure Opponents")}
+          {[0,1,2].map(slotIdx => {
+            const seatNum = slotIdx + 2;
+            const currentId = opponentSlots[slotIdx];
+            return (
+              <div key={slotIdx} style={{marginBottom:18}}>
+                <div style={{fontSize:11,color:"#ffffffbb",fontFamily:FONT_UI,fontWeight:700,marginBottom:8}}>
+                  Seat {seatNum}
+                </div>
+                <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                  {OPPONENT_OPTIONS.map(opt => {
+                    const isSelected = currentId === opt.id;
+                    return (
+                      <button key={opt.id} onClick={()=>{
+                        setOpponentSlots(prev => { const n=[...prev]; n[slotIdx]=opt.id; return n; });
+                      }} style={{
+                        background: isSelected ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff14",
+                        border:`1.5px solid ${isSelected ? VM.tealLight : "#ffffff33"}`,
+                        borderRadius:10, padding:"6px 10px", cursor:"pointer",
+                        color: isSelected ? "#0a2320" : "#ffffffaa",
+                        fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
+                        touchAction:"manipulation",
+                        display:"flex", flexDirection:"column", alignItems:"center", gap:2,
+                        minWidth:60,
+                      }}>
+                        <span style={{fontSize:15}}>{opt.emoji}</span>
+                        <span>{opt.label}</span>
+                        {opt.type === 'llm' && (
+                          <span style={{fontSize:8,fontWeight:400,color: isSelected ? "#0a232088" : VM.tealLight+"88",fontFamily:FONT_UI,letterSpacing:0}}>
+                            🔌 API req.
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Show desc of selected */}
+                <div style={{fontSize:10,color:VM.tealLight+"99",fontFamily:FONT_UI,marginTop:5,paddingLeft:2}}>
+                  {OPPONENT_OPTIONS.find(o=>o.id===currentId)?.desc}
+                </div>
+              </div>
+            );
+          })}
+          {/* Human coming soon */}
+          <div style={{opacity:0.4,fontSize:11,color:"#ffffffaa",fontFamily:FONT_UI,marginBottom:18,paddingLeft:2}}>
+            [👤 Human — coming soon]
           </div>
-          <div style={{color:VM.tealLight+"88",fontSize:12,fontFamily:FONT_UI,textAlign:"center",lineHeight:1.6}}>
-            Online play, local pass-and-play,<br/>and friend lobbies are in development.
+          {/* Your Table preview */}
+          <div style={{borderTop:`1px solid ${VM.tealLight}22`,paddingTop:14,marginTop:4}}>
+            {sectionLabel("Your Table")}
+            <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                <span style={{fontSize:20}}>😎</span>
+                <span style={{fontSize:10,color:"#ffffffcc",fontFamily:FONT_UI,fontWeight:700}}>You</span>
+              </div>
+              {opponentSlots.map((id,si) => {
+                const opt = OPPONENT_OPTIONS.find(o=>o.id===id) ?? OPPONENT_OPTIONS[0];
+                return (
+                  <div key={si} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:3}}>
+                    <span style={{fontSize:20}}>{opt.emoji}</span>
+                    <span style={{fontSize:10,color:"#ffffffcc",fontFamily:FONT_UI,fontWeight:700}}>{opt.label}</span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -3667,6 +3740,7 @@ function DiamondsGame() {
   const [showCredits, setShowCredits] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
+  const [opponentSlots, setOpponentSlots] = useState(['gordy','vicky','guy']);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
   const [autoCompleteTricks, setAutoCompleteTricks] = useState(true);
@@ -3789,7 +3863,8 @@ function DiamondsGame() {
   const [sessionWins, setSessionWins] = useState([0,0,0,0]);
   const [sessionGamesPlayed, setSessionGamesPlayed] = useState(0);
   const sessionWinRecordedGame = useRef(0);
-  const allNames = [playerName, ...AI_NAMES];
+  const effectivePersonas = opponentSlots.map(id => OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]);
+  const allNames = [playerName, ...effectivePersonas.map(p => p.label)];
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
   const ledSuit = trickPlays.length > 0 && !trickPlays[0].card.isJoker ? trickPlays[0].card.suit : null;
@@ -6107,7 +6182,7 @@ function DiamondsGame() {
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
         {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
-        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)}/>}
+        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
       </div>
     );
   }
@@ -6352,8 +6427,8 @@ function DiamondsGame() {
               boxShadow: isActive?`0 0 14px ${VM.tealLight}1f`:"none",
             }}>
               <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
-                <span style={{fontSize:14}}>{AI_PERSONAS[i-1].emoji}</span>
-                <span style={{fontSize:10,color:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{AI_NAMES[i-1]}</span>
+                <span style={{fontSize:14}}>{effectivePersonas[i-1].emoji}</span>
+                <span style={{fontSize:10,color:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{effectivePersonas[i-1].label}</span>
                 {isActive&&<span style={{fontSize:8,color:VM.tealLight,marginLeft:"auto",animation:"pulse 1s infinite",fontFamily:FONT_UI}}>thinking…</span>}
               </div>
               {/* Fanned face-down cards for AI */}
