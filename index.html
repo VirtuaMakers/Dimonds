@@ -3716,6 +3716,8 @@ function DiamondsGame() {
   const [selectedCards, setSelectedCards] = useState([]);
   const [dealing, setDealing] = useState(false); // true briefly at round start for deal-out animation
   const [flyingCards, setFlyingCards] = useState([]); // overlay cards animating between points
+  const [dragGhost, setDragGhost] = useState(null); // { card, x, y } during drag-to-play
+  const dragRef = useRef(null); // { card, startX, startY, isDragging, isLegal }
   const scorePanelRefs = useRef([null,null,null,null]); // DOM nodes of the 4 score tiles
   const trickAreaRef = useRef(null); // trick cards container
   const handAreaRef = useRef(null); // player's hand container
@@ -6394,7 +6396,7 @@ function DiamondsGame() {
           )}
         </div>
         {/* Cards row — full-size cards (115px mobile) + name label */}
-        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:isDesktop?150:130,alignItems:"flex-end",flexWrap:"nowrap"}}>
+        <div ref={trickAreaRef} style={{display:"flex",gap:10,justifyContent:"center",height:isDesktop?150:130,alignItems:"flex-end",flexWrap:"nowrap",borderRadius:12,transition:"box-shadow 0.15s",boxShadow:dragGhost?`0 0 0 2px ${VM.tealLight}88, inset 0 0 20px rgba(75,195,175,0.07)`:"none"}}>
           {trickPlays.length===0 ? (
             <div style={{color:"#ffffff1a",fontSize:12,fontStyle:"italic",fontFamily:FONT_UI}}>Waiting for first card…</div>
           ) : (
@@ -6572,20 +6574,46 @@ function DiamondsGame() {
               return (
                 <div
                   key={card.id}
-                  onClick={isPlayerTurn ? () => {
-                    const now = Date.now();
-                    const last = lastCardClickRef.current;
-                    const isDoubleClick = last.cardId === card.id && (now - last.time) < 200;
-                    lastCardClickRef.current = { cardId: card.id, time: now };
-                    if (isSelected && isLegal && hasMouseInput && selectedCards.length === 1 && isDoubleClick) {
-                      playCard(card);
+                  onPointerDown={isPlayerTurn ? (e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    dragRef.current = { card, startX: e.clientX, startY: e.clientY, isDragging: false, isLegal };
+                  } : undefined}
+                  onPointerMove={isPlayerTurn ? (e) => {
+                    if (!dragRef.current || dragRef.current.card.id !== card.id) return;
+                    const dx = e.clientX - dragRef.current.startX;
+                    const dy = e.clientY - dragRef.current.startY;
+                    if (Math.hypot(dx, dy) > 8) {
+                      dragRef.current.isDragging = true;
+                      setDragGhost({ card, x: e.clientX, y: e.clientY });
+                    }
+                  } : undefined}
+                  onPointerUp={isPlayerTurn ? (e) => {
+                    if (!dragRef.current || dragRef.current.card.id !== card.id) return;
+                    const { isDragging, isLegal: legalAtDragStart } = dragRef.current;
+                    dragRef.current = null;
+                    setDragGhost(null);
+                    if (isDragging) {
+                      const trickRect = trickAreaRef.current?.getBoundingClientRect();
+                      if (legalAtDragStart && trickRect &&
+                          e.clientX >= trickRect.left && e.clientX <= trickRect.right &&
+                          e.clientY >= trickRect.top && e.clientY <= trickRect.bottom) {
+                        setSelectedCards([]);
+                        playCard(card);
+                      }
                     } else {
-                      setSelectedCards(prev => {
-                        if (isSelected) return prev.filter(c => c.id !== card.id);
-                        const next = [...prev, card];
-                        // Multi-select only when building toward a valid set; otherwise replace
-                        return couldBuildSet(next) ? next : [card];
-                      });
+                      const now = Date.now();
+                      const last = lastCardClickRef.current;
+                      const isDoubleClick = last.cardId === card.id && (now - last.time) < 200;
+                      lastCardClickRef.current = { cardId: card.id, time: now };
+                      if (isSelected && legalAtDragStart && hasMouseInput && selectedCards.length === 1 && isDoubleClick) {
+                        playCard(card);
+                      } else {
+                        setSelectedCards(prev => {
+                          if (isSelected) return prev.filter(c => c.id !== card.id);
+                          const next = [...prev, card];
+                          return couldBuildSet(next) ? next : [card];
+                        });
+                      }
                     }
                   } : undefined}
                   style={{
@@ -6595,7 +6623,7 @@ function DiamondsGame() {
                     zIndex: isSelected ? total + 10 : ci,
                     cursor: isPlayerTurn ? "pointer" : "default",
                     transition:"bottom 0.15s ease, left 0.18s ease, filter 0.2s ease",
-                    touchAction:"manipulation",
+                    touchAction: isPlayerTurn ? "none" : "manipulation",
                     filter: (() => {
                       const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
                       if (isDimmed) return "brightness(0.55)";
@@ -7578,6 +7606,22 @@ function DiamondsGame() {
         [data-modal]::-webkit-scrollbar-thumb:hover { background: rgba(75,195,175,1); }
         [data-modal] { scrollbar-width: thin; scrollbar-color: rgba(75,195,175,0.85) rgba(0,0,0,0.35); }
       `}</style>
+
+      {/* DRAG GHOST — card follows finger/cursor during drag-to-play */}
+      {dragGhost && (
+        <div style={{
+          position:"fixed",
+          left: dragGhost.x - (isDesktop ? 45 : 40),
+          top:  dragGhost.y - (isDesktop ? 110 : 97),
+          zIndex: 9999,
+          pointerEvents: "none",
+          transform: "scale(1.1) rotate(-4deg)",
+          filter: "drop-shadow(0 10px 28px rgba(0,0,0,0.75))",
+          opacity: 0.93,
+        }}>
+          <CardComp card={dragGhost.card} deckTheme={deckTheme} selected />
+        </div>
+      )}
     </div>
   );
 }
