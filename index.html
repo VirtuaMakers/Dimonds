@@ -6102,11 +6102,7 @@ function DiamondsGame() {
     }}>
       <span>✨ Dimonds updated! Reload for the latest.</span>
       <div style={{display:"flex", gap:8, alignItems:"center"}}>
-        <button onClick={()=>{
-          if (typeof caches !== "undefined") {
-            caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>location.reload());
-          } else { location.reload(); }
-        }} style={{
+        <button onClick={()=>location.reload()} style={{
           background:"#0a2320", color:VM.tealLight, border:"none",
           borderRadius:8, padding:"4px 12px", fontSize:11, fontWeight:800,
           cursor:"pointer", fontFamily:FONT_DISPLAY, letterSpacing:0.5,
