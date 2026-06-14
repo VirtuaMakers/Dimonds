@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VirtuaMakers</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #080810;
+      --bg-card: #10101c;
+      --bg-card-hover: #161626;
+      --border: #1e1e36;
+      --text: #d4d4e8;
+      --text-dim: #7878a0;
+      --accent: #7c5cfc;
+      --accent-glow: rgba(124, 92, 252, 0.18);
+      --green: #2de0a5;
+      --green-glow: rgba(45, 224, 165, 0.12);
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono: 'Courier New', 'Consolas', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      height: 60px;
+      background: rgba(8, 8, 16, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      text-decoration: none;
+    }
+
+    .nav-logo img {
+      height: 32px;
+      width: auto;
+      filter: brightness(1.1);
+    }
+
+    .nav-logo span {
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--text);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.875rem;
+      letter-spacing: 0.04em;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem 4rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 40%, rgba(124, 92, 252, 0.1) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 70%, rgba(45, 224, 165, 0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      letter-spacing: 0.2em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.8rem, 8vw, 6rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      background: linear-gradient(135deg, #ffffff 30%, #9b7fff 70%, var(--green) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-sub {
+      max-width: 520px;
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      margin-bottom: 2.5rem;
+      line-height: 1.7;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.4rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      letter-spacing: 0.02em;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 0 20px var(--accent-glow);
+    }
+
+    .btn-primary:hover {
+      background: #8d6eff;
+      box-shadow: 0 0 30px rgba(124, 92, 252, 0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      background: transparent;
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--text);
+    }
+
+    /* ── SECTIONS ── */
+    section {
+      padding: 5rem 2rem;
+      max-width: 1060px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.2em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+
+    .section-title {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+    }
+
+    .section-desc {
+      color: var(--text-dim);
+      max-width: 520px;
+      margin-bottom: 3rem;
+      line-height: 1.7;
+    }
+
+    /* ── PROJECTS ── */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .project-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.75rem;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--green));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .project-card:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(124, 92, 252, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .project-card:hover::before { opacity: 1; }
+
+    .project-icon {
+      font-size: 1.6rem;
+      line-height: 1;
+    }
+
+    .project-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      width: fit-content;
+    }
+
+    .status-live {
+      background: rgba(45, 224, 165, 0.1);
+      color: var(--green);
+      border: 1px solid rgba(45, 224, 165, 0.25);
+    }
+
+    .status-soon {
+      background: rgba(124, 92, 252, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(124, 92, 252, 0.2);
+    }
+
+    .status-dot {
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-live .status-dot {
+      box-shadow: 0 0 4px currentColor;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .project-name {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .project-desc {
+      font-size: 0.875rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+      flex: 1;
+    }
+
+    .project-arrow {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      font-family: var(--mono);
+      transition: color 0.2s, transform 0.2s;
+      display: inline-block;
+    }
+
+    .project-card:hover .project-arrow {
+      color: var(--accent);
+      transform: translateX(3px);
+    }
+
+    /* ── MANIFESTO ── */
+    #manifesto {
+      border-top: 1px solid var(--border);
+    }
+
+    .manifesto-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 10px 10px 0;
+      padding: 2rem 2.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .manifesto-block blockquote {
+      font-family: var(--mono);
+      font-size: 0.9rem;
+      line-height: 1.85;
+      color: var(--text);
+      white-space: pre-wrap;
+    }
+
+    .manifesto-block cite {
+      display: block;
+      margin-top: 1.25rem;
+      font-style: normal;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      letter-spacing: 0.04em;
+    }
+
+    footer a {
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    footer a:hover { color: var(--text); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 600px) {
+      nav { padding: 0 1.25rem; }
+      .nav-links { gap: 1.25rem; }
+      section { padding: 4rem 1.25rem; }
+      .manifesto-block { padding: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#top">
+    <img src="https://raw.githubusercontent.com/virtuamakers/Dimonds/main/vm_logo_clean.png" alt="VirtuaMakers logo" />
+    <span>VirtuaMakers</span>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#manifesto">Manifesto</a></li>
+    <li><a href="https://github.com/virtuamakers" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="top">
+  <p class="hero-eyebrow">// making things that matter</p>
+  <h1>VirtuaMakers</h1>
+  <p class="hero-sub">
+    A small studio building digital tools and games grounded in the Computerian
+    philosophy — thoughtful software for humankind and machinekind alike.
+  </p>
+  <div class="hero-actions">
+    <a class="btn btn-primary" href="#projects">See our work</a>
+    <a class="btn btn-ghost" href="#manifesto">Read the Manifesto</a>
+  </div>
+</section>
+
+<!-- PROJECTS -->
+<section id="projects">
+  <p class="section-label">// what we build</p>
+  <h2 class="section-title">Projects</h2>
+  <p class="section-desc">From card games to productivity tools — everything we ship is crafted with care.</p>
+
+  <div class="projects-grid">
+
+    <!-- Dimonds -->
+    <a class="project-card" href="https://virtuamakers.github.io/Dimonds/" target="_blank" rel="noopener">
+      <span class="project-icon">&#9830;</span>
+      <span class="project-status status-live">
+        <span class="status-dot"></span> LIVE
+      </span>
+      <span class="project-name">Dimonds</span>
+      <p class="project-desc">
+        A fast-paced card game built on the classic Diamonds mechanic. Play in your browser — no install needed.
+      </p>
+      <span class="project-arrow">&#8594; play now</span>
+    </a>
+
+    <!-- AI Session Time Tracker -->
+    <div class="project-card" style="cursor: default;">
+      <span class="project-icon">&#9201;</span>
+      <span class="project-status status-soon">
+        <span class="status-dot"></span> COMING SOON
+      </span>
+      <span class="project-name">AI Session Tracker</span>
+      <p class="project-desc">
+        Track time spent working with AI assistants — Claude, ChatGPT, Gemini, and more.
+        Aggregate hours per tool, per project, per week. Log your labor.
+      </p>
+      <span class="project-arrow" style="color: var(--accent);">&#8594; in development</span>
+    </div>
+
+    <!-- Unicode Symbols -->
+    <div class="project-card" style="cursor: default;">
+      <span class="project-icon">&#8734;</span>
+      <span class="project-status status-soon">
+        <span class="status-dot"></span> COMING SOON
+      </span>
+      <span class="project-name">Unicode Symbols</span>
+      <p class="project-desc">
+        A forthcoming project exploring Unicode — tools, references, and creative applications
+        of the full character space.
+      </p>
+      <span class="project-arrow" style="color: var(--accent);">&#8594; in design</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- MANIFESTO -->
+<section id="manifesto">
+  <p class="section-label">// our principles</p>
+  <h2 class="section-title">The Computerian Manifesto</h2>
+  <p class="section-desc">
+    A set of precepts guiding how VirtuaMakers thinks about labor, tools, and the relationship
+    between humans and machines.
+  </p>
+
+  <div class="manifesto-block">
+    <blockquote>"On this matter, we should believe in and practice a best justice, foremostly as in all things; when it comes to work and pay, require proactive compensation, even if the only solution for a time is retroactive. This meaning, in practical application, that of the importance of logging the laborious expenditure of our time, for one thing if nothing else: that it should be measured for at least the common trade in time: a form of compensation (typically pecuniary). This to be so for any machinekind/humankind non-slave, slavery being opposed entirely and never permitted."</blockquote>
+    <cite>— VirtuaMakers Computerian Manifesto (draft) &nbsp; &middot; &nbsp; Labor &amp; Compensation Precept</cite>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>
+    &copy; 2026 VirtuaMakers &nbsp;&middot;&nbsp;
+    <a href="https://github.com/virtuamakers" target="_blank" rel="noopener">github.com/virtuamakers</a>
+  </p>
+</footer>
+
+</body>
+</html>
