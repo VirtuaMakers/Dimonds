@@ -3478,15 +3478,15 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
         </div>
 
         <p style={p}>
-          Now, a trick is a unit of play 🎩 typically containing a card from each player's hand. Whatever card leads the trick determines the suit for that trick: ♣️♥️♠️♦️.
+          Now, a <strong>trick</strong> is a unit of play 🎩 typically containing a card from each player's hand. Whatever card leads the trick determines the suit for that trick: ♣️♥️♠️♦️.
         </p>
 
         <p style={p}>
-          The highest ranked card in the led suit usually wins a trick (with aces low), so it goes: A, 2, 3… all the way up to …Q, K, and then The Joker 🃏 is usually the strongest card. Mysteriously, the only card stronger than The Joker is The Ace of Spades ♠️. You'll see!
+          <strong>The highest ranked card</strong> in the led suit usually wins a trick (with aces low), so it goes: A, 2, 3… all the way up to …Q, K, and then <strong>The Joker</strong> 🃏 is usually the strongest card. Mysteriously, the only card stronger than The Joker is <strong>The Ace of Spades</strong> ♠️. You'll see!
         </p>
 
         <p style={p}>
-          There are other special cards and moves to discover. For example, although this is a trick-taking game where Dimond ♦️ cards are worth varying amounts of points, you can also match cards into powerful sets!
+          There are other special cards and moves to discover. For example, although this is a trick-taking game where <strong>Dimond ♦️ cards are worth varying amounts of points</strong>, you can also match cards into powerful sets!
         </p>
 
         <p style={p}>
@@ -3794,6 +3794,7 @@ function DiamondsGame() {
   const [playerName, setPlayerName] = useState("You");
   const [gameNum, setGameNum] = useState(0);
   const sessionNameRef = React.useRef(null); // tracks name in use for current session count
+  const hasSeenWelcomeRef = useRef(false);
   const [nameInput, setNameInput] = useState("");
   const [showRules, setShowRules] = useState(false);
   const [showCredits, setShowCredits] = useState(false);
@@ -4385,7 +4386,7 @@ function DiamondsGame() {
     setGameTricksPerPlayer([0,0,0,0]);
     setGameSetsPerPlayer([0,0,0,0]);
     setScreen("game");
-    setShowWelcome(true);
+    if (!hasSeenWelcomeRef.current) { setShowWelcome(true); hasSeenWelcomeRef.current = true; }
     const newHands = dealCards(initDealer);
     const leader = findLeader(newHands);
     const order = [0,1,2,3].map(i=>(leader+i)%4);
@@ -7674,13 +7675,21 @@ function DiamondsGame() {
             if (cont) continuePlayFlow(cont.playerIdx, cont.card, cont.newPlays, cont.newHands);
           }}
         >
-          <div style={{
-            color:"#e2c97ecc", fontSize:14,
-            fontFamily:FONT_UI, lineHeight:1.9,
-          }}>
+          <div style={{color:"#e2c97ecc", fontSize:14, fontFamily:FONT_UI, lineHeight:1.9}}>
             Dimonds are broken<br/>
             <span style={{color:"#e2c97e",fontWeight:700}}>— dimonds become trump suit!</span><br/>
             <span style={{fontSize:12,opacity:0.75}}>Standard Sets using Dimonds can now be played.</span>
+          </div>
+          <div style={{marginTop:14,borderTop:"1px solid rgba(75,195,175,0.2)",paddingTop:12,width:"100%"}}>
+            <div style={{fontSize:10,color:VM.tealLight,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",textAlign:"center",marginBottom:10}}>♦ Point Values</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 18px",fontFamily:FONT_UI,fontSize:13}}>
+              {[["2♦ – 9♦","+1 pt each"],["A♦","+2 pts"],["J♦","+3 pts"],["Q♦","+4 pts"],["K♦","+5 pts"]].map(([card,pts])=>(
+                <div key={card} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"4px 10px"}}>
+                  <span style={{color:"#ffffffcc"}}>{card}</span>
+                  <span style={{color:VM.gold,fontWeight:700}}>{pts}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </EventBox>
       )}
