@@ -7739,9 +7739,15 @@ function DiamondsGame() {
             <span style={{fontSize:12,opacity:0.75}}>Standard Sets using Dimonds can now be played.</span>
           </div>
           <div style={{marginTop:14,borderTop:"1px solid rgba(75,195,175,0.2)",paddingTop:12,width:"100%"}}>
-            <div style={{fontSize:10,color:VM.tealLight,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",textAlign:"center",marginBottom:10}}>♦ Point Values</div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 18px",fontFamily:FONT_UI,fontSize:13}}>
-              {[["2♦ – 9♦","+1 pt each"],["A♦","+2 pts"],["J♦","+3 pts"],["Q♦","+4 pts"],["K♦","+5 pts"]].map(([card,pts])=>(
+            <div style={{fontSize:10,color:VM.tealLight,fontWeight:700,letterSpacing:1.5,textTransform:"uppercase",textAlign:"center",marginBottom:8}}>♦ Point Values</div>
+            {/* Number cards — full-width top row */}
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"5px 10px",marginBottom:6,fontFamily:FONT_UI,fontSize:13}}>
+              <span style={{color:"#ffffffcc",letterSpacing:2}}>2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 ♦</span>
+              <span style={{color:VM.gold,fontWeight:700}}>+1 pt each</span>
+            </div>
+            {/* Face cards — two columns */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"5px 8px",fontFamily:FONT_UI,fontSize:13}}>
+              {[["A♦","+2 pts"],["Q♦","+4 pts"],["J♦","+3 pts"],["K♦","+5 pts"]].map(([card,pts])=>(
                 <div key={card} style={{display:"flex",justifyContent:"space-between",alignItems:"center",background:"rgba(255,255,255,0.04)",borderRadius:6,padding:"4px 10px"}}>
                   <span style={{color:"#ffffffcc"}}>{card}</span>
                   <span style={{color:VM.gold,fontWeight:700}}>{pts}</span>
