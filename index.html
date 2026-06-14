@@ -3290,7 +3290,7 @@ function GameOverModal({ scores, allNames, onRestart, onMainMenu, onShowCredits,
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally, tutorialEnabled, setTutorialEnabled }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -3343,6 +3343,18 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
               touchAction:"manipulation",
             }}>{showCommuniques ? "ON" : "OFF"}</button>
+          </div>
+          {/* Welcome Tutorial */}
+          <div style={row}>
+            <div><div style={label}>Welcome Tutorial</div><div style={sub}>Show intro screen at start of first game</div></div>
+            <button onClick={()=>setTutorialEnabled(s=>!s)} style={{
+              background: tutorialEnabled ? `linear-gradient(135deg,${VM.tealLight},${VM.tealMid})` : "#ffffff18",
+              border:`1.5px solid ${tutorialEnabled ? VM.tealLight : "#ffffff33"}`,
+              borderRadius:20, padding:"6px 16px", cursor:"pointer",
+              color: tutorialEnabled ? "#0a2320" : "#ffffffaa",
+              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
+              touchAction:"manipulation",
+            }}>{tutorialEnabled ? "ON" : "OFF"}</button>
           </div>
           {/* Card Glow Hints */}
           <div style={row}>
@@ -3813,6 +3825,15 @@ function DiamondsGame() {
   const animSpeedRef = useRef("normal");
   useEffect(() => { animSpeedRef.current = animSpeed; }, [animSpeed]);
   const [showCommuniques, setShowCommuniques] = useState(true);
+  const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
+  function setTutorialEnabled(valOrFn) {
+    setTutorialEnabledState(prev => {
+      const val = typeof valOrFn === 'function' ? valOrFn(prev) : valOrFn;
+      if (val) { localStorage.removeItem('dimonds_skip_tutorial'); hasSeenWelcomeRef.current = false; }
+      else { localStorage.setItem('dimonds_skip_tutorial', '1'); }
+      return val;
+    });
+  }
   const [scoreTally, setScoreTally] = useState("point"); // "point" | "round" | "game"
   const scoreTallyRef = useRef("point");
   useEffect(() => { scoreTallyRef.current = scoreTally; }, [scoreTally]);
@@ -4386,7 +4407,7 @@ function DiamondsGame() {
     setGameTricksPerPlayer([0,0,0,0]);
     setGameSetsPerPlayer([0,0,0,0]);
     setScreen("game");
-    if (!hasSeenWelcomeRef.current) { setShowWelcome(true); hasSeenWelcomeRef.current = true; }
+    if (tutorialEnabled && !hasSeenWelcomeRef.current) { setShowWelcome(true); hasSeenWelcomeRef.current = true; }
     const newHands = dealCards(initDealer);
     const leader = findLeader(newHands);
     const order = [0,1,2,3].map(i=>(leader+i)%4);
@@ -6243,7 +6264,7 @@ function DiamondsGame() {
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
+        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
         {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
       </div>
     );
@@ -7659,7 +7680,7 @@ function DiamondsGame() {
       {showWelcome&&<WelcomeModal onClose={()=>setShowWelcome(false)} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
