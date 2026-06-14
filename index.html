@@ -3462,6 +3462,53 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
 }
 
 // ============================================================
+// WELCOME MODAL
+// ============================================================
+function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
+  const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
+  const p = { color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, lineHeight:1.75, marginBottom:14, margin:"0 0 14px" };
+  return (
+    <Modal onClose={onClose}>
+      <div style={{ maxHeight:maxH-80, overflowY:"auto", padding:"22px 22px 8px" }}>
+        <div style={{ textAlign:"center", marginBottom:18 }}>
+          <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin:"0 0 10px", fontSize:22 }}>
+            Welcome to Dimonds!
+          </h2>
+          <div style={{ fontSize:44 }}>💎</div>
+        </div>
+
+        <p style={p}>
+          Now, a trick is a unit of play 🎩 typically containing a card from each player's hand. Whatever card leads the trick determines the suit for that trick: ♣️♥️♠️♦️.
+        </p>
+
+        <p style={p}>
+          The highest ranked card in the led suit usually wins a trick (with aces low), so it goes: A, 2, 3… all the way up to …Q, K, and then The Joker 🃏 is usually the strongest card. Mysteriously, the only card stronger than The Joker is The Ace of Spades ♠️. You'll see!
+        </p>
+
+        <p style={p}>
+          There are other special cards and moves to discover. For example, although this is a trick-taking game where Dimond ♦️ cards are worth varying amounts of points, you can also match cards into powerful sets!
+        </p>
+
+        <p style={p}>
+          Don't be embarrassed to consult the{" "}
+          <span onClick={onRules} style={{ color:VM.gold, cursor:"pointer", fontWeight:700 }}>[RULES]</span>
+          {" "}for more explanation, or look at the{" "}
+          <span onClick={onOptions} style={{ color:VM.gold, cursor:"pointer", fontWeight:700 }}>[OPTIONS]</span>!
+        </p>
+
+        <p style={{ color:VM.tealLight, fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, textAlign:"center", margin:"18px 0 22px", letterSpacing:0.5 }}>
+          First player to {winScore} points wins!
+        </p>
+
+        <div style={{ textAlign:"center", paddingBottom:14 }}>
+          <GoldBtn onClick={onClose}>Let's Play! ◆</GoldBtn>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
 // RULES PANEL
 // ============================================================
 function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
@@ -3752,6 +3799,7 @@ function DiamondsGame() {
   const [showCredits, setShowCredits] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState(['gordy','vicky','guy']);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
@@ -4337,6 +4385,7 @@ function DiamondsGame() {
     setGameTricksPerPlayer([0,0,0,0]);
     setGameSetsPerPlayer([0,0,0,0]);
     setScreen("game");
+    setShowWelcome(true);
     const newHands = dealCards(initDealer);
     const leader = findLeader(newHands);
     const order = [0,1,2,3].map(i=>(leader+i)%4);
@@ -7606,6 +7655,7 @@ function DiamondsGame() {
         />
       )}
 
+      {showWelcome&&<WelcomeModal onClose={()=>setShowWelcome(false)} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
       {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally}/>}
