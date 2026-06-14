@@ -2926,6 +2926,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null, onMainMenu=null }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
+  const isLandscape = typeof window !== "undefined" && window.innerWidth > window.innerHeight;
 
   // Tie-breaking: AI beats computer beats human (idx 0 = human always loses ties)
   const tieBreak = (a,b) => (a.idx===0?1:b.idx===0?-1:a.idx-b.idx);
@@ -3083,7 +3084,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
     <div style={{color:"#ffffff55",fontSize:10,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:8,marginTop:4,paddingBottom:4,borderBottom:"1px solid #ffffff11",textAlign:"center",fontWeight:bold?700:400}}>{text}</div>
   );
   const noteText = (text) => (
-    <div style={{color:"#ffffff44",fontSize:11,fontFamily:FONT_UI,fontStyle:"italic",textAlign:"center",marginBottom:10,lineHeight:1.4}}>{text}</div>
+    <div style={{color:"#ffffff44",fontSize:isLandscape?13:11,fontFamily:FONT_UI,fontStyle:"italic",textAlign:"center",marginBottom:10,lineHeight:1.4}}>{text}</div>
   );
 
   return (
@@ -3092,7 +3093,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
         <div style={{textAlign:"center",marginBottom:16}}>
           <div style={{fontSize:40,marginBottom:6}}>🏁</div>
           <div style={{color:"#c9a84c",fontFamily:FONT_UI,fontSize:20,fontWeight:700,letterSpacing:1}}>Round Over</div>
-          <div style={{color:"#ffffff44",fontSize:11,marginTop:2}}>First to {winScore} wins · tap a name to review</div>
+          <div style={{color:"#ffffff44",fontSize:isLandscape?13:11,marginTop:2}}>First to {winScore} wins · tap a name to review</div>
         </div>
 
         {sectionLabel("Most Points")}
