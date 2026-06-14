@@ -934,6 +934,7 @@ function sortHandBySuit(hand) {
     return RANK_VALUE[a.rank] - RANK_VALUE[b.rank];
   });
 }
+const APP_VERSION = "4.1";
 const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 30;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
@@ -3838,6 +3839,14 @@ function DiamondsGame() {
   const scoreTallyRef = useRef("point");
   useEffect(() => { scoreTallyRef.current = scoreTally; }, [scoreTally]);
 
+  // Version check — show update banner when returning players get a new build
+  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
+  useEffect(() => {
+    const stored = localStorage.getItem('dimonds_version');
+    if (stored && stored !== APP_VERSION) setShowUpdateBanner(true);
+    localStorage.setItem('dimonds_version', APP_VERSION);
+  }, []);
+
   // Keep the module-level sound flag in sync with React state
   useEffect(() => { setSoundEnabled(soundOn); }, [soundOn]);
 
@@ -6081,6 +6090,38 @@ function DiamondsGame() {
   }, [phase]);
 
   // ============================================================
+  // UPDATE BANNER — shown when returning players get a new build
+  // ============================================================
+  const updateBannerEl = showUpdateBanner ? (
+    <div style={{
+      position:"fixed", top:0, left:0, right:0, zIndex:99999,
+      background:`linear-gradient(90deg,${VM.tealMid},${VM.tealLight})`,
+      color:"#0a2320", fontFamily:FONT_UI, fontSize:12, fontWeight:700,
+      display:"flex", alignItems:"center", justifyContent:"space-between",
+      padding:"7px 14px", gap:10,
+    }}>
+      <span>✨ Dimonds updated! Reload for the latest.</span>
+      <div style={{display:"flex", gap:8, alignItems:"center"}}>
+        <button onClick={()=>{
+          if (typeof caches !== "undefined") {
+            caches.keys().then(keys=>Promise.all(keys.map(k=>caches.delete(k)))).then(()=>location.reload());
+          } else { location.reload(); }
+        }} style={{
+          background:"#0a2320", color:VM.tealLight, border:"none",
+          borderRadius:8, padding:"4px 12px", fontSize:11, fontWeight:800,
+          cursor:"pointer", fontFamily:FONT_DISPLAY, letterSpacing:0.5,
+          touchAction:"manipulation",
+        }}>Reload ↺</button>
+        <button onClick={()=>setShowUpdateBanner(false)} style={{
+          background:"transparent", border:"none",
+          color:"#0a232088", fontSize:18, cursor:"pointer",
+          lineHeight:1, padding:"0 2px", touchAction:"manipulation",
+        }}>✕</button>
+      </div>
+    </div>
+  ) : null;
+
+  // ============================================================
   // RENDER: MENU
   // ============================================================
   if (testPlace) {
@@ -6202,7 +6243,7 @@ function DiamondsGame() {
       </div>
     );
     return (
-      <div style={{
+      <>{updateBannerEl}<div style={{
         minHeight:"100vh",
         height:"100dvh",
         background:"radial-gradient(ellipse at 55% -5%,#155249 0%,#0a302a 50%,#04150f 100%)",
@@ -6266,7 +6307,7 @@ function DiamondsGame() {
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
         {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
         {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
-      </div>
+      </div></>
     );
   }
 
@@ -6386,7 +6427,7 @@ function DiamondsGame() {
   })();
 
   return (
-    <div style={{
+    <>{updateBannerEl}<div style={{
       height:"100dvh",
       maxHeight:"100dvh",
       background:"radial-gradient(ellipse at 50% 22%, #15564c 0%, #0d3b34 45%, #061d19 100%)",
@@ -7789,7 +7830,7 @@ function DiamondsGame() {
           <CardComp card={dragGhost.card} deckTheme={deckTheme} selected />
         </div>
       )}
-    </div>
+    </div></>
   );
 }
 
