@@ -3687,7 +3687,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {role:"Coding", name:"Claude (Anthropic)"},
                 {role:"Concepts", name:"ChatGPT (OpenAI)"},
                 {role:"Graphics", name:"Copilot (Microsoft)"},
-                {role:"Playtesting", name:"Thomas Bruckmann, Donnie Swing, Rob Vasseur"},
+                {role:"Playtesting", name:"Thomas Bruckmann, Eric Sanderson, Donnie Swing, Rob Vasseur"},
               ].map(({role,name})=>(
                 <div key={role} style={{marginBottom:10, paddingLeft:8}}>
                   <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
@@ -4435,7 +4435,7 @@ function DiamondsGame() {
     // Guard against ghost plays: card must still be in hand
     if (!card.isJoker && !hands[0].some(c => c.id === card.id)) return;
     if (openingConstraint === "2c" && !(card.rank==="2" && card.suit==="♣")) return;
-    if (openingConstraint === "club" && !(card.suit==="♣" && !card.isJoker)) return;
+    if (openingConstraint === "club" && !card.isJoker && card.suit !== "♣") return;
     // Joker is ALWAYS playable — no other restrictions
     if (card.isJoker) { submitPlay(0, card); return; }
     // Trump rule: can't lead with a diamond until diamonds are broken
@@ -6216,7 +6216,7 @@ function DiamondsGame() {
   // Validate if selected card is legal to play
   const selectedIsLegal = selectedCard && (
     openingConstraint
-      ? (openingConstraint === "2c" ? (selectedCard.rank==="2" && selectedCard.suit==="♣") : (selectedCard.suit==="♣" && !selectedCard.isJoker))
+      ? (openingConstraint === "2c" ? (selectedCard.rank==="2" && selectedCard.suit==="♣") : (selectedCard.isJoker || selectedCard.suit==="♣"))
       : selectedCard.isJoker
       ? true
       : trickPlays.length === 0
@@ -6568,7 +6568,7 @@ function DiamondsGame() {
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
             fontWeight:700, fontFamily:FONT_UI, lineHeight:"14px",
           }}>
-            {isPlayerTurn ? openingConstraint === "2c" ? "Play the 2♣ to open" : openingConstraint === "club" ? "Lead with a ♣ to open" : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
+            {isPlayerTurn ? openingConstraint === "2c" ? "Play the 2♣ to open" : openingConstraint === "club" ? "Lead with any Club to open" : "Your Turn — Select a Card" : `${allNames[turnOrder[currentTurn]]}'s Turn`}
           </div>
           {/* Playing + Re-Sort — aligned with left/right edges of the card fan */}
           {(() => {
