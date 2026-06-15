@@ -948,9 +948,9 @@ const OPPONENT_OPTIONS = [
   { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family' },
   { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds' },
   { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard' },
-  { id:'haiku',   type:'llm',      label:'Clyde',   emoji:'🤖', style:'Haiku AI',     desc:'powered by Claude Haiku' },
-  { id:'chatgpt', type:'llm',      label:'ChatGPT', emoji:'⚡', style:'GPT AI',       desc:'powered by OpenAI' },
-  { id:'copilot', type:'llm',      label:'Copilot', emoji:'✈️', style:'Copilot AI',   desc:'powered by Microsoft' },
+  { id:'gemini',  type:'llm',      label:'Gemini',  emoji:'✨', style:'Gemini AI',    desc:'powered by Google Gemini' },
+  { id:'llama',   type:'llm',      label:'Llama',   emoji:'🦙', style:'Llama AI',     desc:'powered by Meta Llama via Groq' },
+  { id:'mistral', type:'llm',      label:'Mistral', emoji:'🌬️', style:'Mistral AI',   desc:'powered by Mistral AI' },
 ];
 
 // ============================================================
@@ -3293,7 +3293,7 @@ function GameOverModal({ scores, allNames, onRestart, onMainMenu, onShowCredits,
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally, tutorialEnabled, setTutorialEnabled, geminiMode, setGeminiMode }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally, tutorialEnabled, setTutorialEnabled }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -3358,18 +3358,6 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
               touchAction:"manipulation",
             }}>{tutorialEnabled ? "ON" : "OFF"}</button>
-          </div>
-          {/* Gemini AI Opponents */}
-          <div style={row}>
-            <div><div style={label}>Gemini Opponents ✨</div><div style={sub}>AI plays are chosen by Google Gemini (requires internet)</div></div>
-            <button onClick={()=>setGeminiMode(s=>!s)} style={{
-              background: geminiMode ? `linear-gradient(135deg,#4285f4,#34a853)` : "#ffffff18",
-              border:`1.5px solid ${geminiMode ? "#4285f4" : "#ffffff33"}`,
-              borderRadius:20, padding:"6px 16px", cursor:"pointer",
-              color: geminiMode ? "#ffffff" : "#ffffffaa",
-              fontWeight:800, fontSize:12, fontFamily:FONT_DISPLAY, letterSpacing:1,
-              touchAction:"manipulation",
-            }}>{geminiMode ? "ON" : "OFF"}</button>
           </div>
           {/* Card Glow Hints */}
           <div style={row}>
@@ -3537,7 +3525,7 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
 // ============================================================
 // RULES PANEL
 // ============================================================
-function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
+function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const sectionLabel = txt => (
     <div style={{fontSize:9,color:VM.tealLight+"99",letterSpacing:2,textTransform:"uppercase",
@@ -3639,6 +3627,10 @@ function MultiplayerPanel({ onClose, opponentSlots, setOpponentSlots }) {
               })}
             </div>
           </div>
+        </div>
+        <div style={{padding:"14px 22px",borderTop:`1px solid ${VM.tealLight}22`,flexShrink:0,display:"flex",gap:10,justifyContent:"flex-end"}}>
+          <GoldBtn onClick={onClose} secondary small>Cancel</GoldBtn>
+          <GoldBtn onClick={onStart}>Start Game ◆</GoldBtn>
         </div>
       </div>
     </div>
@@ -3828,6 +3820,8 @@ function DiamondsGame() {
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState(['gordy','vicky','guy']);
+  const opponentSlotsRef = useRef(['gordy','vicky','guy']);
+  useEffect(() => { opponentSlotsRef.current = opponentSlots; }, [opponentSlots]);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
   const [autoCompleteTricks, setAutoCompleteTricks] = useState(true);
@@ -3848,15 +3842,6 @@ function DiamondsGame() {
       return val;
     });
   }
-  const [geminiMode, setGeminiModeState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_gemini_mode') === '1' : false);
-  const geminiModeRef = useRef(false);
-  function setGeminiMode(val) {
-    setGeminiModeState(val);
-    geminiModeRef.current = val;
-    if (val) localStorage.setItem('dimonds_gemini_mode', '1');
-    else localStorage.removeItem('dimonds_gemini_mode');
-  }
-  useEffect(() => { geminiModeRef.current = geminiMode; }, [geminiMode]);
 
   const [scoreTally, setScoreTally] = useState("point"); // "point" | "round" | "game"
   const scoreTallyRef = useRef("point");
@@ -5813,12 +5798,12 @@ function DiamondsGame() {
     return () => clearTimeout(t);
   }, [phase]);
 
-  async function askGeminiForCard(hand, trickPlays, gameState) {
+  async function askLLMForCard(provider, hand, trickPlays, gameState) {
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ hand, trick: trickPlays, gameState }),
+        body: JSON.stringify({ provider, hand, trick: trickPlays, gameState }),
       });
       const data = await res.json();
       const cardId = data?.cardId?.trim();
@@ -5906,9 +5891,11 @@ function DiamondsGame() {
         // No clubs — fall through to normal AI card selection
       }
       const role = aiRoleForRound(currentPlayer, roundNum);
-      if (geminiModeRef.current) {
-        askGeminiForCard(hand, trickPlaysRef.current, { trumpBroken: diamondsBroken, role }).then(geminiCard => {
-          const card = geminiCard || aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
+      const slotId = opponentSlotsRef.current[currentPlayer - 1];
+      const isLLM = ['gemini','llama','mistral'].includes(slotId);
+      if (isLLM) {
+        askLLMForCard(slotId, hand, trickPlaysRef.current, { trumpBroken: diamondsBroken, role }).then(llmCard => {
+          const card = llmCard || aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
           if (card) submitPlay(currentPlayer, card);
           else setCurrentTurn(t => t + 1);
         });
@@ -5917,7 +5904,6 @@ function DiamondsGame() {
         if (card) {
           submitPlay(currentPlayer, card);
         } else {
-          // No valid card found — skip this player's turn
           setCurrentTurn(t => t + 1);
         }
       }
@@ -6273,8 +6259,8 @@ function DiamondsGame() {
         <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
           Deal Me In ◆
         </GoldBtn>
-        <GoldBtn disabled secondary small>
-          Multiplayer <span style={{fontSize:8,letterSpacing:1,textTransform:"uppercase",fontWeight:700,opacity:0.7}}>Coming Soon</span>
+        <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>
+          Multiplayer
         </GoldBtn>
         <GoldBtn onClick={()=>setShowRules(true)} secondary small>
           Rules
@@ -6318,7 +6304,7 @@ function DiamondsGame() {
                 {nameBox}
                 <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly",paddingTop:4}}>
                   <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>Deal Me In ◆</GoldBtn>
-                  <GoldBtn disabled secondary small>Multiplayer <span style={{fontSize:8,letterSpacing:1,textTransform:"uppercase",fontWeight:700,opacity:0.7}}>Coming Soon</span></GoldBtn>
+                  <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>Multiplayer</GoldBtn>
                   <GoldBtn onClick={()=>setShowRules(true)} secondary small>Rules</GoldBtn>
                   <GoldBtn onClick={()=>setShowOptions(true)} secondary small>Options</GoldBtn>
                   <GoldBtn onClick={()=>setShowCredits(true)} secondary small>Credits</GoldBtn>
@@ -6350,8 +6336,8 @@ function DiamondsGame() {
         )}
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled} geminiMode={geminiMode} setGeminiMode={setGeminiMode}/>}
-        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
+        {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
+        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} onStart={()=>{setShowMultiplayer(false);startGame();}} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
       </div></>
     );
   }
@@ -7766,7 +7752,7 @@ function DiamondsGame() {
       {showWelcome&&<WelcomeModal onClose={()=>setShowWelcome(false)} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled} geminiMode={geminiMode} setGeminiMode={setGeminiMode}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && (
