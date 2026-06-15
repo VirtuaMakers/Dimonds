@@ -3479,11 +3479,10 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
 // WELCOME MODAL
 // ============================================================
 function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
-  const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const p = { color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, lineHeight:1.75, marginBottom:14, margin:"0 0 14px" };
   return (
     <Modal onClose={onClose}>
-      <div style={{ maxHeight:maxH-80, overflowY:"auto", padding:"22px 22px 8px" }}>
+      <div style={{ padding:"6px 0 8px" }}>
         <div style={{ textAlign:"center", marginBottom:18 }}>
           <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin:"0 0 10px", fontSize:22 }}>
             Welcome to Dimonds!
