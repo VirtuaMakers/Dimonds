@@ -5902,9 +5902,18 @@ function DiamondsGame() {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
-    if (provider === 'gemini')  { utt.lang = 'en-GB'; utt.rate = 0.85; utt.pitch = 1.1; }
-    else if (provider === 'llama')   { utt.lang = 'en-US'; utt.rate = 1.0;  utt.pitch = 0.9; }
-    else if (provider === 'mistral') { utt.lang = 'fr-FR'; utt.rate = 0.9;  utt.pitch = 1.05; }
+    if (provider === 'gemini') {
+      utt.lang = 'en-GB'; utt.rate = 0.85; utt.pitch = 1.1;
+    } else if (provider === 'llama') {
+      utt.lang = 'en-US'; utt.rate = 1.0; utt.pitch = 0.9;
+    } else if (provider === 'mistral') {
+      utt.rate = 0.9; utt.pitch = 1.15;
+      const voices = window.speechSynthesis.getVoices();
+      const frVoices = voices.filter(v => v.lang.startsWith('fr'));
+      const femalePat = /am[eé]lie|julie|hortense|marie|audrey|alice|camille|elsa|claire|sophie|c[eé]line|virginie|google fran/i;
+      const voice = frVoices.find(v => femalePat.test(v.name)) || frVoices[0] || null;
+      if (voice) utt.voice = voice; else utt.lang = 'fr-FR';
+    }
     window.speechSynthesis.speak(utt);
   }
 
