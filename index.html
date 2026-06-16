@@ -2362,7 +2362,7 @@ function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip,
 }
 
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
-function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, jokerLockedUp, onPeek }) {
+function RescueModal({ hands, acePlayerIdx, allNames, playerEmojis=[], onRescue, deckTheme, jokerLockedUp, onPeek }) {
   const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
@@ -7615,6 +7615,7 @@ function DiamondsGame() {
           hands={hands}
           acePlayerIdx={0}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           onRescue={handleRescue}
           deckTheme={deckTheme}
           jokerLockedUp={rescueState.jokerLockedUp}
