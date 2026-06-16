@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>16-bit Victory — Dimonds 1st Place</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #03010a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: monospace;
+      user-select: none;
+    }
+    #wrap {
+      position: relative;
+      border: 2px solid #ffd70044;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 60px #ffd70020, 0 0 10px #ffd70040;
+    }
+    canvas { display: block; width: 320px; height: 320px;
+             image-rendering: pixelated; image-rendering: crisp-edges; }
+    #label { margin-top: 12px; color: #ffd70088; font-size: 10px;
+             letter-spacing: 2px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="160" height="160"></canvas></div>
+<div id="label">1st place · tap to replay</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 160, H = 160;
+
+// ── Palette ────────────────────────────────────────────────────────
+const GOLD   = ['#ffffff','#fffce0','#ffe464','#ffd700','#ffaa00','#dd7700','#994400','#552200'];
+const SILVER = ['#ffffff','#eeeeff','#ccccee','#aabbdd','#8899bb','#667799'];
+const RUBY   = ['#ffffff','#ffccdd','#ff6688','#dd2244','#aa0022','#660011'];
+const EMERALD= ['#ffffff','#ccffdd','#44cc88','#228855','#115533','#0a3322'];
+const VIOLET = ['#ffffff','#eeccff','#cc88ff','#aa44ee','#7722cc','#440088'];
+const STONE  = ['#1a1428','#221c34','#2e2644','#3a3254','#463e64','#120f1e','#100b1a','#5a4e74'];
+const MOUNT  = ['#0e0820','#130a28','#180e30','#1e1438','#251a44'];
+const SKY    = ['#040214','#060318','#08041e','#0a0526','#0e0930','#12103a','#161440','#1c1a4e'];
+const TORCH  = ['#ffffaa','#ffee44','#ffcc00','#ff8800','#ff5500','#cc3300'];
+
+// ── Context helpers ───────────────────────────────────────────────
+function px(x, y, c) { ctx.fillStyle=c; ctx.fillRect(x|0, y|0, 1, 1); }
+function fill(x, y, w, h, c) { ctx.fillStyle=c; ctx.fillRect(x|0, y|0, w, h); }
+function hline(y, x1, x2, c) { ctx.fillStyle=c; ctx.fillRect(x1|0, y|0, (x2-x1)|0, 1); }
+function vline(x, y1, y2, c) { ctx.fillStyle=c; ctx.fillRect(x|0, y1|0, 1, (y2-y1)|0); }
+
+// ── 5×7 bitmap font ───────────────────────────────────────────────
+const F = {
+  'A':[0b01110,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+  'B':[0b11110,0b10001,0b10001,0b11110,0b10001,0b10001,0b11110],
+  'C':[0b01111,0b10000,0b10000,0b10000,0b10000,0b10000,0b01111],
+  'D':[0b11110,0b10001,0b10001,0b10001,0b10001,0b10001,0b11110],
+  'E':[0b11111,0b10000,0b10000,0b11110,0b10000,0b10000,0b11111],
+  'G':[0b01111,0b10000,0b10000,0b10111,0b10001,0b10001,0b01111],
+  'H':[0b10001,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+  'I':[0b01110,0b00100,0b00100,0b00100,0b00100,0b00100,0b01110],
+  'L':[0b10000,0b10000,0b10000,0b10000,0b10000,0b10000,0b11111],
+  'N':[0b10001,0b11001,0b10101,0b10011,0b10001,0b10001,0b10001],
+  'O':[0b01110,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+  'P':[0b11110,0b10001,0b10001,0b11110,0b10000,0b10000,0b10000],
+  'R':[0b11110,0b10001,0b10001,0b11110,0b10010,0b10001,0b10001],
+  'S':[0b01111,0b10000,0b10000,0b01110,0b00001,0b00001,0b11110],
+  'T':[0b11111,0b00100,0b00100,0b00100,0b00100,0b00100,0b00100],
+  'U':[0b10001,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+  'W':[0b10001,0b10001,0b10001,0b10101,0b10101,0b11011,0b10001],
+  'Y':[0b10001,0b10001,0b01010,0b00100,0b00100,0b00100,0b00100],
+  '!':[0b00100,0b00100,0b00100,0b00100,0b00100,0b00000,0b00100],
+  '1':[0b00110,0b01110,0b00100,0b00100,0b00100,0b00100,0b01110],
+  ' ':[0,0,0,0,0,0,0],
+};
+function drawChar(ch, x, y, fg, sh) {
+  const g = F[ch]; if (!g) return;
+  for (let r=0; r<7; r++)
+    for (let c=4; c>=0; c--)
+      if ((g[r]>>c)&1) {
+        if (sh) { ctx.fillStyle=sh; ctx.fillRect(x+(4-c)+1, y+r+1, 1, 1); }
+        px(x+(4-c), y+r, fg);
+      }
+}
+function drawText(t, x, y, fg, sh) {
+  let cx=x; for (const ch of t) { drawChar(ch,cx,y,fg,sh); cx+=6; }
+}
+function tw(t) { return t.length*6-1; }
+
+// ── Mountain silhouette ───────────────────────────────────────────
+const PEAKS = [
+  [0,148],[6,142],[14,132],[22,122],[34,118],[44,128],[56,112],
+  [66,106],[76,116],[88,108],[100,118],[110,114],[122,120],
+  [132,113],[144,122],[154,117],[160,148],
+];
+function mountainY(x) {
+  for (let i=0; i<PEAKS.length-1; i++) {
+    if (x >= PEAKS[i][0] && x <= PEAKS[i+1][0]) {
+      const t=(x-PEAKS[i][0])/(PEAKS[i+1][0]-PEAKS[i][0]);
+      return PEAKS[i][1]+t*(PEAKS[i+1][1]-PEAKS[i][1]);
+    }
+  }
+  return H;
+}
+
+// ── Draw sky, mountains, towers ───────────────────────────────────
+function drawScene(frame) {
+  // Sky — banded gradient with dithering at seams
+  const bands = [
+    [0,25,0],[25,50,1],[50,70,2],[70,88,3],[88,105,4],[105,120,5],[120,132,6],[132,145,7],
+  ];
+  for (const [y0,y1,si] of bands) {
+    const ca = SKY[si], cb = SKY[Math.min(si+1,SKY.length-1)];
+    for (let y=y0; y<y1; y++)
+      for (let x=0; x<W; x++) {
+        ctx.fillStyle = (y===y0||y===y1-1) && (x+y)%2===0 ? cb : ca;
+        ctx.fillRect(x,y,1,1);
+      }
+  }
+
+  // Mountains
+  for (let x=0; x<W; x++) {
+    const my = mountainY(x)|0;
+    const snowLine = 120;
+    // Snow cap
+    if (my < snowLine) {
+      const snowBot = Math.min(my+5, snowLine);
+      for (let y=my; y<snowBot; y++) {
+        const t=(y-my)/(snowBot-my);
+        ctx.fillStyle = t<0.4?'#dde0f0':t<0.7?((x+y)%2===0?'#dde0f0':'#9090b0'):'#303058';
+        ctx.fillRect(x,y,1,1);
+      }
+      for (let y=snowBot; y<H; y++) {
+        ctx.fillStyle = MOUNT[Math.min(MOUNT.length-1, Math.floor((y-snowBot)/20))];
+        ctx.fillRect(x,y,1,1);
+      }
+    } else {
+      for (let y=my; y<H; y++) {
+        ctx.fillStyle = MOUNT[Math.min(MOUNT.length-1, Math.floor((y-my)/18))];
+        ctx.fillRect(x,y,1,1);
+      }
+    }
+  }
+
+  // Castle towers
+  drawTower(0, 38, 68, 160);
+  drawTower(122, 160, 68, 160);
+
+  // Torch flames (animated)
+  drawTorchFlame(19, 68, frame);
+  drawTorchFlame(140, 68, frame+2);
+}
+
+function drawTower(x0, x1, y0, y1) {
+  const tw = x1-x0;
+  // Stone body
+  for (let y=y0+10; y<y1; y++) {
+    for (let x=x0; x<x1; x++) {
+      const bx=((x-x0)/6)|0, by=((y-y0)/5)|0;
+      // Mortar lines
+      if ((y-y0)%5===0) { ctx.fillStyle=STONE[5]; ctx.fillRect(x,y,1,1); continue; }
+      if ((x-x0)%(6)===((by%2)*3)) { ctx.fillStyle=STONE[5]; ctx.fillRect(x,y,1,1); continue; }
+      const shade = (bx+by)%3;
+      ctx.fillStyle = shade===0?STONE[1]:shade===1?STONE[2]:STONE[0];
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  // Battlement
+  const merlonPositions = [x0+2, x0+tw/2-4|0, x1-8];
+  for (const mx of merlonPositions) {
+    for (let y=y0; y<y0+9; y++) {
+      for (let x=mx; x<mx+6; x++) {
+        ctx.fillStyle = (y===y0?STONE[7]:x===mx||x===mx+5?STONE[3]:STONE[2]);
+        ctx.fillRect(x,y,1,1);
+      }
+    }
+  }
+  hline(y0+9, x0, x1, STONE[3]);
+  hline(y0+10, x0, x1, STONE[2]);
+
+  // Gothic arch windows
+  for (const wy of [y0+16, y0+38]) {
+    const wx=x0+(tw/2-4)|0, ww=7, wh=14;
+    // Black window
+    fill(wx, wy+5, ww, wh-5, '#000000');
+    // Pointed arch
+    for (let dy=0; dy<5; dy++) {
+      const inset=Math.max(0, 3-dy);
+      fill(wx+inset, wy+dy, ww-inset*2, 1, '#000000');
+    }
+    // Warm amber glow
+    fill(wx+1,wy+6,5,3,'#cc6600');
+    fill(wx+2,wy+6,3,2,'#ffaa00');
+    // Stone surround highlight
+    vline(wx-1, wy, wy+wh+1, STONE[7]); vline(wx+ww, wy, wy+wh+1, STONE[7]);
+    hline(wy-1, wx-1, wx+ww+1, STONE[7]);
+  }
+
+  // Buttress
+  const bx = x0===0 ? x1 : x0-3;
+  for (let y=y0+14; y<y1; y++) {
+    for (let x=bx; x<bx+3; x++) {
+      ctx.fillStyle = (y%5===0)||(x===bx)||(x===bx+2) ? STONE[3] : STONE[2];
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  // Outer highlight on tower edge
+  vline(x0===0?x1-1:x0, y0+10, y1, STONE[7]);
+}
+
+function drawTorchFlame(x, y, frame) {
+  const f=frame%6;
+  const jitter = f<3?0:f<5?1:-1;
+  // Flame pixels - layered colors
+  const flame = [
+    [0,-5,TORCH[0]],[jitter,-4,TORCH[0]],[0,-3,TORCH[1]],[-1,-2,TORCH[2]],[1,-2,TORCH[1]],
+    [jitter,-1,TORCH[3]],[0,-1,TORCH[2]],[-1,0,TORCH[4]],[1,0,TORCH[3]],[0,1,TORCH[5]],
+  ];
+  for (const [dx,dy,c] of flame) px(x+dx,y+dy,c);
+  // Torch bracket
+  fill(x-1,y+2,3,5,STONE[3]);
+  // Glow aura (warm tones bleeding into surroundings)
+  ctx.fillStyle='#ff880018'; ctx.fillRect(x-3,y-6,7,8);
+}
+
+// ── Stars ─────────────────────────────────────────────────────────
+const STARS = Array.from({length:70}, ()=>({
+  x:Math.random()*W, y:Math.random()*105,
+  r:Math.random()<0.15?2:1,
+  phase:Math.random()*Math.PI*2, spd:0.02+Math.random()*0.05,
+  col:['#ffffff','#ffffee','#eeeeff','#ffeedd'][Math.floor(Math.random()*4)],
+}));
+
+// ── Crown ─────────────────────────────────────────────────────────
+function drawCrown(cx, y, frame) {
+  const shimmer = frame%2===0;
+  // Base band
+  for (let x=cx-16; x<=cx+16; x++) {
+    fill(x, y+17, 1, 4, (x+y)%3===0?GOLD[1]:GOLD[3]);
+  }
+  // Crown body sides
+  for (let dy=0; dy<8; dy++) {
+    const w=12-dy;
+    hline(y+9+dy, cx-w, cx+w, dy<2?GOLD[2]:dy<5?GOLD[3]:GOLD[4]);
+  }
+  // Three points — center taller
+  const pts = [{cx:cx,h:18,col:GOLD},{cx:cx-11,h:11,col:GOLD},{cx:cx+11,h:11,col:GOLD}];
+  for (const {cx:px2,h,col} of pts) {
+    for (let dy=0; dy<h; dy++) {
+      const halfW = Math.max(1, Math.round((1-(dy/h))*4));
+      for (let dx=-halfW; dx<=halfW; dx++) {
+        const shade = dy<3?col[0]:dy<7?col[1]:dy<12?col[2]:col[3];
+        ctx.fillStyle = shade;
+        ctx.fillRect((px2+dx)|0,(y+h-dy)|0,1,1);
+      }
+    }
+    // Gem at point tip
+    fill(px2-1,y+h-15,3,3,shimmer?'#ffffff':'#ffffcc');
+  }
+  // Red gem center of band
+  fill(cx-2, y+18, 5, 3, RUBY[2]);
+  fill(cx-1, y+19, 3, 1, RUBY[0]);
+  // Blue gems
+  fill(cx-9, y+18, 4, 3, '#4488ff');
+  fill(cx-8, y+19, 2, 1, '#aaccff');
+  fill(cx+6,  y+18, 4, 3, '#4488ff');
+  fill(cx+7,  y+19, 2, 1, '#aaccff');
+  // Band highlight
+  hline(y+17, cx-15, cx+15, GOLD[1]);
+}
+
+// ── Particles ─────────────────────────────────────────────────────
+let particles=[];
+function spawn(x,y,vx,vy,pal,life,decay,grav,type) {
+  const c=Array.isArray(pal)?pal[Math.floor(Math.random()*pal.length)]:pal;
+  particles.push({x,y,vx,vy,color:c,pal,life,decay,grav,type,age:0});
+}
+
+// ── Firework shells ───────────────────────────────────────────────
+let shells=[], bursts=[];
+
+function launchShell(x, targetY, pal) {
+  const startY = H+2;
+  shells.push({x, y:startY, vy:(targetY-startY)/22, targetY, pal, trail:[]});
+}
+
+function explode(x, y, pal) {
+  // Expanding rings
+  for (let ring=0; ring<2; ring++) {
+    bursts.push({x,y,r:ring*3,maxR:20+ring*6,pal,life:1.0,ring});
+  }
+  // 20 ray streams
+  for (let i=0; i<20; i++) {
+    const a=(i/20)*Math.PI*2;
+    const s=1.4+Math.random()*0.8;
+    const ci=Math.floor(Math.random()*3);
+    spawn(x,y,Math.cos(a)*s,Math.sin(a)*s-0.2,pal,1.0,0.022,0.012,'beam');
+    spawn(x,y,Math.cos(a)*s*0.6,Math.sin(a)*s*0.6,pal,0.85,0.030,0.01,'beam');
+  }
+  // Scatter sparkles
+  for (let i=0; i<50; i++) {
+    const a=Math.random()*Math.PI*2, s=0.2+Math.random()*2.2;
+    spawn(x,y,Math.cos(a)*s,Math.sin(a)*s-0.4,pal,1.0,0.025+Math.random()*0.02,0.045,'spark');
+  }
+  // Center flash
+  bursts.push({x,y,r:0,maxR:8,pal:['#ffffff','#fffce0'],life:1.0,ring:-1,flash:true});
+}
+
+// ── Show sequence ─────────────────────────────────────────────────
+const SHOW = [
+  {t:200,  fn:()=>launchShell(38,  45, GOLD)},
+  {t:800,  fn:()=>launchShell(122, 38, RUBY)},
+  {t:1400, fn:()=>launchShell(80,  28, SILVER)},
+  {t:2000, fn:()=>{launchShell(30,50,GOLD); launchShell(130,42,GOLD);}},
+  {t:2700, fn:()=>launchShell(80,22,GOLD)},
+  {t:3100, fn:()=>{
+    launchShell(50,30,VIOLET); launchShell(110,30,EMERALD);
+    setTimeout(()=>launchShell(80,18,[...GOLD.slice(0,3),...RUBY.slice(1,3),'#ffffff']),300);
+  }},
+  {t:4200, fn:()=>{
+    launchShell(30,40,GOLD); launchShell(80,22,GOLD); launchShell(130,40,GOLD);
+    setTimeout(()=>{launchShell(55,30,SILVER); launchShell(105,30,SILVER);},250);
+  }},
+];
+let firedShow=new Set();
+
+// ── Confetti ──────────────────────────────────────────────────────
+const CONF=['#ffd700','#ff4466','#44aaff','#44dd88','#ff88ff','#ffffff','#ffaa44','#aaffcc'];
+function spawnConf() {
+  spawn(Math.random()*W,-3,(Math.random()-0.5)*0.6,0.4+Math.random()*0.8,
+    CONF,1.0,0.004,0.015,'confetti');
+}
+
+// ── Main render ───────────────────────────────────────────────────
+const TOTAL=9000, FPS=16, FRAME=1000/FPS;
+let t0=null, lastF=0, frame=0, running=false, rafId=null;
+
+function render(elapsed) {
+  drawScene(frame);
+
+  // Twinkling stars
+  const st=elapsed*0.0025;
+  for (const s of STARS) {
+    const b=0.35+0.65*Math.abs(Math.sin(s.phase+st*s.spd));
+    if (b<0.1) continue;
+    const a=(b*255|0).toString(16).padStart(2,'0');
+    ctx.fillStyle=s.col+a;
+    ctx.fillRect(s.x|0,s.y|0,s.r,s.r);
+    if (s.r===2&&b>0.75) {
+      ctx.fillStyle='#ffffff'+(b*100|0).toString(16).padStart(2,'0');
+      ctx.fillRect((s.x-1)|0,s.y|0,1,1); ctx.fillRect((s.x+2)|0,s.y|0,1,1);
+      ctx.fillRect(s.x|0,(s.y-1)|0,1,1);
+    }
+  }
+
+  // Crown
+  drawCrown(W/2, 6, frame);
+
+  // Title
+  const title='1ST PLACE';
+  const ttw=tw(title);
+  drawText(title, ((W-ttw)/2)|0, 40, GOLD[2], GOLD[7]);
+  // Shimmer sweep
+  if (elapsed>2000) {
+    const pos=((elapsed*0.06)%ttw)|0;
+    fill(((W-ttw)/2)|0+pos, 40, 3, 7, GOLD[0]);
+  }
+
+  // Show segments
+  for (const seg of SHOW)
+    if (elapsed>=seg.t&&!firedShow.has(seg.t)) { firedShow.add(seg.t); seg.fn(); }
+
+  // Update shells
+  for (let i=shells.length-1; i>=0; i--) {
+    const s=shells[i];
+    s.trail.push({x:s.x,y:s.y});
+    if (s.trail.length>9) s.trail.shift();
+    s.y+=s.vy;
+    for (let ti=0; ti<s.trail.length; ti++) {
+      const a=ti/s.trail.length;
+      const ci=Math.floor((1-a)*Math.min(2,s.pal.length-1));
+      ctx.fillStyle=s.pal[ci]+(Math.floor(a*200)).toString(16).padStart(2,'0');
+      ctx.fillRect(s.trail[ti].x|0,s.trail[ti].y|0,1,1);
+    }
+    fill(s.x-1,s.y-1,2,2,s.pal[0]);
+    if (s.y<=s.targetY) { explode(s.x,s.y,s.pal); shells.splice(i,1); }
+  }
+
+  // Update burst rings
+  for (let i=bursts.length-1; i>=0; i--) {
+    const b=bursts[i];
+    b.r+=b.flash?1.5:1.2; b.life-=b.flash?0.10:0.05;
+    if (b.life<=0||b.r>b.maxR) { bursts.splice(i,1); continue; }
+    const a=(b.life*255|0).toString(16).padStart(2,'0');
+    const r=b.r|0;
+    ctx.fillStyle=(b.flash?'#ffffff':b.pal[0])+a;
+    for (let ang=0; ang<360; ang+=3) {
+      const rad=ang*Math.PI/180;
+      const rx=(b.x+Math.cos(rad)*r)|0, ry=(b.y+Math.sin(rad)*r)|0;
+      if (rx>=0&&rx<W&&ry>=0&&ry<H) ctx.fillRect(rx,ry,1,1);
+    }
+    // Second color ring slightly inside
+    if (!b.flash&&b.r>6) {
+      ctx.fillStyle=b.pal[Math.min(1,b.pal.length-1)]+a;
+      const r2=(b.r*0.6)|0;
+      for (let ang=0; ang<360; ang+=5) {
+        const rad=ang*Math.PI/180;
+        const rx=(b.x+Math.cos(rad)*r2)|0, ry=(b.y+Math.sin(rad)*r2)|0;
+        if (rx>=0&&rx<W&&ry>=0&&ry<H) ctx.fillRect(rx,ry,1,1);
+      }
+    }
+  }
+
+  // Update particles
+  for (let i=particles.length-1; i>=0; i--) {
+    const p=particles[i];
+    p.age++; p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=0.987; p.life-=p.decay;
+    if (p.life<=0) { particles.splice(i,1); continue; }
+    const ix=p.x|0, iy=p.y|0;
+    if (ix<0||ix>=W||iy<0||iy>=H) continue;
+    if (p.type==='beam') {
+      px(ix,iy,p.color);
+      if (p.life>0.55) {
+        const ac=Array.isArray(p.pal)?p.pal[1]||p.pal[0]:p.color;
+        ctx.fillStyle=ac+'aa';
+        ctx.fillRect(ix+1,iy,1,1); ctx.fillRect(ix-1,iy,1,1); ctx.fillRect(ix,iy-1,1,1);
+      }
+    } else if (p.type==='confetti') {
+      const w=2+(Math.sin(p.age*0.6)*1.4|0);
+      fill(ix,iy,Math.max(1,w),2,p.color);
+    } else {
+      px(ix,iy,p.color);
+      if (p.life>0.6) {
+        const c2=Array.isArray(p.pal)&&p.pal.length>1?p.pal[1]:p.color;
+        ctx.fillStyle=c2+'88'; ctx.fillRect(ix+1,iy,1,1);
+      }
+    }
+  }
+
+  // Confetti
+  if (elapsed>800) { if(frame%2===0) spawnConf(); if(Math.random()<0.35) spawnConf(); }
+
+  // "YOU WIN!" flashing at 5s
+  if (elapsed>4800) {
+    const win='YOU WIN!', ww=tw(win);
+    const fc=frame%4<2?GOLD[0]:GOLD[2];
+    drawText(win,((W-ww)/2)|0, 53, fc, GOLD[7]);
+  }
+
+  frame++;
+}
+
+function loop(ts) {
+  if(!running) return;
+  if(!t0) t0=ts;
+  const el=ts-t0;
+  if(el>=TOTAL){running=false;return;}
+  if(ts-lastF>=FRAME){lastF=ts;render(el);}
+  rafId=requestAnimationFrame(loop);
+}
+function start() {
+  particles=[]; shells=[]; bursts=[]; firedShow=new Set();
+  t0=null; lastF=0; frame=0; running=true;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(loop);
+}
+canvas.addEventListener('click',start);
+canvas.addEventListener('touchend',e=>{e.preventDefault();start();});
+start();
+</script>
+</body>
+</html>

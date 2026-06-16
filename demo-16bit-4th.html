@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>16-bit Sparkler — Dimonds 4th Place</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#04080a; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; min-height:100vh; font-family:monospace; user-select:none; }
+    #wrap { border:2px solid #4bc3af22; border-radius:4px; overflow:hidden;
+            box-shadow:0 0 30px #2a8a7015; }
+    canvas { display:block; width:320px; height:320px;
+             image-rendering:pixelated; image-rendering:crisp-edges; }
+    #label { margin-top:12px; color:  #4bc3af55; font-size:10px; letter-spacing:2px; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="160" height="160"></canvas></div>
+<div id="label">4th place · tap to replay</div>
+<script>
+const canvas=document.getElementById('c');
+const ctx=canvas.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+const W=160,H=160;
+
+// ── Palette ────────────────────────────────────────────────────────
+const BG    ='#04080a';
+const SKY   =['#04080a','#05090c','#060b0e','#070d10','#080e12'];
+const TREE  =['#030b05','#040d06','#061008','#050e07'];
+const GRASS =['#061208','#070f07','#050d06','#091508','#04100a'];
+const STICK =['#aaaaaa','#cccccc','#888888','#666666'];
+const BURNED=['#1a1a1a','#0d0d0d','#222222','#141414'];
+const SPARK =['#ffffff','#eeeeff','#ffffcc','#ffee88','#ffcc44','#ff9900','#cc6600','#884400'];
+const TIP   =['#ffffff','#ffffcc','#ffee55','#ffcc00','#ff9900','#ff5500','#cc2200'];
+const SMOKE =['#3a4040','#2e3535','#444c4c','#252e2e'];
+const TEAL  ='#4bc3af';
+const CHAR  =['#1a2820','#223030','#1c2c24','#0e1812'];  // character silhouette
+const FIRE  =['#ffee88','#ffcc44','#ff9900','#ff5500','#cc2200'];
+
+function px(x,y,c){ctx.fillStyle=c;ctx.fillRect(x|0,y|0,1,1);}
+function fill(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w,h);}
+
+// 5×7 font
+const F={'4':[0b10001,0b10001,0b10001,0b11111,0b00001,0b00001,0b00001],
+'T':[0b11111,0b00100,0b00100,0b00100,0b00100,0b00100,0b00100],
+'H':[0b10001,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+' ':[0,0,0,0,0,0,0],'P':[0b11110,0b10001,0b10001,0b11110,0b10000,0b10000,0b10000],
+'L':[0b10000,0b10000,0b10000,0b10000,0b10000,0b10000,0b11111],
+'A':[0b01110,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+'C':[0b01111,0b10000,0b10000,0b10000,0b10000,0b10000,0b01111],
+'E':[0b11111,0b10000,0b10000,0b11110,0b10000,0b10000,0b11111],
+'.':[0,0,0,0,0,0,0b00100],'!':[0b00100,0b00100,0b00100,0b00100,0b00100,0b00000,0b00100],
+'O':[0b01110,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+'W':[0b10001,0b10001,0b10001,0b10101,0b10101,0b11011,0b10001],
+'N':[0b10001,0b11001,0b10101,0b10011,0b10001,0b10001,0b10001]};
+function drawChar(ch,x,y,fg,sh){
+  const g=F[ch]; if(!g) return;
+  for(let r=0;r<7;r++) for(let c=4;c>=0;c--) if((g[r]>>c)&1){
+    if(sh){ctx.fillStyle=sh;ctx.fillRect(x+(4-c)+1,y+r+1,1,1);}
+    px(x+(4-c),y+r,fg);
+  }
+}
+function drawText(t,x,y,fg,sh){let cx=x;for(const ch of t){drawChar(ch,cx,y,fg,sh);cx+=6;}}
+function tw(t){return t.length*6-1;}
+
+// ── Trees (silhouette forest line) ────────────────────────────────
+function drawTrees(){
+  // Pine tree silhouettes along horizon
+  const trees=[
+    {x:0,h:22,w:14},{x:8,h:30,w:10},{x:16,h:18,w:12},
+    {x:24,h:25,w:8}, {x:32,h:32,w:10},{x:38,h:20,w:8},
+    // right side
+    {x:110,h:28,w:10},{x:118,h:22,w:12},{x:126,h:30,w:8},
+    {x:134,h:24,w:10},{x:142,h:20,w:12},{x:150,h:26,w:8},
+  ];
+  const groundY=130;
+  for(const t of trees){
+    // Trunk
+    fill(t.x+(t.w/2-1)|0, groundY-4, 2, 4, TREE[1]);
+    // Three-tier triangle
+    for(let tier=0;tier<3;tier++){
+      const th=(t.h/(3-tier*0.5))|0;
+      const tw2=(t.w-tier*2)|0;
+      const ty=groundY-4-tier*8;
+      for(let dy=0;dy<th;dy++){
+        const fw=Math.max(1,((tw2*(1-dy/th))|0));
+        const shade=(fw+dy)%3;
+        fill(t.x+(t.w-fw)/2|0, ty-dy, fw, 1, TREE[shade]);
+      }
+    }
+  }
+}
+
+// ── Grass / ground ────────────────────────────────────────────────
+function drawGround(){
+  const gy=130;
+  // Gradient ground
+  for(let y=gy;y<H;y++){
+    const ci=Math.min(GRASS.length-1,((y-gy)/10)|0);
+    ctx.fillStyle=GRASS[ci]; ctx.fillRect(0,y,W,1);
+  }
+  // Grass blades
+  for(let x=50;x<110;x+=3){
+    const ht=2+Math.floor(Math.sin(x*0.7)*1.5);
+    fill(x,gy-ht,1,ht+1,GRASS[3]);
+    if(x%5===0) fill(x+1,gy-ht+1,1,ht-1,GRASS[0]);
+  }
+  // Fireflies drifting in distance
+}
+
+// ── Character silhouette ──────────────────────────────────────────
+// Simple standing figure at x=78, grounded at y=130
+const CHAR_X=78;
+function drawCharacter(burned, frame){
+  const gy=130;
+  // Body
+  fill(CHAR_X-3,gy-20,7,14,CHAR[0]);
+  // Legs
+  fill(CHAR_X-3,gy-6,3,6,CHAR[1]); fill(CHAR_X,gy-6,3,6,CHAR[1]);
+  // Head
+  fill(CHAR_X-2,gy-27,6,7,CHAR[0]);
+  // Eyes
+  px(CHAR_X-1,gy-25,CHAR[3]); px(CHAR_X+1,gy-25,CHAR[3]);
+  if(burned){
+    // Sad expression: drooped mouth
+    px(CHAR_X-1,gy-22,CHAR[3]); px(CHAR_X,gy-23,CHAR[3]); px(CHAR_X+1,gy-22,CHAR[3]);
+    // Head tilted down
+    fill(CHAR_X-2,gy-28,6,2,CHAR[0]); // hat brim
+    fill(CHAR_X-1,gy-34,4,7,CHAR[1]); // hat top
+  } else {
+    // Happy expression
+    px(CHAR_X-1,gy-22,CHAR[3]); px(CHAR_X,gy-22,CHAR[3]); px(CHAR_X+1,gy-22,CHAR[3]);
+  }
+  // Arm raised holding sparkler (right arm up)
+  if(!burned){
+    // Arm up
+    fill(CHAR_X+3,gy-24,3,3,CHAR[0]);
+    fill(CHAR_X+5,gy-32,2,10,CHAR[0]);
+  } else {
+    // Arm down, drooped
+    fill(CHAR_X+3,gy-22,3,5,CHAR[0]);
+    fill(CHAR_X+5,gy-18,2,5,CHAR[0]);
+  }
+  // Left arm (hanging or drooped)
+  fill(CHAR_X-6,gy-20,3,3,CHAR[0]);
+  fill(CHAR_X-7,gy-18,2,8,CHAR[0]);
+}
+
+// ── Sparkler ──────────────────────────────────────────────────────
+// Sparkler tip starts at (CHAR_X+6, 95) and burns toward handle at (CHAR_X+6, 118)
+const SPARK_X=CHAR_X+6;
+const SPARK_TOP=62;
+const SPARK_BOT=106;
+const SPARK_LEN=SPARK_BOT-SPARK_TOP;
+const BURN_MS=6000;
+
+function drawSparkler(burnY, frame){
+  // Unburned portion (gray metal wire)
+  for(let y=burnY;y<SPARK_BOT;y++){
+    const shade=y%3===0?STICK[1]:y%3===1?STICK[0]:STICK[2];
+    px(SPARK_X,y,shade);
+    // Wire texture
+    if(y%4===0) px(SPARK_X-1,y,STICK[2]);
+    if(y%4===2) px(SPARK_X+1,y,STICK[3]);
+  }
+  // Burned portion (dark char)
+  for(let y=SPARK_TOP;y<burnY;y++){
+    px(SPARK_X,y,y%2===0?BURNED[0]:BURNED[1]);
+    if(Math.random()<0.06) px(SPARK_X+(Math.random()<0.5?1:-1)|0,y,'#1a0a04');
+  }
+  // Handle
+  fill(SPARK_X-2,SPARK_BOT,5,16,CHAR[1]);
+  fill(SPARK_X-3,SPARK_BOT,7,2,CHAR[0]);
+  fill(SPARK_X-3,SPARK_BOT+14,7,2,CHAR[0]);
+  // Handle grip ridges
+  for(let ri=0;ri<3;ri++){
+    const ry=SPARK_BOT+3+ri*4;
+    for(let x=SPARK_X-2;x<=SPARK_X+2;x+=2) px(x,ry,'#0a0a0a');
+  }
+}
+
+function drawTip(burnY, frame){
+  // 2×2 white-hot core
+  fill(SPARK_X-1,burnY-1,3,3,TIP[0]);
+  // Cross glow arms
+  const flick=frame%2===0;
+  const cross=[
+    [0,-2,TIP[1]],[0,-4,TIP[2]],[0,-6,TIP[3]],
+    [-1,0,TIP[1]],[-3,0,TIP[2]],[-5,0,TIP[3]],
+    [1, 0,TIP[1]],[3, 0,TIP[2]],[5, 0,TIP[3]],
+    [0, 1,TIP[2]],[0, 3,TIP[3]],[0, 5,TIP[4]],
+  ];
+  for(const[dx,dy,c]of cross){
+    if(!flick||Math.random()>0.25) px(SPARK_X+dx,burnY+dy,c);
+  }
+  // Outer scatter halo
+  const halo=[
+    [-4,-2,TIP[3]],[4,-2,TIP[3]],[-4,2,TIP[4]],[4,2,TIP[4]],
+    [-3,-4,TIP[4]],[3,-4,TIP[4]],[-6,0,TIP[5]],[6,0,TIP[5]],
+    [0,-7,TIP[4]],[0,5,TIP[5]],[-2,-5,TIP[5]],[2,-5,TIP[5]],
+  ];
+  for(const[dx,dy,c]of halo){
+    if(Math.random()>0.3) px(SPARK_X+dx,burnY+dy,c);
+  }
+  // Warm glow bleed
+  ctx.fillStyle='#ff880010'; ctx.fillRect(SPARK_X-6,burnY-7,13,14);
+}
+
+// ── Particles ─────────────────────────────────────────────────────
+let particles=[];
+function spawn(x,y,vx,vy,pal,life,decay,grav,type){
+  const c=Array.isArray(pal)?pal[Math.floor(Math.random()*pal.length)]:pal;
+  particles.push({x,y,vx,vy,color:c,pal,life,decay,grav,type,age:0});
+}
+
+// ── Fireflies ─────────────────────────────────────────────────────
+const FLIES=Array.from({length:8},()=>({
+  x:50+Math.random()*60, y:90+Math.random()*30,
+  vx:(Math.random()-0.5)*0.25, vy:(Math.random()-0.5)*0.15,
+  phase:Math.random()*Math.PI*2,
+}));
+function updateFireflies(elapsed){
+  const ft=elapsed*0.003;
+  for(const f of FLIES){
+    f.x+=f.vx+(Math.random()-0.5)*0.1; f.y+=f.vy+(Math.random()-0.5)*0.08;
+    if(f.x<50||f.x>110) f.vx*=-1;
+    if(f.y<85||f.y>125) f.vy*=-1;
+    const b=0.4+0.6*Math.abs(Math.sin(f.phase+ft*2));
+    if(b>0.5){
+      const a=(b*200|0).toString(16).padStart(2,'0');
+      ctx.fillStyle='#aaffaa'+a; ctx.fillRect(f.x|0,f.y|0,1,1);
+      if(b>0.75){
+        ctx.fillStyle='#aaffaa30';
+        ctx.fillRect((f.x-1)|0,f.y|0,3,1);ctx.fillRect(f.x|0,(f.y-1)|0,1,3);
+      }
+    }
+  }
+}
+
+// ── Stars ─────────────────────────────────────────────────────────
+const STARS=Array.from({length:45},()=>({
+  x:Math.random()*W, y:Math.random()*80,
+  phase:Math.random()*Math.PI*2, spd:0.02+Math.random()*0.04,
+}));
+
+// ── Main render ───────────────────────────────────────────────────
+const TOTAL=10000, FPS=16, FRAME=1000/FPS;
+let t0=null,lastF=0,frame=0,running=false,rafId=null;
+
+function render(elapsed){
+  // Sky
+  for(let y=0;y<H;y++){
+    const ci=Math.min(SKY.length-1,(y/(H*0.85)*(SKY.length-1))|0);
+    ctx.fillStyle=SKY[ci]; ctx.fillRect(0,y,W,1);
+  }
+
+  // Stars
+  const st=elapsed*0.002;
+  for(const s of STARS){
+    const b=0.25+0.75*Math.abs(Math.sin(s.phase+st*s.spd));
+    if(b<0.1) continue;
+    const a=(b*220|0).toString(16).padStart(2,'0');
+    ctx.fillStyle='#aaccbb'+a; ctx.fillRect(s.x|0,s.y|0,1,1);
+  }
+
+  drawTrees();
+  drawGround();
+  updateFireflies(elapsed);
+
+  const frac=Math.min(elapsed/BURN_MS,1);
+  const burnY=(SPARK_TOP+SPARK_LEN*frac)|0;
+  const burned=frac>=1;
+
+  drawCharacter(burned, frame);
+  drawSparkler(burnY, frame);
+
+  // Active spark phase
+  if(!burned){
+    drawTip(burnY, frame);
+    // Spawn sparks
+    const count=2+Math.floor(Math.random()*4);
+    for(let i=0;i<count;i++){
+      const a=Math.random()*Math.PI*2;
+      const s=0.3+Math.random()*1.5;
+      spawn(SPARK_X+(Math.random()-0.5)*2, burnY,
+        Math.cos(a)*s, Math.sin(a)*s-0.3,
+        SPARK, 0.8+Math.random()*0.5, 0.06+Math.random()*0.04, 0.04, 'spark');
+    }
+    // Occasional large dazzle star
+    if(Math.random()<0.15){
+      spawn(SPARK_X+(Math.random()-0.5)*4, burnY,
+        (Math.random()-0.5)*1.4, -1.2-Math.random()*0.8,
+        ['#ffffff','#ffffcc'], 1.0, 0.04, 0.02, 'dazzle');
+    }
+  } else {
+    // Smoke after burnout
+    if(Math.random()<0.6){
+      spawn(SPARK_X+(Math.random()-0.5)*5, SPARK_TOP+2,
+        (Math.random()-0.5)*0.3, -0.3-Math.random()*0.25,
+        SMOKE, 1.0, 0.018+Math.random()*0.012, -0.006, 'smoke');
+    }
+    // Lingering ember glow
+    if(elapsed<BURN_MS+1500){
+      const gt=Math.max(0,1-(elapsed-BURN_MS)/1500);
+      const gv=Math.floor(gt*255), gr2=Math.floor(gt*180);
+      ctx.fillStyle=`rgba(${gv},${gr2},0,${gt.toFixed(2)})`;
+      ctx.fillRect(SPARK_X-1,SPARK_TOP,3,3);
+    }
+  }
+
+  // Particles
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.age++; p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=0.96; p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    const ix=p.x|0,iy=p.y|0;
+    if(ix<0||ix>=W||iy<0||iy>=H) continue;
+    if(p.type==='dazzle'&&p.life>0.6){
+      px(ix,iy,p.color);
+      px(ix+1,iy,SPARK[1]);px(ix-1,iy,SPARK[1]);
+      px(ix,iy-1,SPARK[0]);px(ix,iy+1,SPARK[2]);
+      px(ix+2,iy-1,SPARK[2]);px(ix-2,iy-1,SPARK[2]);
+    } else if(p.type==='smoke'){
+      const a=(p.life*140|0).toString(16).padStart(2,'0');
+      ctx.fillStyle=p.color+a; ctx.fillRect(ix,iy,2,2);
+    } else {
+      px(ix,iy,p.color);
+      if(p.life>0.5){ ctx.fillStyle=SPARK[1]+'88'; ctx.fillRect(ix+1,iy,1,1); }
+    }
+  }
+
+  // Title
+  const title='4TH PLACE';
+  const ttw=tw(title);
+  // Dim teal, slightly shimmering
+  const tealA=burned?'55':'88';
+  drawText(title,((W-ttw)/2)|0,6,TEAL+tealA,'#00000044');
+
+  // After burnout: "WELL PLAYED." text
+  if(elapsed>BURN_MS+2000){
+    const alpha=Math.min(1,(elapsed-BURN_MS-2000)/1500);
+    const ac=Math.floor(alpha*200).toString(16).padStart(2,'0');
+    const msg='WELL PLAYED.', mw=tw(msg);
+    drawText(msg,((W-mw)/2)|0,H-13,'#4bc3af'+ac,'#00000044');
+  }
+
+  frame++;
+}
+
+function loop(ts){
+  if(!running) return;
+  if(!t0) t0=ts;
+  const el=ts-t0;
+  if(el>=TOTAL){running=false;return;}
+  if(ts-lastF>=FRAME){lastF=ts;render(el);}
+  rafId=requestAnimationFrame(loop);
+}
+function start(){
+  particles=[];
+  t0=null;lastF=0;frame=0;running=true;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(loop);
+}
+canvas.addEventListener('click',start);
+canvas.addEventListener('touchend',e=>{e.preventDefault();start();});
+start();
+</script>
+</body>
+</html>

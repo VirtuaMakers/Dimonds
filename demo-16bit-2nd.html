@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>16-bit Gothic Bridge — Dimonds 2nd Place</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#07050f; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; min-height:100vh; font-family:monospace; user-select:none; }
+    #wrap { border:2px solid #8833aa33; border-radius:4px; overflow:hidden;
+            box-shadow:0 0 50px #441166 20, 0 0 10px #663388 30; }
+    canvas { display:block; width:320px; height:320px;
+             image-rendering:pixelated; image-rendering:crisp-edges; }
+    #label { margin-top:12px; color:#8833aa88; font-size:10px; letter-spacing:2px; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="160" height="160"></canvas></div>
+<div id="label">2nd place · tap to replay</div>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W=160, H=160;
+
+const SKY  = ['#07050f','#09070f','#0c0910','#0e0b14','#110e1a','#140f20'];
+const STONE= ['#201830','#2c2444','#382e54','#443860','#181228','#4e4468','#0e0b1c','#605478'];
+const MOON = ['#f0f0d8','#e0e0c0','#c8c8a8','#b0b090','#909078','#404038'];
+const WATER= ['#050414','#08071c','#0a0824','#0c0a2c','#0e0c34','#070520'];
+const RED  = ['#ffffff','#ffccdd','#ff6688','#ee2244','#cc1133','#880011'];
+const SIL  = ['#ffffff','#eeeeff','#ccddee','#aabbcc','#889aaa','#556677'];
+const TORCH= ['#ffffaa','#ffee55','#ffcc00','#ff8800','#ff5500','#cc2200'];
+const STONE_H= STONE[7];
+
+function px(x,y,c){ctx.fillStyle=c;ctx.fillRect(x|0,y|0,1,1);}
+function fill(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x|0,y|0,w,h);}
+function hline(y,x1,x2,c){ctx.fillStyle=c;ctx.fillRect(x1|0,y|0,(x2-x1)|0,1);}
+function vline(x,y1,y2,c){ctx.fillStyle=c;ctx.fillRect(x|0,y1|0,1,(y2-y1)|0);}
+
+// 5×7 font
+const F={'2':[0b01110,0b10001,0b00001,0b00110,0b01000,0b10000,0b11111],
+'N':[0b10001,0b11001,0b10101,0b10011,0b10001,0b10001,0b10001],
+'D':[0b11110,0b10001,0b10001,0b10001,0b10001,0b10001,0b11110],
+' ':[0,0,0,0,0,0,0],'P':[0b11110,0b10001,0b10001,0b11110,0b10000,0b10000,0b10000],
+'L':[0b10000,0b10000,0b10000,0b10000,0b10000,0b10000,0b11111],
+'A':[0b01110,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+'C':[0b01111,0b10000,0b10000,0b10000,0b10000,0b10000,0b01111],
+'E':[0b11111,0b10000,0b10000,0b11110,0b10000,0b10000,0b11111],
+'S':[0b01111,0b10000,0b10000,0b01110,0b00001,0b00001,0b11110],
+'O':[0b01110,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+'!':[0b00100,0b00100,0b00100,0b00100,0b00100,0b00000,0b00100]};
+function drawChar(ch,x,y,fg,sh){
+  const g=F[ch]; if(!g) return;
+  for(let r=0;r<7;r++) for(let c=4;c>=0;c--) if((g[r]>>c)&1){
+    if(sh){ctx.fillStyle=sh;ctx.fillRect(x+(4-c)+1,y+r+1,1,1);}
+    px(x+(4-c),y+r,fg);
+  }
+}
+function drawText(t,x,y,fg,sh){let cx=x;for(const ch of t){drawChar(ch,cx,y,fg,sh);cx+=6;}}
+function tw(t){return t.length*6-1;}
+
+// ── Scene geometry ─────────────────────────────────────────────────
+const TL_X2=48, TR_X1=112;  // tower edges (gap = 64px)
+const DECK_Y=90, WATER_Y=105, WATER_BOT=155;
+const MOON_X=28, MOON_Y=30, MOON_R=16;
+
+// ── Background sky ─────────────────────────────────────────────────
+function drawSky() {
+  for(let y=0;y<DECK_Y;y++){
+    const bi=Math.min(SKY.length-1, (y/DECK_Y*(SKY.length-1))|0);
+    const ca=SKY[bi], cb=SKY[Math.min(bi+1,SKY.length-1)];
+    for(let x=0;x<W;x++){
+      ctx.fillStyle=(y%3===0)&&(x+y)%2===0?cb:ca;
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+}
+
+// ── Moon ──────────────────────────────────────────────────────────
+function drawMoon(frame) {
+  // Outer glow halo (multiple rings)
+  const glowCols=['#d0d0a018','#b0b08012','#90908008'];
+  for(let gi=0;gi<3;gi++){
+    const gr=MOON_R+5+gi*5;
+    ctx.fillStyle=glowCols[gi];
+    for(let a=0;a<360;a+=2){
+      const rad=a*Math.PI/180;
+      ctx.fillRect((MOON_X+Math.cos(rad)*gr)|0,(MOON_Y+Math.sin(rad)*gr)|0,2,2);
+    }
+  }
+  // Moon disc
+  for(let dy=-MOON_R;dy<=MOON_R;dy++){
+    const hw=Math.floor(Math.sqrt(MOON_R*MOON_R-dy*dy));
+    for(let dx=-hw;dx<=hw;dx++){
+      const dist=Math.sqrt(dx*dx+dy*dy)/MOON_R;
+      const ci=Math.min(MOON.length-2,Math.floor(dist*4));
+      ctx.fillStyle=MOON[ci];
+      ctx.fillRect((MOON_X+dx)|0,(MOON_Y+dy)|0,1,1);
+    }
+  }
+  // Crescent shadow (offset circle)
+  for(let dy=-MOON_R+2;dy<=MOON_R-2;dy++){
+    const hw=Math.floor(Math.sqrt((MOON_R-2)*(MOON_R-2)-dy*dy));
+    for(let dx=3;dx<=hw;dx++){
+      if((dx-3)*(dx-3)+dy*dy<=(MOON_R-4)*(MOON_R-4)){
+        ctx.fillStyle=MOON[5];
+        ctx.fillRect((MOON_X+dx)|0,(MOON_Y+dy)|0,1,1);
+      }
+    }
+  }
+  // Craters
+  for(const [cdx,cdy,cr] of [[-5,-4,3],[3,5,2],[-2,6,2],[6,-3,2]]){
+    ctx.fillStyle=MOON[4];
+    ctx.fillRect((MOON_X+cdx)|0,(MOON_Y+cdy)|0,cr,cr);
+    ctx.fillStyle=MOON[2];
+    ctx.fillRect((MOON_X+cdx-1)|0,(MOON_Y+cdy-1)|0,1,1);
+  }
+  // Shimmer on edge
+  if(frame%4<2) px(MOON_X-MOON_R+1,MOON_Y-2,MOON[0]);
+}
+
+// ── Stars ─────────────────────────────────────────────────────────
+const STARS=Array.from({length:55},()=>({
+  x:Math.random()*W, y:Math.random()*DECK_Y,
+  r:Math.random()<0.12?2:1, phase:Math.random()*Math.PI*2, spd:0.02+Math.random()*0.04,
+}));
+function drawStars(elapsed){
+  const st=elapsed*0.002;
+  for(const s of STARS){
+    const b=0.3+0.7*Math.abs(Math.sin(s.phase+st*s.spd));
+    if(b<0.1) continue;
+    const a=(b*255|0).toString(16).padStart(2,'0');
+    ctx.fillStyle='#ffffff'+a; ctx.fillRect(s.x|0,s.y|0,s.r,s.r);
+  }
+}
+
+// ── Gothic towers ─────────────────────────────────────────────────
+function drawTowers() {
+  drawTower(0, TL_X2, 28, H, false);
+  drawTower(TR_X1, W, 28, H, true);
+}
+function drawTower(x0,x1,y0,y1,flipped) {
+  const tw2=x1-x0;
+  // Stone body — brick texture
+  for(let y=y0+11;y<y1;y++){
+    for(let x=x0;x<x1;x++){
+      if((y-y0)%6===0){ctx.fillStyle=STONE[6];ctx.fillRect(x,y,1,1);continue;}
+      const bx=((x-x0)/7)|0, by=((y-y0)/6)|0;
+      if((x-x0)%7===((by%2)*3|0)%7){ctx.fillStyle=STONE[6];ctx.fillRect(x,y,1,1);continue;}
+      ctx.fillStyle=(bx+by)%3===0?STONE[1]:(bx+by)%3===1?STONE[2]:STONE[0];
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  // Battlement crenellations
+  const merPts=[x0+2, x0+(tw2/2-3)|0, x1-9];
+  for(const mx of merPts){
+    for(let y=y0;y<y0+10;y++) for(let x=mx;x<mx+6;x++){
+      ctx.fillStyle=y===y0?STONE_H:x===mx||x===mx+5?STONE[3]:STONE[2];
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  hline(y0+10,x0,x1,STONE[3]);
+  // Windows — pointed arch style
+  const wins=[y0+18, y0+42, y0+65];
+  for(const wy of wins){
+    const wx=x0+(tw2/2-4)|0, ww=8, wh=16;
+    fill(wx,wy+5,ww,wh-4,'#000000');
+    for(let dy=0;dy<5;dy++){
+      const iset=Math.max(0,3-dy);
+      fill(wx+iset,wy+dy,ww-iset*2,1,'#000000');
+    }
+    // Amber glow
+    fill(wx+1,wy+6,6,3,'#bb5500'); fill(wx+2,wy+7,4,2,'#ffaa44');
+    // Stone surround
+    vline(wx-1,wy,wy+wh+1,STONE_H); vline(wx+ww,wy,wy+wh+1,STONE_H);
+    hline(wy-1,wx-1,wx+ww+1,STONE_H);
+  }
+  // Decorative circular rose window on upper level
+  const rox=x0+(tw2/2)|0, roy=y0+14;
+  for(let dy=-4;dy<=4;dy++) for(let dx=-4;dx<=4;dx++){
+    if(dx*dx+dy*dy<=16){
+      ctx.fillStyle=dx*dx+dy*dy<=4?'#111':(dx*dx+dy*dy<=9?'#220033':'#000022');
+      ctx.fillRect((rox+dx)|0,(roy+dy)|0,1,1);
+    }
+  }
+  // Rose window petals
+  for(let ang=0;ang<360;ang+=60){
+    const rad=ang*Math.PI/180;
+    const px2=(rox+Math.cos(rad)*3)|0, py2=(roy+Math.sin(rad)*3)|0;
+    fill(px2,py2,2,2,'#440066');
+  }
+  // Flying buttresses
+  const butX=flipped?x0-4:x1;
+  for(let y=y0+18;y<y1;y++){
+    for(let x=butX;x<butX+4;x++){
+      ctx.fillStyle=(y%6===0)||(x===butX)||(x===butX+3)?STONE[3]:STONE[1];
+      ctx.fillRect(x,y,1,1);
+    }
+  }
+  // Edge highlights
+  if(!flipped) vline(x1-1,y0+10,y1,STONE_H);
+  else vline(x0,y0+10,y1,STONE_H);
+}
+
+// ── Bridge deck ────────────────────────────────────────────────────
+function drawDeck() {
+  // Parapet rails
+  for(let x=TL_X2;x<TR_X1;x++){
+    fill(x,DECK_Y-6,1,3,STONE[3]);
+    fill(x,DECK_Y-3,1,1,(x%4===0)?STONE_H:STONE[2]);
+  }
+  // Road surface
+  fill(TL_X2,DECK_Y,TR_X1-TL_X2,3,STONE[2]);
+  for(let x=TL_X2;x<TR_X1;x+=5) px(x,DECK_Y,STONE_H);
+  // Suspension cable anchor
+  fill(TL_X2,DECK_Y-15,2,15,SIL[3]);
+  fill(TR_X1-2,DECK_Y-15,2,15,SIL[3]);
+  // Main cable arc
+  for(let x=TL_X2;x<=TR_X1;x++){
+    const t=(x-TL_X2)/(TR_X1-TL_X2);
+    const y=(DECK_Y-14)+(14*4*t*(1-t))|0;
+    px(x,y,SIL[2]); px(x,y+1,SIL[3]);
+  }
+  // Vertical hangers
+  for(let hi=1;hi<=7;hi++){
+    const t=hi/8;
+    const x=TL_X2+(t*(TR_X1-TL_X2))|0;
+    const cableY=((DECK_Y-14)+(14*4*t*(1-t)))|0;
+    vline(x,cableY,DECK_Y-6,SIL[4]);
+  }
+}
+
+// ── Water ──────────────────────────────────────────────────────────
+function drawWater(elapsed) {
+  for(let y=WATER_Y;y<WATER_BOT;y++){
+    const ci=Math.min(WATER.length-1,(((y-WATER_Y)/(WATER_BOT-WATER_Y))*WATER.length)|0);
+    fill(0,y,W,1,WATER[ci]);
+  }
+  // Shore
+  fill(0,WATER_BOT,W,H-WATER_BOT,STONE[0]);
+  for(let x=0;x<W;x+=5) px(x,WATER_BOT,STONE[2]);
+  // Ripples
+  const rt=elapsed*0.003;
+  for(let x=4;x<W-4;x+=8){
+    const ry=(WATER_Y+2+Math.sin(rt+x*0.25)*2)|0;
+    px(x,ry,WATER[3]); px(x+3,ry,WATER[2]);
+  }
+  // Moon reflection on water
+  for(let y=WATER_Y;y<WATER_Y+20;y++){
+    const w=Math.max(1,12-((y-WATER_Y)|0));
+    const alpha=Math.floor((1-(y-WATER_Y)/20)*100).toString(16).padStart(2,'0');
+    ctx.fillStyle=MOON[2]+alpha;
+    fill(MOON_X-w,y,w*2,1,ctx.fillStyle);
+  }
+}
+
+// ── Waterfall particle system ──────────────────────────────────────
+let drops=[], splash=[];
+function spawnDrop() {
+  if(Math.random()<0.9){
+    const isRed=Math.random()<0.55;
+    const pal=isRed?RED:SIL;
+    drops.push({
+      x:TL_X2+2+Math.random()*(TR_X1-TL_X2-4),
+      y:DECK_Y+3, vy:0.5+Math.random()*0.8,
+      color:pal[Math.floor(Math.random()*3)], life:1.0,
+    });
+  }
+}
+function updateDrops(frame) {
+  for(let i=drops.length-1;i>=0;i--){
+    const d=drops[i];
+    d.y+=d.vy; d.vy+=0.065; d.life-=0.007;
+    if(d.life<=0||d.y>WATER_BOT){
+      if(d.y>=WATER_Y&&d.y<WATER_BOT+5){
+        for(let s=0;s<4;s++) splash.push({
+          x:d.x,y:WATER_Y,vx:(Math.random()-0.5)*1.2,
+          vy:-(0.2+Math.random()*0.7),life:0.8,color:d.color,
+        });
+      }
+      drops.splice(i,1); continue;
+    }
+    const ix=d.x|0, iy=d.y|0;
+    if(ix>=TL_X2&&ix<TR_X1&&iy>=DECK_Y&&iy<WATER_BOT){
+      px(ix,iy,d.color);
+      if(iy-1>=DECK_Y) px(ix,iy-1,d.life>0.5?d.color:WATER[2]);
+    }
+  }
+  // Waterfall glow column
+  if(frame%2===0){
+    for(let y=DECK_Y+2;y<WATER_Y;y++){
+      if(Math.random()<0.3){
+        const gx=TL_X2+4+Math.random()*(TR_X1-TL_X2-8);
+        ctx.fillStyle=Math.random()<0.5?'#ff224444':'#aabbcc22';
+        ctx.fillRect(gx|0,y,2,1);
+      }
+    }
+  }
+}
+function updateSplash() {
+  for(let i=splash.length-1;i>=0;i--){
+    const s=splash[i];
+    s.x+=s.vx; s.y+=s.vy; s.vy+=0.04; s.life-=0.06;
+    if(s.life<=0){splash.splice(i,1);continue;}
+    const ix=s.x|0,iy=s.y|0;
+    if(ix>=0&&ix<W&&iy>=0&&iy<H) px(ix,iy,s.color);
+  }
+}
+
+// ── Torch flames ──────────────────────────────────────────────────
+function drawTorch(x,y,frame){
+  const f=frame%6, jit=f<3?0:f<5?1:-1;
+  const fpts=[[0,-5,0],[jit,-4,0],[0,-3,1],[-1,-2,2],[1,-2,1],[jit,-1,3],[0,0,4],[0,1,5]];
+  for(const[dx,dy,ci]of fpts) px(x+dx,y+dy,TORCH[ci]);
+  fill(x-1,y+2,3,5,STONE[3]);
+  // Glow halo
+  ctx.fillStyle='#ff880010'; ctx.fillRect(x-4,y-6,9,8);
+}
+
+// ── Bats ──────────────────────────────────────────────────────────
+let bats=[{x:-10,y:22,spd:0.35},{x:-30,y:18,spd:0.28}];
+function updateBats(elapsed){
+  for(const b of bats){
+    b.x+=b.spd;
+    if(b.x>W+10) b.x=-10;
+    const by=(b.y+Math.sin(elapsed*0.003+b.x*0.05)*3)|0;
+    // Bat silhouette: 5px wide
+    px(b.x|0,by,'#111018'); px((b.x+1)|0,by-1,'#111018'); px((b.x-1)|0,by-1,'#111018');
+    px((b.x+2)|0,by,'#111018'); px((b.x-2)|0,by,'#111018');
+  }
+}
+
+// ── Main render ───────────────────────────────────────────────────
+const TOTAL=9000, FPS=16, FRAME=1000/FPS;
+let t0=null, lastF=0, frame=0, running=false, rafId=null, waterfallGo=false;
+
+function render(elapsed){
+  drawSky();
+  drawMoon(frame);
+  drawStars(elapsed);
+
+  // Mist at base of towers
+  for(let x=0;x<TL_X2+10;x++){
+    if((x+frame)%5===0) fill(x,DECK_Y-3,3,4,'#1a1440');
+  }
+  for(let x=TR_X1-10;x<W;x++){
+    if((x+frame)%5===0) fill(x,DECK_Y-3,3,4,'#1a1440');
+  }
+
+  drawTowers();
+  drawDeck();
+  drawWater(elapsed);
+
+  if(elapsed>600){ spawnDrop(); updateDrops(frame); updateSplash(); }
+
+  // Torch glow spill on water
+  if(frame%3===0){
+    fill(8,WATER_Y,12,3,WATER[0]); fill(140,WATER_Y,12,3,WATER[0]);
+  }
+  drawTorch(TL_X2/2|0, 28, frame);
+  drawTorch(TR_X1+(W-TR_X1)/2|0, 28, frame+2);
+
+  updateBats(elapsed);
+
+  // Title
+  const title='2ND PLACE';
+  drawText(title,4,4,SIL[0],STONE[0]);
+  // Shimmer on S
+  if(frame%3===0) drawText('2',4,4,'#ffffff','#440022');
+
+  // "SO CLOSE!" fades in at 3.5s
+  if(elapsed>3500){
+    const alpha=Math.min(1,(elapsed-3500)/1200);
+    const fi=Math.floor(alpha*5);
+    const cols=['#330011','#550022','#880033','#aa0044','#cc1144','#ee2255'];
+    const txt='SO CLOSE!', txw=tw(txt);
+    drawText(txt, ((W-txw)/2)|0, H-13, cols[fi]||cols[5], '#000000');
+  }
+
+  frame++;
+}
+
+function loop(ts){
+  if(!running) return;
+  if(!t0) t0=ts;
+  const el=ts-t0;
+  if(el>=TOTAL){running=false;return;}
+  if(ts-lastF>=FRAME){lastF=ts;render(el);}
+  rafId=requestAnimationFrame(loop);
+}
+function start(){
+  drops=[];splash=[];bats=[{x:-10,y:22,spd:0.35},{x:-30,y:18,spd:0.28}];
+  t0=null;lastF=0;frame=0;running=true;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(loop);
+}
+canvas.addEventListener('click',start);
+canvas.addEventListener('touchend',e=>{e.preventDefault();start();});
+start();
+</script>
+</body>
+</html>
