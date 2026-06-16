@@ -6277,8 +6277,8 @@ function DiamondsGame() {
         <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
           Single Player ◆
         </GoldBtn>
-        <GoldBtn onClick={()=>setShowMultiplayer(true)} small>
-          Multiplayer
+        <GoldBtn onClick={()=>setShowMultiplayer(true)}>
+          Multiplayer ◆
         </GoldBtn>
         <GoldBtn onClick={()=>setShowRules(true)} secondary small>
           Rules
@@ -6322,7 +6322,7 @@ function DiamondsGame() {
                 {nameBox}
                 <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly",paddingTop:4}}>
                   <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>Single Player ◆</GoldBtn>
-                  <GoldBtn onClick={()=>setShowMultiplayer(true)} small>Multiplayer</GoldBtn>
+                  <GoldBtn onClick={()=>setShowMultiplayer(true)}>Multiplayer ◆</GoldBtn>
                   <GoldBtn onClick={()=>setShowRules(true)} secondary small>Rules</GoldBtn>
                   <GoldBtn onClick={()=>setShowOptions(true)} secondary small>Options</GoldBtn>
                   <GoldBtn onClick={()=>setShowCredits(true)} secondary small>Credits</GoldBtn>
