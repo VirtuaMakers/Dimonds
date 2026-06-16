@@ -1200,9 +1200,9 @@ const AI_PERSONAS = [
   { name:"Guy",   emoji:"🌴", style:"Chaotic",      desc:"unpredictable wildcard" },
 ];
 const OPPONENT_OPTIONS = [
-  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family' },
-  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds' },
-  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard' },
+  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family', logo:'assets/logo-claude.png' },
+  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds',    logo:'assets/logo-claude.png' },
+  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard',   logo:'assets/logo-claude.png' },
   { id:'gemini',  type:'llm', label:'Gemini',  emoji:'✨', style:'Gemini AI',  desc:'powered by Google Gemini',       logo:'assets/logo-gemini.png',  color:'#A78BFA' },
   { id:'llama',   type:'llm', label:'Llama',   emoji:'🦙', style:'Llama AI',   desc:'powered by Meta Llama via Groq', logo:'assets/logo-llama.png',   color:'#FF7A4A' },
   { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6' },
@@ -6588,7 +6588,7 @@ function DiamondsGame() {
           className="name-input"
           value={nameInput}
           onChange={e=>setNameInput(e.target.value)}
-          onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),startGame(nameInput.trim()||"You"))}
+          onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),setShowOpponentModal(true))}
           placeholder=" Enter your name..."
           maxLength={14}
           autoFocus
