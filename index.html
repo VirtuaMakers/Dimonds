@@ -4024,21 +4024,27 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                   </div>
                 </div>
               ))}
-              <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22"}}>
-                <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:8,letterSpacing:0.5}}>The Computer Opponents</div>
-                <div style={{color:"#ffffff88",fontSize:11,lineHeight:1.7}}>
-                  Gordy, Vicky, and Guy are each coded by Claude (Anthropic) with a distinct play style:
-                  <div style={{marginTop:6,paddingLeft:8,borderLeft:`2px solid #c9a84c33`}}>
-                    <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Plays high cards and hunts the Family.</div>
-                    <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Conservative. Plays it safe and hoards diamonds.</div>
-                    <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Chaotic. An unpredictable wildcard.</div>
+              <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,lineHeight:1.6}}>
+                <div style={{color:"#c9a84cbb",fontSize:12,fontWeight:700,marginBottom:12,fontStyle:"normal"}}>Notes</div>
+                <div style={{marginBottom:12}}>
+                  <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:4}}>The "Computer" Players, by Claude</div>
+                  <div style={{lineHeight:1.7}}>
+                    Gordy, Vicky, and Guy are each coded by Claude (Anthropic) with a distinct play style:
+                    <div style={{marginTop:6,paddingLeft:8,borderLeft:`2px solid #c9a84c33`}}>
+                      <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Plays high cards and hunts the Family.</div>
+                      <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Conservative. Plays it safe and hoards diamonds.</div>
+                      <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Chaotic. An unpredictable wildcard.</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,fontStyle:"italic",lineHeight:1.6}}>
-                <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Notes</div>
-                The "Dimonds" spelling is so for at least 4 secret reasons.
-                <div style={{marginTop:8}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
+                <div style={{marginBottom:12}}>
+                  <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:2}}>Dimonds</div>
+                  <div style={{fontStyle:"italic"}}>The "Dimonds" spelling is so for at least 4 secret reasons.</div>
+                </div>
+                <div>
+                  <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:2}}>The Jack of Dimonds</div>
+                  <div style={{fontStyle:"italic"}}>"Robbin Jack" is spelled with two b's. Whether he keeps them both is up to the player.</div>
+                </div>
               </div>
               <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,lineHeight:1.7}}>
                 <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:6,fontStyle:"normal",letterSpacing:0.5}}>Engage</div>
@@ -6682,22 +6688,28 @@ function DiamondsGame() {
     }
     const tileStyle = (isSelected) => ({
       cursor:"pointer",borderRadius:10,
-      padding:"6px 6px 7px",
+      paddingBottom:7,
       display:"flex",flexDirection:"column",
       alignItems:"center",
+      overflow:"hidden",
       background: isSelected ? VM.tealLight+"22" : "rgba(255,255,255,0.04)",
       border:`2px solid ${isSelected ? VM.tealLight : "rgba(255,255,255,0.10)"}`,
       transition:"all 0.15s",touchAction:"manipulation",
       boxShadow: isSelected ? `0 0 12px ${VM.tealLight}44` : "none",
     });
     const tileInner = (opt) => (<>
-      <div style={{height:44,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+      <div style={{
+        height:48,width:"100%",
+        display:"flex",alignItems:"center",justifyContent:"center",
+        background:"#fff",
+        borderBottom:"1px solid rgba(0,0,0,0.12)",
+        marginBottom:6,
+      }}>
         {opt.logo
-          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:40,maxHeight:36,objectFit:"contain",opacity:0.92}}/>
+          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:40,maxHeight:36,objectFit:"contain"}}/>
           : <div style={{fontSize:26,lineHeight:1}}>{opt.emoji}</div>
         }
       </div>
-      <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:5}}/>
       <div style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:FONT_UI,marginBottom:1,textAlign:"center"}}>
         {opt.label} {opt.emoji}
       </div>
@@ -6716,10 +6728,15 @@ function DiamondsGame() {
           );
         })}
         <div onClick={() => assignOpponent('random')} style={{...tileStyle(false), gridColumn:2}}>
-          <div style={{height:44,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+          <div style={{
+            height:48,width:"100%",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            background:"#fff",
+            borderBottom:"1px solid rgba(0,0,0,0.12)",
+            marginBottom:6,
+          }}>
             <div style={{fontSize:26,lineHeight:1}}>🌪️</div>
           </div>
-          <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:5}}/>
           <div style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:FONT_UI,marginBottom:1,textAlign:"center"}}>
             Randomize 🌪️
           </div>
