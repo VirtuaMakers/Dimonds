@@ -6667,17 +6667,28 @@ function DiamondsGame() {
           return (
             <div key={opt.id} onClick={() => assignOpponent(opt.id)} style={{
               cursor:"pointer",borderRadius:12,
-              padding:"14px 8px",textAlign:"center",
-              minHeight:90,display:"flex",flexDirection:"column",
-              alignItems:"center",justifyContent:"center",
+              padding:"10px 8px 10px",
+              display:"flex",flexDirection:"column",
+              alignItems:"center",
+              minHeight:130,
               background: isSelected ? VM.tealLight+"22" : "rgba(255,255,255,0.04)",
               border:`2px solid ${isSelected ? VM.tealLight : "rgba(255,255,255,0.10)"}`,
               transition:"all 0.15s",touchAction:"manipulation",
               boxShadow: isSelected ? `0 0 12px ${VM.tealLight}44` : "none",
             }}>
-              <div style={{fontSize:26,lineHeight:1,marginBottom:5}}>{opt.emoji}</div>
-              <div style={{color:"#fff",fontSize:12,fontWeight:700,fontFamily:FONT_UI,marginBottom:2}}>{opt.label}</div>
-              <div style={{color:VM.tealLight+"88",fontSize:10,fontFamily:FONT_UI,lineHeight:1.3}}>{opt.style}</div>
+              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+                {opt.logo
+                  ? <img src={opt.logo} alt={opt.label} style={{maxWidth:56,maxHeight:52,objectFit:"contain",opacity:0.92}}/>
+                  : <div style={{fontSize:34,lineHeight:1}}>{opt.emoji}</div>
+                }
+              </div>
+              <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:7}}/>
+              <div style={{color:"#fff",fontSize:11,fontWeight:700,fontFamily:FONT_UI,marginBottom:2,textAlign:"center"}}>
+                {opt.label} {opt.emoji}
+              </div>
+              <div style={{color:VM.tealLight+"88",fontSize:9,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
+                {opt.style}
+              </div>
             </div>
           );
         })}
@@ -6790,7 +6801,7 @@ function DiamondsGame() {
               </div>
               <div style={{padding:"18px 22px 20px"}}>
                 {opponentPickerContent}
-                <div style={{marginTop:16}}>
+                <div style={{marginTop:16,display:"flex",justifyContent:"center"}}>
                   <GoldBtn onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
                     DEAL ME IN ◆
                   </GoldBtn>
