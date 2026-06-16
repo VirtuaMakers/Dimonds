@@ -3308,7 +3308,10 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,display:"flex",flexDirection:"column",overflow:"hidden"}}>
         <div style={{padding:"18px 22px 13px",borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
-          <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Options</h2>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>Options</h2>
+            <GoldBtn onClick={onClose} small secondary>{onExit ? "Return to Game" : "Close"}</GoldBtn>
+          </div>
         </div>
         <div style={{flex:1,overflowY:"auto",padding:"8px 22px 22px",WebkitOverflowScrolling:"touch"}}>
           {/* Sound */}
@@ -3457,19 +3460,18 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               ))}
             </div>
           </div>
-          {/* Action buttons */}
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:18,paddingTop:4,borderTop:`1px solid ${VM.tealLight}18`}}>
-            <GoldBtn onClick={onClose} small secondary>{onExit ? "Return to Game" : "Close"}</GoldBtn>
-            {onExit && (
+          {onExit && (
+            <div style={{marginTop:18,paddingTop:4,borderTop:`1px solid ${VM.tealLight}18`}}>
               <button onClick={onExit} style={{
                 background:"transparent", border:"1px solid #ff444433",
                 borderRadius:10, padding:"7px 14px", fontSize:12,
                 fontWeight:800, color:"#ff8888", cursor:"pointer",
                 fontFamily:FONT_DISPLAY, letterSpacing:0.5,
                 textTransform:"uppercase", minHeight:34, touchAction:"manipulation",
+                width:"100%",
               }}>Exit Game</button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -3525,7 +3527,8 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
 // ============================================================
 // RULES PANEL
 // ============================================================
-function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots }) {
+function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, playerName }) {
+  const [localName, setLocalName] = useState(playerName || "");
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const sectionLabel = txt => (
     <div style={{fontSize:9,color:VM.tealLight+"99",letterSpacing:2,textTransform:"uppercase",
@@ -3549,6 +3552,19 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots })
         </div>
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",padding:"14px 22px 22px",WebkitOverflowScrolling:"touch"}}>
+          {sectionLabel("Your Name")}
+          <input
+            type="text"
+            value={localName}
+            onChange={e=>setLocalName(e.target.value)}
+            placeholder="Enter your name…"
+            style={{
+              background:"#ffffff14", border:`1.5px solid ${VM.tealLight}44`,
+              borderRadius:10, padding:"8px 12px", width:"100%", boxSizing:"border-box",
+              color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, outline:"none",
+              marginBottom:18,
+            }}
+          />
           {sectionLabel("Configure Opponents")}
           {[0,1,2].map(slotIdx => {
             const seatNum = slotIdx + 2;
@@ -3630,7 +3646,7 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots })
         </div>
         <div style={{padding:"14px 22px",borderTop:`1px solid ${VM.tealLight}22`,flexShrink:0,display:"flex",gap:10,justifyContent:"flex-end"}}>
           <GoldBtn onClick={onClose} secondary small>Cancel</GoldBtn>
-          <GoldBtn onClick={onStart}>Start Game ◆</GoldBtn>
+          <GoldBtn onClick={()=>onStart(localName.trim()||"You")}>Start Game ◆</GoldBtn>
         </div>
       </div>
     </div>
@@ -3752,11 +3768,13 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {role:"Coding", name:"Claude (Anthropic)"},
                 {role:"Concepts", name:"ChatGPT (OpenAI)"},
                 {role:"Graphics", name:"Copilot (Microsoft)"},
-                {role:"Playtesting", name:"Thomas Bruckmann, Cal Mumpkin, Eric Sanderson, Donnie Swing, Rob Vasseur"},
+                {role:"Playtesting", name:"Thomas Bruckmann\nCal Mumpkin\nEric Sanderson\nDonnie Swing\nRob Vasseur"},
               ].map(({role,name})=>(
                 <div key={role} style={{marginBottom:10, paddingLeft:8}}>
                   <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
-                  <div style={{color:"#ffffffcc",fontSize:13,whiteSpace:"nowrap"}}>{name}</div>
+                  <div style={{color:"#ffffffcc",fontSize:13}}>
+                    {name.includes('\n') ? name.split('\n').map((n,i)=><div key={i}>{n}</div>) : name}
+                  </div>
                 </div>
               ))}
               <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,fontStyle:"italic",lineHeight:1.6}}>
@@ -3767,9 +3785,9 @@ function RulesPanel({ onClose, initialView = "rules" }) {
               <div style={{marginTop:16,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,lineHeight:1.7}}>
                 <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:6,fontStyle:"normal",letterSpacing:0.5}}>Engage</div>
                 <div style={{marginBottom:4}}>
-                  <a href="https://www.VirtuaMakers.studio" target="_blank" rel="noopener noreferrer"
+                  <a href="https://VirtuaMakers.GitHub.io" target="_blank" rel="noopener noreferrer"
                     style={{color:VM.tealLight,textDecoration:"none",fontStyle:"normal"}}>
-                    Website — www.VirtuaMakers.studio
+                    Website — VirtuaMakers.GitHub.io
                   </a>
                 </div>
                 <div>
@@ -6337,7 +6355,7 @@ function DiamondsGame() {
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
         {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
-        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} onStart={()=>{setShowMultiplayer(false);startGame();}} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots}/>}
+        {showMultiplayer && <MultiplayerPanel onClose={()=>setShowMultiplayer(false)} onStart={(name)=>{setPlayerName(name);setShowMultiplayer(false);startGame(name);}} opponentSlots={opponentSlots} setOpponentSlots={setOpponentSlots} playerName={playerName}/>}
       </div></>
     );
   }
