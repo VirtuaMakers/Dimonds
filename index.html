@@ -1200,12 +1200,12 @@ const AI_PERSONAS = [
   { name:"Guy",   emoji:"🌴", style:"Chaotic",      desc:"unpredictable wildcard" },
 ];
 const OPPONENT_OPTIONS = [
-  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family', logo:'assets/logo-claude.png' },
-  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds',    logo:'assets/logo-claude.png' },
-  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard',   logo:'assets/logo-claude.png' },
-  { id:'gemini',  type:'llm', label:'Gemini',  emoji:'✨', style:'Gemini AI',  desc:'powered by Google Gemini',       logo:'assets/logo-gemini.png',  color:'#A78BFA' },
-  { id:'llama',   type:'llm', label:'Llama',   emoji:'🦙', style:'Llama AI',   desc:'powered by Meta Llama via Groq', logo:'assets/logo-llama.png',   color:'#FF7A4A' },
-  { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6' },
+  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family', logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds',    logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard',   logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'gemini',  type:'llm', label:'Gemini',  emoji:'✨', style:'Gemini AI',  desc:'powered by Google Gemini',       logo:'assets/logo-gemini.png',  color:'#A78BFA', subtitle:'(Alphabet)' },
+  { id:'llama',   type:'llm', label:'Llama',   emoji:'🦙', style:'Llama AI',   desc:'powered by Meta Llama via Groq', logo:'assets/logo-llama.png',   color:'#FF7A4A', subtitle:'(Meta)' },
+  { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6', subtitle:'(Mistral AI)' },
 ];
 
 // ============================================================
@@ -4024,6 +4024,17 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                   </div>
                 </div>
               ))}
+              <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22"}}>
+                <div style={{color:VM.gold,fontSize:11,fontWeight:700,marginBottom:8,letterSpacing:0.5}}>The Computer Opponents</div>
+                <div style={{color:"#ffffff88",fontSize:11,lineHeight:1.7}}>
+                  Gordy, Vicky, and Guy are each coded by Claude (Anthropic) with a distinct play style:
+                  <div style={{marginTop:6,paddingLeft:8,borderLeft:`2px solid #c9a84c33`}}>
+                    <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Plays high cards and hunts the Family.</div>
+                    <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Conservative. Plays it safe and hoards diamonds.</div>
+                    <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Chaotic. An unpredictable wildcard.</div>
+                  </div>
+                </div>
+              </div>
               <div style={{marginTop:20,paddingTop:14,borderTop:"1px solid #c9a84c22",color:"#ffffff88",fontSize:11,fontStyle:"italic",lineHeight:1.6}}>
                 <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4,fontStyle:"normal"}}>Notes</div>
                 The "Dimonds" spelling is so for at least 4 secret reasons.
@@ -6655,43 +6666,68 @@ function DiamondsGame() {
       </div>
     );
     function assignOpponent(optId) {
+      if (optId === 'random') {
+        const all = OPPONENT_OPTIONS.map(o => o.id);
+        for (let i = all.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [all[i], all[j]] = [all[j], all[i]];
+        }
+        setOpponentSlots(all.slice(0, 3));
+        return;
+      }
       setOpponentSlots(prev => {
         if (prev.includes(optId)) return prev;
         return [...prev.slice(1), optId];
       });
     }
+    const tileStyle = (isSelected) => ({
+      cursor:"pointer",borderRadius:12,
+      padding:"10px 8px 10px",
+      display:"flex",flexDirection:"column",
+      alignItems:"center",
+      minHeight:130,
+      background: isSelected ? VM.tealLight+"22" : "rgba(255,255,255,0.04)",
+      border:`2px solid ${isSelected ? VM.tealLight : "rgba(255,255,255,0.10)"}`,
+      transition:"all 0.15s",touchAction:"manipulation",
+      boxShadow: isSelected ? `0 0 12px ${VM.tealLight}44` : "none",
+    });
+    const tileInner = (opt) => (<>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+        {opt.logo
+          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:56,maxHeight:52,objectFit:"contain",opacity:0.92}}/>
+          : <div style={{fontSize:34,lineHeight:1}}>{opt.emoji}</div>
+        }
+      </div>
+      <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:7}}/>
+      <div style={{color:"#fff",fontSize:11,fontWeight:700,fontFamily:FONT_UI,marginBottom:2,textAlign:"center"}}>
+        {opt.label} {opt.emoji}
+      </div>
+      <div style={{color:VM.tealLight+"88",fontSize:9,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
+        {opt.subtitle}
+      </div>
+    </>);
     const opponentPickerContent = (
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}}>
         {OPPONENT_OPTIONS.map(opt => {
           const isSelected = opponentSlots.includes(opt.id);
           return (
-            <div key={opt.id} onClick={() => assignOpponent(opt.id)} style={{
-              cursor:"pointer",borderRadius:12,
-              padding:"10px 8px 10px",
-              display:"flex",flexDirection:"column",
-              alignItems:"center",
-              minHeight:130,
-              background: isSelected ? VM.tealLight+"22" : "rgba(255,255,255,0.04)",
-              border:`2px solid ${isSelected ? VM.tealLight : "rgba(255,255,255,0.10)"}`,
-              transition:"all 0.15s",touchAction:"manipulation",
-              boxShadow: isSelected ? `0 0 12px ${VM.tealLight}44` : "none",
-            }}>
-              <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
-                {opt.logo
-                  ? <img src={opt.logo} alt={opt.label} style={{maxWidth:56,maxHeight:52,objectFit:"contain",opacity:0.92}}/>
-                  : <div style={{fontSize:34,lineHeight:1}}>{opt.emoji}</div>
-                }
-              </div>
-              <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:7}}/>
-              <div style={{color:"#fff",fontSize:11,fontWeight:700,fontFamily:FONT_UI,marginBottom:2,textAlign:"center"}}>
-                {opt.label} {opt.emoji}
-              </div>
-              <div style={{color:VM.tealLight+"88",fontSize:9,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
-                {opt.style}
-              </div>
+            <div key={opt.id} onClick={() => assignOpponent(opt.id)} style={tileStyle(isSelected)}>
+              {tileInner(opt)}
             </div>
           );
         })}
+        <div onClick={() => assignOpponent('random')} style={{...tileStyle(false), gridColumn:2}}>
+          <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",width:"100%"}}>
+            <div style={{fontSize:34,lineHeight:1}}>🌪️</div>
+          </div>
+          <div style={{width:"100%",borderTop:`1px solid rgba(255,255,255,0.13)`,marginBottom:7}}/>
+          <div style={{color:"#fff",fontSize:11,fontWeight:700,fontFamily:FONT_UI,marginBottom:2,textAlign:"center"}}>
+            Randomize 🌪️
+          </div>
+          <div style={{color:VM.tealLight+"88",fontSize:9,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
+            Surprise me!
+          </div>
+        </div>
       </div>
     );
     const buttons = isWide ? (
