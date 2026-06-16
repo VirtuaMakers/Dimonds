@@ -4029,10 +4029,12 @@ function DiamondsGame() {
   useEffect(() => {
     if (!isPlayerTurn || hands[0]?.length > 0) return;
     const timer = setTimeout(() => {
-      const remaining = turnOrder.slice(currentTurn + 1).filter(p => hands[p]?.length > 0);
-      if (remaining.length === 0 && trickPlays.length > 0) {
-        resolveTrickComplete(trickPlays, hands);
-      } else if (remaining.length === 0 && trickPlays.length === 0) {
+      const currentHands = handsRef.current;
+      const currentPlays = trickPlaysRef.current;
+      const remaining = turnOrder.slice(currentTurn + 1).filter(p => currentHands[p]?.length > 0);
+      if (remaining.length === 0 && currentPlays.length > 0) {
+        resolveTrickComplete(currentPlays, currentHands);
+      } else if (remaining.length === 0 && currentPlays.length === 0) {
         // no trick in progress and no players after human — auto-claim useEffect handles it
       } else {
         setCurrentTurn(t => t + 1);
@@ -4512,6 +4514,7 @@ function DiamondsGame() {
     setHandSortMode('rank');
     setPendingPlayContinuation(null);
     setPendingFireworks(false);
+    setShowFireworks(false);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
