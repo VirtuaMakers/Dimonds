@@ -3568,19 +3568,22 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
         </div>
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",padding:"14px 22px 22px",WebkitOverflowScrolling:"touch"}}>
-          {sectionLabel("Your Name")}
-          <input
-            type="text"
-            value={localName}
-            onChange={e=>setLocalName(e.target.value)}
-            placeholder="Enter your name…"
-            style={{
-              background:"#ffffff14", border:`1.5px solid ${VM.tealLight}44`,
-              borderRadius:10, padding:"8px 12px", width:"100%", boxSizing:"border-box",
-              color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, outline:"none",
-              marginBottom:18,
-            }}
-          />
+          <div style={{marginBottom:6}}>
+            <div style={{color:VM.gold,fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:18,letterSpacing:0.5,marginBottom:8}}>Your Name</div>
+            <input
+              type="text"
+              value={localName}
+              onChange={e=>setLocalName(e.target.value)}
+              placeholder="Enter your name…"
+              style={{
+                background:"#ffffff14", border:`1.5px solid ${VM.tealLight}44`,
+                borderRadius:10, padding:"9px 13px", width:"100%", boxSizing:"border-box",
+                color:"#ffffffee", fontFamily:FONT_UI, fontSize:14, outline:"none",
+              }}
+            />
+          </div>
+          {/* Divider */}
+          <div style={{borderTop:`1px solid ${VM.tealLight}22`,margin:"16px 0"}}/>
           {/* AI Logo Banner */}
           <div style={{display:"flex",gap:6,marginBottom:18}}>
             {OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(opt=>(
@@ -3633,8 +3636,8 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
                 <div style={{fontSize:11,color:"#ffffffbb",fontFamily:FONT_UI,fontWeight:700,marginBottom:8}}>
                   Seat {seatNum}
                 </div>
-                {renderRow(computers, "Computer Players")}
                 {renderRow(llms, "AI Players")}
+                {renderRow(computers, "Computer Players")}
                 {/* Show desc of selected */}
                 <div style={{fontSize:10,color:VM.tealLight+"99",fontFamily:FONT_UI,marginTop:2,paddingLeft:2}}>
                   {OPPONENT_OPTIONS.find(o=>o.id===currentId)?.desc}
@@ -3859,8 +3862,8 @@ function DiamondsGame() {
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [opponentSlots, setOpponentSlots] = useState(['gordy','vicky','guy']);
-  const opponentSlotsRef = useRef(['gordy','vicky','guy']);
+  const [opponentSlots, setOpponentSlots] = useState(['gemini','llama','mistral']);
+  const opponentSlotsRef = useRef(['gemini','llama','mistral']);
   useEffect(() => { opponentSlotsRef.current = opponentSlots; }, [opponentSlots]);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
   const [soundOn, setSoundOn] = useState(true);
