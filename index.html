@@ -1095,7 +1095,7 @@ function Cutscene({ onDone, place=1, gameNum=1 }) {
             position:"absolute", inset:0, pointerEvents:"none", zIndex:11,
             background:"radial-gradient(ellipse 88% 88% at 50% 50%, transparent 48%, rgba(0,0,0,0.65) 100%)",
           }}/>
-          <canvas ref={canvasRef} style={{display:"block", width:"100%", height:"100%", imageRendering: place <= 3 ? "pixelated" : "auto", filter: place <= 3 ? "contrast(1.07) brightness(0.95)" : "none"}}/>
+          <canvas ref={canvasRef} style={{display:"block", width:"100%", height:"100%", imageRendering: place <= 4 ? "pixelated" : "auto", filter: place <= 4 ? "contrast(1.07) brightness(0.95)" : "none"}}/>
         </div>
       </div>
     </div>
