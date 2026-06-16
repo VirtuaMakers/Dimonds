@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>8-bit Sparkler — Dimonds 4th Place Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #090f0c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: monospace;
+      user-select: none;
+    }
+    #wrap {
+      position: relative;
+      border: 1px solid #4bc3af22;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      /* Scale the 64×104 internal canvas up 4× with zero blur */
+      width: 256px;
+      height: 416px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #label {
+      margin-top: 12px;
+      color: #4bc3af88;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    #badge {
+      position: absolute;
+      bottom: 8px;
+      left: 0; right: 0;
+      text-align: center;
+      font-size: 6px; /* on the 64px canvas — scaled to 24px on screen */
+      color: #888;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <!-- 64×104 internal resolution, displayed at 256×416 (4× scale) -->
+  <canvas id="c" width="64" height="104"></canvas>
+</div>
+<div id="label">4th place · tap to replay</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const W = 64, H = 104;
+
+// ── 8-bit palette ──────────────────────────────────────────────
+const BG       = '#090f0c';
+const STICK_A  = '#bbbbbb';   // unburned, odd rows
+const STICK_B  = '#888888';   // unburned, even rows (texture)
+const BURNED_A = '#1e1e1e';   // burned portion
+const BURNED_B = '#0d0d0d';
+const HANDLE   = ['#111111','#0a0a0a','#1a1a1a','#0d0d0d'];
+
+const SPARK_COLORS = ['#ffffff','#eeeeee','#ddddff','#bbbbdd','#8888aa','#666688'];
+const TIP = ['#ffffff','#ffffbb','#ffee55','#ff9900','#ff4400','#cc2200'];
+
+// ── Geometry ────────────────────────────────────────────────────
+const CX       = 32;
+const STEM_TOP = 10;
+const STEM_BOT = 66;
+const STEM_LEN = STEM_BOT - STEM_TOP;
+
+const BURN_MS  = 5500;
+const TOTAL_MS = 8200;
+const FPS      = 12;             // deliberately choppy — authentic 8-bit feel
+const FRAME_MS = 1000 / FPS;
+
+// ── Particle pool ───────────────────────────────────────────────
+let particles = [];
+function spawn(x, y, vx, vy, color, life, decay, grav, smoke) {
+  particles.push({ x, y, vx, vy, color, life, decay, grav, smoke });
+}
+
+// ── Pixel helpers ────────────────────────────────────────────────
+function px(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+}
+function px2(x, y, c) {           // 2×2 pixel block
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+}
+
+// ── Handle shape (pixel art grip) ────────────────────────────────
+function drawHandle() {
+  // Main grip body (9px wide × 9px tall)
+  for (let y = STEM_BOT; y <= STEM_BOT + 8; y++) {
+    for (let x = CX - 4; x <= CX + 4; x++) {
+      const shade = HANDLE[(x + y) % HANDLE.length];
+      px(x, y, shade);
+    }
+  }
+  // Grip ridges (horizontal dashes)
+  for (let ri = 0; ri < 3; ri++) {
+    const ry = STEM_BOT + 2 + ri * 2;
+    for (let x = CX - 3; x <= CX + 3; x += 2) {
+      px(x, ry, '#222222');
+    }
+  }
+  // Side guards (wider at top of handle)
+  for (let y = STEM_BOT; y <= STEM_BOT + 2; y++) {
+    px(CX - 5, y, HANDLE[1]);
+    px(CX + 5, y, HANDLE[1]);
+  }
+  // Bottom cap
+  for (let x = CX - 3; x <= CX + 3; x++) {
+    px(x, STEM_BOT + 9, '#0a0a0a');
+  }
+}
+
+// ── Stick ─────────────────────────────────────────────────────────
+function drawStick(burnY) {
+  for (let y = STEM_TOP; y < STEM_BOT; y++) {
+    if (y < burnY) {
+      // Burned: nearly black, slight texture
+      px(CX, y, y % 2 === 0 ? BURNED_A : BURNED_B);
+      // Occasionally a dim ember pixel beside it
+      if (y > STEM_TOP && Math.random() < 0.04) px(CX + (Math.random()<0.5?1:-1), y, '#2a1a0a');
+    } else {
+      // Unburned: gray, with a 1px lighter highlight on the left edge
+      px(CX, y, y % 2 === 0 ? STICK_A : STICK_B);
+      if (y % 3 === 0) px(CX - 1, y, '#666666');   // shadow pixel
+      if (y % 4 === 0) px(CX + 1, y, '#dddddd');   // highlight pixel
+    }
+  }
+}
+
+// ── Burn tip glow — pixelated cross + halo ────────────────────────
+function drawTip(burnY, frame) {
+  // Core: 2×2 white hot pixel
+  px2(CX - 1, burnY - 1, TIP[0]);
+
+  // Cross arms — flicker on alternating frames
+  const flicker = frame % 2 === 0;
+  const cross = [
+    [0, -2, TIP[1]], [0, -3, TIP[2]],
+    [-1, 0, TIP[1]], [-2, 0, TIP[2]],
+    [1,  0, TIP[1]], [2,  0, TIP[2]],
+    [0,  1, TIP[2]], [0,  2, TIP[3]],
+  ];
+  cross.forEach(([dx, dy, c]) => {
+    if (!flicker || Math.random() > 0.3) px(CX + dx, burnY + dy, c);
+  });
+
+  // Outer halo — scattered pixels for the classic 8-bit spark crown
+  const halo = [
+    [-3,-1,TIP[3]],[-3,1,TIP[3]],[3,-1,TIP[3]],[3,1,TIP[3]],
+    [-2,-2,TIP[4]],[2,-2,TIP[4]],[-2,2,TIP[5]],[2,2,TIP[5]],
+    [0,-4,TIP[4]],[0,3,TIP[4]],
+  ];
+  halo.forEach(([dx, dy, c]) => {
+    if (Math.random() > 0.35) px(CX + dx, burnY + dy, c);
+  });
+}
+
+// ── Sparkle star shape for each particle ──────────────────────────
+function drawParticle(p) {
+  const ix = Math.floor(p.x), iy = Math.floor(p.y);
+  if (ix < 0 || ix >= W || iy < 0 || iy >= H) return;
+  px(ix, iy, p.color);
+  // Bright young sparks get a '+' cross for classic 8-bit star look
+  if (!p.smoke && p.life > 0.55) {
+    px(ix + 1, iy, SPARK_COLORS[1]);
+    px(ix - 1, iy, SPARK_COLORS[1]);
+    px(ix, iy - 1, SPARK_COLORS[0]);
+  }
+}
+
+// ── 4th-place pixel-art "4th" label ──────────────────────────────
+// Tiny 3×5 pixel font bitmaps for "4", "t", "h"
+const GLYPHS = {
+  '4': [0b101,0b101,0b111,0b001,0b001],
+  't': [0b010,0b111,0b010,0b010,0b001],
+  'h': [0b101,0b101,0b111,0b101,0b101],
+  ' ': [0,0,0,0,0],
+  'P': [0b110,0b101,0b110,0b100,0b100],
+  'L': [0b100,0b100,0b100,0b100,0b111],
+  'A': [0b010,0b101,0b111,0b101,0b101],
+  'C': [0b011,0b100,0b100,0b100,0b011],
+  'E': [0b111,0b100,0b110,0b100,0b111],
+};
+function drawGlyph(chr, x, y, color) {
+  const g = GLYPHS[chr];
+  if (!g) return;
+  for (let row = 0; row < 5; row++) {
+    for (let col = 2; col >= 0; col--) {
+      if ((g[row] >> col) & 1) px(x + (2 - col), y + row, color);
+    }
+  }
+}
+function drawLabel(text, x, y, color) {
+  let cx = x;
+  for (const ch of text) {
+    drawGlyph(ch, cx, y, color);
+    cx += 4;
+  }
+}
+
+// ── Main loop ──────────────────────────────────────────────────────
+let t0 = null, lastFrame = 0, frame = 0, running = false, rafId = null;
+
+function render(elapsed) {
+  // Clear
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  const frac   = Math.min(elapsed / BURN_MS, 1);
+  const burnY  = Math.floor(STEM_TOP + STEM_LEN * frac);
+  const burned = frac >= 1;
+
+  // "4th PLACE" pixel label at top
+  const labelColor = burned ? '#444444' : '#555555';
+  drawLabel('4', 11, 2, labelColor);
+  drawLabel('th', 16, 2, labelColor);
+  drawLabel('PLACE', 25, 2, labelColor);
+
+  // Draw layers back-to-front
+  drawHandle();
+  drawStick(burnY);
+
+  // Particles
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x  += p.vx;
+    p.y  += p.vy;
+    p.vy += p.grav;
+    p.vx *= 0.97;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i, 1); continue; }
+    drawParticle(p);
+  }
+
+  if (!burned) {
+    drawTip(burnY, frame);
+    // Spawn sparks — burst frequency scales up as burn accelerates
+    const count = 1 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const s = 0.2 + Math.random() * 1.0;
+      spawn(
+        CX + (Math.random() - 0.5) * 2, burnY,
+        Math.cos(a) * s, Math.sin(a) * s - 0.2,
+        SPARK_COLORS[Math.floor(Math.random() * SPARK_COLORS.length)],
+        0.8 + Math.random() * 0.4, 0.07 + Math.random() * 0.05,
+        0.03, false
+      );
+    }
+  } else {
+    // Smoke drifts after burnout
+    if (Math.random() < 0.5) {
+      spawn(
+        CX + (Math.random() - 0.5) * 4, STEM_BOT - 3,
+        (Math.random() - 0.5) * 0.25, -0.35 - Math.random() * 0.3,
+        ['#444444','#555555','#333333'][Math.floor(Math.random() * 3)],
+        1.0, 0.025 + Math.random() * 0.015,
+        -0.008, true
+      );
+    }
+    // Faint lingering glow at tip
+    if (elapsed < BURN_MS + 1200) {
+      const g = Math.floor(255 * Math.max(0, 1 - (elapsed - BURN_MS) / 1200));
+      if (g > 0) {
+        ctx.fillStyle = `rgb(${g},${Math.floor(g*0.4)},0)`;
+        ctx.fillRect(CX - 1, STEM_BOT - 1, 2, 2);
+      }
+    }
+  }
+
+  // "Tap to skip" hint — only during burn
+  if (!burned && elapsed < 1500) {
+    drawLabel('tAP', 20, H - 8, '#333333');
+  }
+
+  frame++;
+}
+
+function loop(ts) {
+  if (!running) return;
+  if (!t0) t0 = ts;
+  const elapsed = ts - t0;
+  if (elapsed >= TOTAL_MS) { running = false; return; }
+  if (ts - lastFrame >= FRAME_MS) {
+    lastFrame = ts;
+    render(elapsed);
+  }
+  rafId = requestAnimationFrame(loop);
+}
+
+function start() {
+  particles = [];
+  t0 = null; lastFrame = 0; frame = 0; running = true;
+  ctx.fillStyle = BG; ctx.fillRect(0, 0, W, H);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('click', start);
+canvas.addEventListener('touchend', e => { e.preventDefault(); start(); });
+
+start();
+</script>
+</body>
+</html>
