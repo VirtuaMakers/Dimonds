@@ -2281,7 +2281,7 @@ function AnimatedNumber({ value, style }) {
   return <span style={style}>{display}</span>;
 }
 
-function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
+function GoldBtn({ onClick, children, disabled, small, tiny, secondary, fill }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
       background: disabled
@@ -2299,9 +2299,10 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
       transition:"all 0.15s",
       fontFamily:FONT_DISPLAY,
       boxShadow: disabled||secondary ? "none" : `0 4px 14px ${VM.gold}33`,
-      minHeight: tiny ? 22 : small ? 34 : 48,
-      width: tiny ? "100%" : undefined,
-      textAlign: tiny ? "center" : undefined,
+      minHeight: fill ? undefined : tiny ? 22 : small ? 34 : 48,
+      width: (tiny || fill) ? "100%" : undefined,
+      height: fill ? "100%" : undefined,
+      textAlign: (tiny || fill) ? "center" : undefined,
       touchAction:"manipulation",
     }}>{children}</button>
   );
@@ -6714,20 +6715,27 @@ function DiamondsGame() {
         </div>
       </div>
     );
-    const buttons = (
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:-3}}>
-        <GoldBtn onClick={()=>setShowOpponentModal(true)}>
-          Play Dimonds ◆
-        </GoldBtn>
-        <GoldBtn onClick={()=>setShowRules(true)} secondary small>
-          Rules
-        </GoldBtn>
-        <GoldBtn onClick={()=>setShowOptions(true)} secondary small>
-          Options
-        </GoldBtn>
-        <GoldBtn onClick={()=>setShowCredits(true)} secondary small>
-          Credits
-        </GoldBtn>
+    const buttons = isWide ? (
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,paddingTop:4}}>
+        <div style={{flex:2,display:"flex",flexDirection:"column"}}>
+          <GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
+        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
+        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
+        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
+        </div>
+      </div>
+    ) : (
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
+        <GoldBtn onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
+        <GoldBtn secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
+        <GoldBtn secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
+        <GoldBtn secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
       </div>
     );
     return (
