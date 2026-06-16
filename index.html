@@ -6794,7 +6794,7 @@ function DiamondsGame() {
                 animation:"cardLand 0.28s cubic-bezier(0.2,0.8,0.3,1)",
               }}>
                 <CardComp card={p.card} played/>
-                <div style={{color:VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
+                <div style={{color:p.playerIdx===0?VM.tealLight+"99":effectivePersonas[p.playerIdx-1]?.type==='llm'?effectivePersonas[p.playerIdx-1].color+"cc":VM.tealLight+"99",fontSize:9,marginTop:4,letterSpacing:1,fontFamily:FONT_UI}}>{allNames[p.playerIdx]}</div>
               </div>
             ))
           )}
@@ -6865,7 +6865,11 @@ function DiamondsGame() {
           <div style={{
             position:"absolute", top: isDesktop ? 22 : 10, left:0, right:0, zIndex:5,
             textAlign:"center", pointerEvents:"none",
-            color: isPlayerTurn?VM.tealLight:"#ffffff44",
+            color: isPlayerTurn ? VM.tealLight : (() => {
+              const cp = turnOrder[currentTurn];
+              if (cp > 0 && effectivePersonas[cp-1]?.type === 'llm') return effectivePersonas[cp-1].color;
+              return "#ffffff44";
+            })(),
             fontSize:9, letterSpacing:2, textTransform:"uppercase",
             fontWeight:700, fontFamily:FONT_UI, lineHeight:"14px",
           }}>
