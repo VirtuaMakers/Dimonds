@@ -6275,9 +6275,9 @@ function DiamondsGame() {
     const buttons = (
       <div style={{display:"flex",flexDirection:"column",gap:10}}>
         <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
-          Deal Me In ◆
+          Single Player ◆
         </GoldBtn>
-        <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>
+        <GoldBtn onClick={()=>setShowMultiplayer(true)} small>
           Multiplayer
         </GoldBtn>
         <GoldBtn onClick={()=>setShowRules(true)} secondary small>
@@ -6321,8 +6321,8 @@ function DiamondsGame() {
               <div style={{width:260,flexShrink:0,display:"flex",flexDirection:"column"}}>
                 {nameBox}
                 <div style={{flex:1,display:"flex",flexDirection:"column",justifyContent:"space-evenly",paddingTop:4}}>
-                  <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>Deal Me In ◆</GoldBtn>
-                  <GoldBtn onClick={()=>setShowMultiplayer(true)} secondary small>Multiplayer</GoldBtn>
+                  <GoldBtn onClick={()=>{setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>Single Player ◆</GoldBtn>
+                  <GoldBtn onClick={()=>setShowMultiplayer(true)} small>Multiplayer</GoldBtn>
                   <GoldBtn onClick={()=>setShowRules(true)} secondary small>Rules</GoldBtn>
                   <GoldBtn onClick={()=>setShowOptions(true)} secondary small>Options</GoldBtn>
                   <GoldBtn onClick={()=>setShowCredits(true)} secondary small>Credits</GoldBtn>
