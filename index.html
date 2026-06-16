@@ -2055,7 +2055,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary }) {
 // ============================================================
 // KIDNAP MODAL — full hand inspection, pick best card
 // ============================================================
-function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckTheme, isRobbinJack=false, onPeek }) {
+function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal, onSkip, deckTheme, isRobbinJack=false, onPeek }) {
   const targets = [0,1,2,3].filter(i => i!==jokerPlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
@@ -2091,7 +2091,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
               borderRadius:10, padding:"8px 14px", cursor:"pointer",
               transition:"all 0.15s", textAlign:"center", flex:1,
             }}>
-              <div style={{fontSize:18}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+              <div style={{fontSize:18}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
               <div style={{color:chosenPlayer===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
               <div style={{color:"#ffffff44",fontSize:10}}>{hands[i].length} cards</div>
             </div>
@@ -2145,7 +2145,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, onSteal, onSkip, deckThe
 }
 
 // ===== Queen of Clubs modal — Thievin' or Reallocate =====
-function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, onSkip, deckTheme, totalScores=[], onPeek }) {
+function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve, onReallocate, onSkip, deckTheme, totalScores=[], onPeek }) {
   const [mode, setMode] = React.useState("thieve");
   const others = [0,1,2,3].filter(i => i !== playerIdx && hands[i].length > 0);
 
@@ -2210,7 +2210,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
                 border:`1.5px solid ${thieveFrom===i?"#c9a84c":"#ffffff22"}`,
                 borderRadius:10,padding:"8px 14px",cursor:"pointer",flex:1,textAlign:"center",
               }}>
-                <div style={{fontSize:18}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                <div style={{fontSize:18}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
                 <div style={{color:thieveFrom===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
                 <div style={{color:"#ffffff44",fontSize:10}}>{hands[i].length} cards</div>
               </div>
@@ -2253,7 +2253,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
                 border:`1.5px solid ${realFrom===i?"#4466ff":"#ffffff22"}`,
                 borderRadius:10,padding:"7px 10px",cursor:"pointer",flex:1,textAlign:"center",
               }}>
-                <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                <div style={{fontSize:16}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
                 <div style={{color:realFrom===i?"#8a9fe0":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
                 {totalScores[i] !== undefined && <div style={{color:"#ffffff44",fontSize:10}}>{totalScores[i]} pts</div>}
               </div>
@@ -2286,7 +2286,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
                   border:`1.5px solid ${realTo===i?"#7ec8a4":"#ffffff22"}`,
                   borderRadius:10,padding:"7px 10px",cursor:"pointer",flex:1,textAlign:"center",
                 }}>
-                  <div style={{fontSize:16}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+                  <div style={{fontSize:16}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
                   <div style={{color:realTo===i?"#7ec8a4":"#ffffffcc",fontSize:11,fontWeight:700}}>{allNames[i]}</div>
                   {totalScores[i] !== undefined && <div style={{color:"#ffffff44",fontSize:10}}>{totalScores[i]} pts</div>}
                 </div>
@@ -2304,7 +2304,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, onThieve, onReallocate, o
   );
 }
 
-function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round", onPeek }) {
+function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round", onPeek }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
@@ -2338,7 +2338,7 @@ function Rule1Modal({ hand, hands=[], allNames, onGive, onSkip, deckTheme, round
                   border:`1.5px solid ${selectedTarget===i?"#c9a84c":"#ffffff22"}`,
                   borderRadius:10,padding:"8px 14px",cursor:"pointer",transition:"all 0.15s",textAlign:"center",flex:1,
                 }}>
-                  <div style={{fontSize:18}}>{AI_PERSONAS[i-1]?.emoji}</div>
+                  <div style={{fontSize:18}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
                   <div style={{color:selectedTarget===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
                   {showScores && (
                     <div style={{color:selectedTarget===i?"#c9a84c99":"#ffffff44",fontSize:10,marginTop:2,fontFamily:FONT_UI}}>
@@ -2403,7 +2403,7 @@ function RescueModal({ hands, acePlayerIdx, allNames, onRescue, deckTheme, joker
               borderRadius:10, padding:"8px 14px", cursor:"pointer",
               transition:"all 0.15s", textAlign:"center", flex:1,
             }}>
-              <div style={{fontSize:18}}>{i===0?"😎":AI_PERSONAS[i-1]?.emoji}</div>
+              <div style={{fontSize:18}}>{playerEmojis[i]??AI_PERSONAS[i-1]?.emoji}</div>
               <div style={{color:chosenPlayer===i?"#c9a84c":"#ffffffcc",fontSize:12,fontWeight:700}}>{allNames[i]}</div>
               <div style={{color:"#ffffff44",fontSize:10}}>{hands[i].length} cards</div>
             </div>
@@ -3001,7 +3001,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
     }
     const trickNums = Object.keys(byTrick).map(Number).sort((a,b)=>a-b);
     const playerName = allNames[drillPlayer];
-    const playerIcon = drillPlayer === 0 ? "😎" : AI_PERSONAS[drillPlayer-1]?.emoji;
+    const playerIcon = playerEmojis[drillPlayer] ?? (drillPlayer === 0 ? "😎" : AI_PERSONAS[drillPlayer-1]?.emoji);
 
     const renderEventRow = (ev, i) => {
       const isTrick = ev.type === "trick";
@@ -3194,7 +3194,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0 }) {
+function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0 }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -3983,6 +3983,7 @@ function DiamondsGame() {
   const sessionWinRecordedGame = useRef(0);
   const effectivePersonas = opponentSlots.map(id => OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]);
   const allNames = [playerName, ...effectivePersonas.map(p => p.label)];
+  const playerEmojis = ["😎", ...effectivePersonas.map(p => p.emoji)];
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
   const ledSuit = trickPlays.length > 0 && !trickPlays[0].card.isJoker ? trickPlays[0].card.suit : null;
@@ -7250,6 +7251,7 @@ function DiamondsGame() {
         <Rule1Modal
           hand={hands[0]||[]}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           hands={hands}
           onGive={handleRule1Give}
           onSkip={handleRule1Skip}
@@ -7272,6 +7274,7 @@ function DiamondsGame() {
           hands={hands}
           jokerPlayerIdx={0}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           onSteal={handleKidnap}
           onSkip={kidnapState.isRobbinJack ? handleKidnapSkip : undefined}
           deckTheme={deckTheme}
@@ -7442,6 +7445,7 @@ function DiamondsGame() {
           hands={queenClubsState.hands}
           playerIdx={0}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           onThieve={handleQueenClubsThieve}
           onReallocate={handleQueenClubsReallocate}
           onSkip={handleQueenClubsSkip}
@@ -7753,6 +7757,7 @@ function DiamondsGame() {
         <GameOverModal
           scores={totalScores}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           onRestart={()=>{ startGame(); }}
           onMainMenu={()=>{ setScreen("menu"); }}
           onShowCredits={()=>setShowCredits(true)}
