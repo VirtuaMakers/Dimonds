@@ -949,9 +949,9 @@ const OPPONENT_OPTIONS = [
   { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family' },
   { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds' },
   { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard' },
-  { id:'gemini',  type:'llm',      label:'Gemini',  emoji:'✨', style:'Gemini AI',    desc:'powered by Google Gemini' },
-  { id:'llama',   type:'llm',      label:'Llama',   emoji:'🦙', style:'Llama AI',     desc:'powered by Meta Llama via Groq' },
-  { id:'mistral', type:'llm',      label:'Mistral', emoji:'🌬️', style:'Mistral AI',   desc:'powered by Mistral AI' },
+  { id:'gemini',  type:'llm', label:'Gemini',  emoji:'✨', style:'Gemini AI',  desc:'powered by Google Gemini',       logo:'assets/logo-gemini.png' },
+  { id:'llama',   type:'llm', label:'Llama',   emoji:'🦙', style:'Llama AI',   desc:'powered by Meta Llama via Groq', logo:'assets/logo-llama.png' },
+  { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png' },
 ];
 
 // ============================================================
@@ -3566,6 +3566,18 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
               marginBottom:18,
             }}
           />
+          {/* AI Logo Banner */}
+          <div style={{display:"flex",gap:6,marginBottom:18}}>
+            {OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(opt=>(
+              <div key={opt.id} style={{
+                flex:1, background:"#ffffff", borderRadius:10, padding:"8px 4px",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+              }}>
+                <img src={opt.logo} alt={opt.label} style={{width:"100%",maxHeight:52,objectFit:"contain"}}/>
+                <span style={{fontSize:9,color:"#222",fontFamily:FONT_UI,fontWeight:700,letterSpacing:0.5}}>{opt.label}</span>
+              </div>
+            ))}
+          </div>
           {sectionLabel("Configure Opponents")}
           {[0,1,2].map(slotIdx => {
             const seatNum = slotIdx + 2;
@@ -3594,13 +3606,7 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
                         display:"flex", flexDirection:"column", alignItems:"center", gap:2,
                         minWidth:60, opacity: isTaken ? 0.45 : 1,
                       }}>
-                        <span style={{fontSize:15}}>{opt.emoji}</span>
-                        <span>{opt.label}</span>
-                        {opt.type === 'llm' && (
-                          <span style={{fontSize:8,fontWeight:400,color: isSelected ? "#0a232088" : VM.tealLight+"88",fontFamily:FONT_UI,letterSpacing:0}}>
-                            🔌 API req.
-                          </span>
-                        )}
+                        <span>{opt.label} {opt.emoji}</span>
                       </button>
                     );
                   })}
@@ -3613,7 +3619,7 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
                   Seat {seatNum}
                 </div>
                 {renderRow(computers, "Computer Players")}
-                {renderRow(llms, "AI (LLM) Players")}
+                {renderRow(llms, "AI Players")}
                 {/* Show desc of selected */}
                 <div style={{fontSize:10,color:VM.tealLight+"99",fontFamily:FONT_UI,marginTop:2,paddingLeft:2}}>
                   {OPPONENT_OPTIONS.find(o=>o.id===currentId)?.desc}
