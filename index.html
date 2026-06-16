@@ -800,7 +800,7 @@ function setup16bitScene(canvas, place, onDone, finRef) {
     if(finRef?.current) return;
     if(!t016) t016=ts;
     const el=ts-t016;
-    if(el>=TOTAL16){ if(!finRef?.current){finRef.current=true;onDone();} return; }
+    if(el>=TOTAL16){ if(!finRef?.current){ onDone(); } return; }
     if(ts-lastF16>=FRAME16){ lastF16=ts; render(el); drawParticles(); frame++; }
     rafId16=requestAnimationFrame(loop16);
   }
