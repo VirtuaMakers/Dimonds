@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>8-bit 3rd Place — Dimonds Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #050a14;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: monospace;
+      user-select: none;
+    }
+    #wrap {
+      position: relative;
+      border: 1px solid #4090ff22;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 24px #2060ff14;
+    }
+    canvas {
+      display: block;
+      width: 320px;
+      height: 320px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #label {
+      margin-top: 12px;
+      color: #4090ff66;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="80" height="80"></canvas>
+</div>
+<div id="label">3rd place · tap to replay</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 80, H = 80;
+
+const BG = '#050a14';
+const BLUE = ['#ffffff','#ccffff','#60d0ff','#4090ff','#2060ff','#1040cc','#082060'];
+const CYAN = ['#ffffff','#aaffee','#00eeff','#00aacc','#006699'];
+const STAR_TIPS = ['#ffffff','#ccffff','#60d0ff'];
+
+// ── Pixel helpers ─────────────────────────────────────────────────
+function px(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+}
+function px2(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), 2, 2);
+}
+
+// ── 3×5 pixel font ────────────────────────────────────────────────
+const GLYPHS = {
+  '3': [0b111,0b001,0b011,0b001,0b111],
+  'R': [0b110,0b101,0b110,0b101,0b101],
+  'D': [0b110,0b101,0b101,0b101,0b110],
+  ' ': [0,0,0,0,0],
+  'P': [0b110,0b101,0b110,0b100,0b100],
+  'L': [0b100,0b100,0b100,0b100,0b111],
+  'A': [0b010,0b101,0b111,0b101,0b101],
+  'C': [0b011,0b100,0b100,0b100,0b011],
+  'E': [0b111,0b100,0b110,0b100,0b111],
+  'N': [0b10001,0b11001,0b10101,0b10011,0b10001],
+  'O': [0b010,0b101,0b101,0b101,0b010],
+  'T': [0b111,0b010,0b010,0b010,0b010],
+  'B': [0b110,0b101,0b110,0b101,0b110],
+  'G': [0b011,0b100,0b111,0b101,0b011],
+  '!': [0b1,0b1,0b1,0b0,0b1],
+};
+const GLYPH_W = { default: 3, 'N': 5 };
+function glyphWidth(ch) { return GLYPH_W[ch] ?? GLYPH_W.default; }
+function drawGlyph(chr, x, y, color) {
+  const g = GLYPHS[chr];
+  if (!g) return;
+  const w = glyphWidth(chr);
+  for (let row = 0; row < 5; row++) {
+    for (let col = w-1; col >= 0; col--) {
+      if ((g[row] >> col) & 1) px(x + (w-1-col), y + row, color);
+    }
+  }
+}
+function drawLabel(text, x, y, color) {
+  let cx = x;
+  for (const ch of text) { drawGlyph(ch, cx, y, color); cx += glyphWidth(ch) + 1; }
+}
+function labelWidth(text) {
+  return text.split('').reduce((s, ch) => s + glyphWidth(ch) + 1, -1);
+}
+
+// ── Particles ─────────────────────────────────────────────────────
+let particles = [];
+function spawn(x, y, vx, vy, color, life, decay, grav, type) {
+  particles.push({ x, y, vx, vy, color, life, decay, grav, type });
+}
+
+// ── Kirby-style 8-ray star burst ──────────────────────────────────
+// Classic 8 cardinal + diagonal directions, each a beam of 3 pixels
+function spawnKirbyBurst(cx, cy, speed, palette, trailLen) {
+  const angles = [0, 45, 90, 135, 180, 225, 270, 315];
+  for (const deg of angles) {
+    const a = deg * Math.PI / 180;
+    const vx = Math.cos(a) * speed;
+    const vy = Math.sin(a) * speed;
+    // lead pixel
+    spawn(cx, cy, vx, vy, palette[0], 1.0, 0.03, 0, 'beam');
+    // trail pixels
+    for (let t = 1; t <= trailLen; t++) {
+      spawn(cx, cy, vx*(1-t*0.2), vy*(1-t*0.2),
+        palette[Math.min(t+1, palette.length-1)],
+        0.85 - t*0.12, 0.03 + t*0.01, 0, 'beam');
+    }
+  }
+  // Center flash
+  spawn(cx, cy, 0, 0, '#ffffff', 0.9, 0.08, 0, 'flash');
+}
+
+// ── Afterglow sparkles ────────────────────────────────────────────
+function spawnSparkle(cx, cy, count, palette) {
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 0.3 + Math.random() * 0.9;
+    spawn(cx + (Math.random()-0.5)*4, cy + (Math.random()-0.5)*4,
+      Math.cos(a)*s, Math.sin(a)*s,
+      palette[Math.floor(Math.random()*palette.length)],
+      0.8 + Math.random()*0.3, 0.04+Math.random()*0.03, 0.01, 'spark');
+  }
+}
+
+// ── Draw a Kirby-style 8-point star shape for flash ───────────────
+function drawFlash(cx, cy, size, color) {
+  for (let d = 0; d < size; d++) {
+    px(cx+d, cy, color); px(cx-d, cy, color);
+    px(cx, cy+d, color); px(cx, cy-d, color);
+  }
+  if (size > 1) {
+    const d = size - 1;
+    px(cx+d, cy+d, color); px(cx-d, cy+d, color);
+    px(cx+d, cy-d, color); px(cx-d, cy-d, color);
+  }
+}
+
+// ── Ring shockwave ────────────────────────────────────────────────
+let rings = [];
+function spawnRing(cx, cy, color) {
+  rings.push({ cx, cy, r: 1, maxR: 14, color, life: 1.0 });
+}
+function drawRings() {
+  for (let i = rings.length - 1; i >= 0; i--) {
+    const r = rings[i];
+    r.r += 0.8;
+    r.life -= 0.06;
+    if (r.life <= 0 || r.r > r.maxR) { rings.splice(i, 1); continue; }
+    // Draw octagonal ring approximation with 8 cardinal px
+    const ri = Math.floor(r.r);
+    const col = r.color + Math.floor(r.life * 99).toString(16).padStart(2,'0');
+    ctx.fillStyle = col;
+    // top/bottom
+    for (let x = -ri+2; x <= ri-2; x++) {
+      ctx.fillRect(Math.floor(r.cx+x), Math.floor(r.cy-ri), 1, 1);
+      ctx.fillRect(Math.floor(r.cx+x), Math.floor(r.cy+ri), 1, 1);
+    }
+    // sides
+    for (let y = -ri+2; y <= ri-2; y++) {
+      ctx.fillRect(Math.floor(r.cx-ri), Math.floor(r.cy+y), 1, 1);
+      ctx.fillRect(Math.floor(r.cx+ri), Math.floor(r.cy+y), 1, 1);
+    }
+    // corners
+    for (let d = 0; d < 2; d++) {
+      const o = ri - 1 + d;
+      ctx.fillRect(Math.floor(r.cx-o), Math.floor(r.cy-o), 1, 1);
+      ctx.fillRect(Math.floor(r.cx+o), Math.floor(r.cy-o), 1, 1);
+      ctx.fillRect(Math.floor(r.cx-o), Math.floor(r.cy+o), 1, 1);
+      ctx.fillRect(Math.floor(r.cx+o), Math.floor(r.cy+o), 1, 1);
+    }
+  }
+}
+
+// ── Scene choreography ────────────────────────────────────────────
+// Three Kirby bursts: left, right, center — staggered
+const BURSTS = [
+  { t: 200,  x: 22, y: 38, speed: 1.4, sparks: 14 },
+  { t: 900,  x: 58, y: 32, speed: 1.6, sparks: 16 },
+  { t: 1700, x: 40, y: 24, speed: 2.0, sparks: 22 },
+];
+let firedBursts = new Set();
+
+// ── Background scrolling stars ─────────────────────────────────────
+const bgStars = Array.from({length:20}, () => ({
+  x: Math.random()*W, y: Math.random()*H,
+  phase: Math.random()*Math.PI*2,
+}));
+
+// ── Floaty afterglow stars that drift up ──────────────────────────
+let driftStars = [];
+function spawnDrift(cx, cy) {
+  for (let i = 0; i < 5; i++) {
+    driftStars.push({
+      x: cx + (Math.random()-0.5)*10,
+      y: cy + (Math.random()-0.5)*10,
+      vy: -(0.15 + Math.random()*0.2),
+      life: 1.0,
+      color: BLUE[Math.floor(Math.random()*4)],
+    });
+  }
+}
+function updateDrift() {
+  for (let i = driftStars.length-1; i >= 0; i--) {
+    const s = driftStars[i];
+    s.y += s.vy;
+    s.life -= 0.012;
+    if (s.life <= 0) { driftStars.splice(i,1); continue; }
+    const a = Math.floor(s.life * 255).toString(16).padStart(2,'0');
+    ctx.fillStyle = s.color + a;
+    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), 1, 1);
+    // twinkle cross at high life
+    if (s.life > 0.7) {
+      ctx.fillRect(Math.floor(s.x)-1, Math.floor(s.y), 1, 1);
+      ctx.fillRect(Math.floor(s.x)+1, Math.floor(s.y), 1, 1);
+    }
+  }
+}
+
+const TOTAL_MS = 5500;
+const FPS = 12, FRAME_MS = 1000/FPS;
+let t0=null, lastFrame=0, frame=0, running=false, rafId=null;
+
+function render(elapsed) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // Twinkling bg stars
+  const ft = elapsed*0.003;
+  for (const s of bgStars) {
+    const b = 0.2 + 0.5*Math.abs(Math.sin(s.phase+ft));
+    const v = Math.floor(b*200);
+    ctx.fillStyle = `rgb(${Math.floor(v*0.5)},${Math.floor(v*0.7)},${v})`;
+    ctx.fillRect(Math.floor(s.x), Math.floor(s.y), 1, 1);
+  }
+
+  // Check which bursts to fire
+  for (const b of BURSTS) {
+    if (elapsed >= b.t && !firedBursts.has(b.t)) {
+      firedBursts.add(b.t);
+      spawnKirbyBurst(b.x, b.y, b.speed, BLUE, 2);
+      spawnRing(b.x, b.y, '#4090ff');
+      setTimeout(() => {
+        spawnSparkle(b.x, b.y, b.sparks, CYAN);
+        spawnDrift(b.x, b.y);
+        spawnRing(b.x, b.y, '#00eeff');
+      }, 150);
+    }
+  }
+
+  // Rings
+  drawRings();
+
+  // Particles
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += p.grav;
+    p.vx *= 0.96; p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+    const ix = Math.floor(p.x), iy = Math.floor(p.y);
+    if (ix < 0||ix >= W||iy < 0||iy >= H) continue;
+    if (p.type === 'flash') {
+      const sz = Math.ceil(p.life * 4);
+      drawFlash(ix, iy, sz, p.color);
+    } else if (p.type === 'beam' && p.life > 0.4) {
+      px(ix, iy, p.color);
+      if (p.life > 0.7) { px(ix+1,iy,BLUE[2]); px(ix-1,iy,BLUE[2]); px(ix,iy-1,BLUE[2]); }
+    } else {
+      px(ix, iy, p.color);
+    }
+  }
+
+  // Drift stars
+  updateDrift();
+
+  // ── Labels ────────────────────────────────────────────────────────
+  const labelCol = frame % 3 === 0 ? BLUE[2] : frame % 3 === 1 ? BLUE[0] : CYAN[2];
+
+  // "3RD" at top
+  const t3 = '3RD';
+  drawLabel(t3, Math.floor((W - labelWidth(t3))/2), 6, BLUE[2]);
+  const tp = 'PLACE';
+  drawLabel(tp, Math.floor((W - labelWidth(tp))/2), 13, labelCol);
+
+  // Bottom banner after 2nd burst
+  if (elapsed > 1200) {
+    const tb = 'NOT BAD!';
+    drawLabel(tb, Math.floor((W - labelWidth(tb))/2), H - 12, CYAN[2]);
+  }
+
+  // Ambient blue sparkles during lull
+  if (elapsed > 500 && frame % 4 === 0 && Math.random() < 0.5) {
+    spawn(Math.random()*W, Math.random()*H*0.8,
+      (Math.random()-0.5)*0.2, -0.1-Math.random()*0.15,
+      BLUE[Math.floor(Math.random()*3)],
+      0.6+Math.random()*0.4, 0.04, 0, 'spark');
+  }
+
+  frame++;
+}
+
+function loop(ts) {
+  if (!running) return;
+  if (!t0) t0 = ts;
+  const elapsed = ts - t0;
+  if (elapsed >= TOTAL_MS) { running = false; return; }
+  if (ts - lastFrame >= FRAME_MS) { lastFrame = ts; render(elapsed); }
+  rafId = requestAnimationFrame(loop);
+}
+
+function start() {
+  particles = []; rings = []; driftStars = [];
+  firedBursts = new Set();
+  t0=null; lastFrame=0; frame=0; running=true;
+  ctx.fillStyle = BG; ctx.fillRect(0,0,W,H);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('click', start);
+canvas.addEventListener('touchend', e => { e.preventDefault(); start(); });
+start();
+</script>
+</body>
+</html>

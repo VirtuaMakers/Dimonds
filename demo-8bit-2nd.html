@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>8-bit 2nd Place — Dimonds Demo</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #07050f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: monospace;
+      user-select: none;
+    }
+    #wrap {
+      position: relative;
+      border: 1px solid #aa224422;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 24px #aa224410;
+    }
+    canvas {
+      display: block;
+      width: 320px;
+      height: 320px;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #label {
+      margin-top: 12px;
+      color: #aa224466;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" width="80" height="80"></canvas>
+</div>
+<div id="label">2nd place · tap to replay</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 80, H = 80;
+
+const BG      = '#07050f';
+const SKY     = ['#0a0814','#120a1c','#1a0c28'];
+const RED     = ['#ffffff','#ffcccc','#ff6688','#dd2244','#aa1133','#661122','#330011'];
+const SILVER  = ['#ffffff','#ddddee','#aabbcc','#8899aa','#556677'];
+const WATER   = ['#0d1030','#111440','#151860','#1a2080','#202898'];
+const STONE   = ['#2a2438','#1e1a2c','#3a3050','#282040'];
+const MOONW   = ['#ffffff','#eeeeff','#ccccff','#aaaadd'];
+
+// ── Pixel helpers ─────────────────────────────────────────────────
+function px(x, y, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1);
+}
+function fillRect(x, y, w, h, c) {
+  ctx.fillStyle = c;
+  ctx.fillRect(Math.floor(x), Math.floor(y), w, h);
+}
+
+// ── 3×5 pixel font ────────────────────────────────────────────────
+const GLYPHS = {
+  '2': [0b111,0b001,0b111,0b100,0b111],
+  'N': [0b10001,0b11001,0b10101,0b10011,0b10001],
+  'D': [0b110,0b101,0b101,0b101,0b110],
+  ' ': [0,0,0,0,0],
+  'P': [0b110,0b101,0b110,0b100,0b100],
+  'L': [0b100,0b100,0b100,0b100,0b111],
+  'A': [0b010,0b101,0b111,0b101,0b101],
+  'C': [0b011,0b100,0b100,0b100,0b011],
+  'E': [0b111,0b100,0b110,0b100,0b111],
+  'S': [0b011,0b100,0b010,0b001,0b110],
+'O': [0b010,0b101,0b101,0b101,0b010],
+  'R': [0b110,0b101,0b110,0b101,0b101],
+  'Y': [0b101,0b101,0b010,0b010,0b010],
+  'G': [0b011,0b100,0b111,0b101,0b011],
+  'T': [0b111,0b010,0b010,0b010,0b010],
+  'H': [0b101,0b101,0b111,0b101,0b101],
+  'I': [0b111,0b010,0b010,0b010,0b111],
+  'U': [0b101,0b101,0b101,0b101,0b010],
+};
+const GLYPH_W = { default:3, 'N':5 };
+function glyphWidth(ch) { return GLYPH_W[ch] ?? GLYPH_W.default; }
+function drawGlyph(chr, x, y, color) {
+  const g = GLYPHS[chr];
+  if (!g) return;
+  const w = glyphWidth(chr);
+  for (let row=0; row<5; row++)
+    for (let col=w-1; col>=0; col--)
+      if ((g[row]>>col)&1) px(x+(w-1-col), y+row, color);
+}
+function drawLabel(text, x, y, color) {
+  let cx = x;
+  for (const ch of text) { drawGlyph(ch, cx, y, color); cx += glyphWidth(ch)+1; }
+}
+function labelWidth(text) {
+  return text.split('').reduce((s,ch)=>s+glyphWidth(ch)+1,-1);
+}
+
+// ── Bridge geometry ────────────────────────────────────────────────
+// Two gothic towers + roadway + suspension cables + arch
+// Canvas: 80×80. Bridge spans the width.
+// Tower positions: left ~12, right ~68
+// Tower base at y=54, top at y=18 (height=36px)
+// Road: y=52..54
+// Water: y=56..70
+// Sky: y=0..55
+
+const TOWER_LX = 8;   // left tower left edge
+const TOWER_RX = 62;  // right tower left edge
+const TOWER_W  = 10;
+const TOWER_TOP = 17;
+const ROAD_Y    = 50;
+const WATER_Y   = 56;
+const WATER_BOT = 74;
+
+function drawStaticScene() {
+  // Sky gradient: 3 bands
+  fillRect(0,  0, W, 18, SKY[0]);
+  fillRect(0, 18, W, 20, SKY[1]);
+  fillRect(0, 38, W, WATER_Y-38, SKY[2]);
+
+  // Moon (top right corner)
+  const moonX = 63, moonY = 8, moonR = 6;
+  // Filled circle approximation
+  for (let dy=-moonR; dy<=moonR; dy++) {
+    for (let dx=-moonR; dx<=moonR; dx++) {
+      if (dx*dx+dy*dy <= moonR*moonR) {
+        const d = Math.sqrt(dx*dx+dy*dy)/moonR;
+        const ci = Math.min(3, Math.floor(d*4));
+        px(moonX+dx, moonY+dy, MOONW[ci]);
+      }
+    }
+  }
+  // Moon crescent shadow
+  for (let dy=-moonR; dy<=moonR; dy++) {
+    for (let dx=-moonR+2; dx<=moonR; dx++) {
+      if (dx*dx+dy*dy <= moonR*moonR && (dx-2)*(dx-2)+dy*dy <= (moonR-1)*(moonR-1))
+        px(moonX+dx, moonY+dy, SKY[0]);
+    }
+  }
+
+  // Stars
+  const starPos = [[5,5],[18,3],[30,7],[45,4],[25,12],[50,10],[15,16],[55,14],[40,2],[70,6],[10,10]];
+  for (const [sx,sy] of starPos) { px(sx,sy,'#ffffff'); if(Math.random()<0.5) px(sx+1,sy,'#ccccdd'); }
+
+  // ── Left tower ───────────────────────────────────────────────────
+  drawTower(TOWER_LX, TOWER_TOP, TOWER_W);
+  // ── Right tower ──────────────────────────────────────────────────
+  drawTower(TOWER_RX, TOWER_TOP, TOWER_W);
+
+  // ── Suspension cables ─────────────────────────────────────────────
+  // Main cable: catenary from top of each tower, sag at center
+  const cablePY = TOWER_TOP + 2;
+  const cableTop = cablePY;
+  const cableSag = ROAD_Y - 6;
+  const cx1 = TOWER_LX + TOWER_W - 1;
+  const cx2 = TOWER_RX;
+  for (let x = cx1; x <= cx2; x++) {
+    const t = (x - cx1) / (cx2 - cx1);
+    const y = cableTop + (cableSag - cableTop) * (4 * t * (1 - t));
+    px(x, Math.floor(y), SILVER[3]);
+    if (Math.floor(y) !== Math.floor(cableTop + (cableSag-cableTop)*(4*(t-0.01)*(1-(t-0.01))))) {
+      px(x, Math.floor(y)+1, SILVER[4]);
+    }
+  }
+  // Vertical hangers from cable to road
+  for (let hi = 0; hi < 6; hi++) {
+    const t = (hi+1)/7;
+    const x = Math.round(cx1 + t*(cx2-cx1));
+    const cy = Math.floor(cableTop + (cableSag-cableTop)*(4*t*(1-t)));
+    for (let y = cy+1; y < ROAD_Y; y++) px(x, y, SILVER[4]);
+  }
+
+  // ── Road/bridge deck ─────────────────────────────────────────────
+  fillRect(TOWER_LX+TOWER_W, ROAD_Y,   cx2-cx1, 1, STONE[2]);
+  fillRect(TOWER_LX+TOWER_W, ROAD_Y+1, cx2-cx1, 1, STONE[0]);
+  fillRect(TOWER_LX+TOWER_W, ROAD_Y+2, cx2-cx1, 1, STONE[1]);
+  // Road texture: alternating pixels
+  for (let x = TOWER_LX+TOWER_W; x < cx2; x+=3) {
+    px(x, ROAD_Y, STONE[3]);
+  }
+
+  // ── Water ─────────────────────────────────────────────────────────
+  for (let y = WATER_Y; y < WATER_BOT; y++) {
+    const ci = Math.min(WATER.length-1, Math.floor((y-WATER_Y)/(WATER_BOT-WATER_Y)*WATER.length));
+    fillRect(0, y, W, 1, WATER[ci]);
+  }
+  // Shore stones
+  fillRect(0, WATER_BOT, W, H-WATER_BOT, STONE[1]);
+  for (let x=0; x<W; x+=4) { px(x, WATER_BOT, STONE[2]); px(x+2, WATER_BOT+1, STONE[3]); }
+}
+
+function drawTower(lx, ty, tw) {
+  const bh = ROAD_Y - ty; // body height to road
+  // Main body
+  for (let y = ty+5; y < ROAD_Y; y++) {
+    for (let x = lx; x < lx+tw; x++) {
+      const shade = (x+y)%2===0 ? STONE[0] : STONE[1];
+      px(x, y, shade);
+    }
+  }
+  // Gothic arch window cutout
+  const winX = lx+2, winY = ty+8, winW = tw-4, winH = 10;
+  fillRect(winX, winY+3, winW, winH-3, BG);
+  // Arch top (pointed)
+  const archCX = winX + winW/2;
+  for (let dy=0; dy<3; dy++) {
+    for (let dx=-Math.floor(winW/2)+dy; dx<=Math.floor(winW/2)-dy; dx++) {
+      px(Math.floor(archCX+dx), winY+2-dy, BG);
+    }
+  }
+
+  // Battlements (crenellations) at top
+  for (let i=0; i<3; i++) {
+    const bx = lx + i*3 + (i>0?1:0);
+    if (bx < lx+tw) fillRect(bx, ty, 2, 5, STONE[0]);
+  }
+  // Corner accent pixels
+  px(lx, ty+5, STONE[2]); px(lx+tw-1, ty+5, STONE[2]);
+
+  // Side buttresses
+  fillRect(lx-1, ty+12, 1, bh-12, STONE[2]);
+  fillRect(lx+tw, ty+12, 1, bh-12, STONE[2]);
+}
+
+// ── Waterfall system ──────────────────────────────────────────────
+let wDrops = [];
+let wSplash = [];
+
+const FALL_X1 = TOWER_LX + TOWER_W;
+const FALL_X2 = TOWER_RX - 1;
+const FALL_W  = FALL_X2 - FALL_X1;
+
+function spawnWaterfall(elapsed) {
+  // Spawn drops from bridge gap when waterfall starts (after 600ms)
+  if (Math.random() < 0.85) {
+    const x = FALL_X1 + Math.random()*FALL_W;
+    const isRed = Math.random() < 0.55;
+    const palette = isRed ? RED : SILVER;
+    wDrops.push({
+      x, y: ROAD_Y + 2,
+      vy: 0.5 + Math.random()*0.8,
+      color: palette[Math.floor(Math.random()*3)],
+      life: 1.0,
+    });
+  }
+}
+
+function updateWaterfall() {
+  for (let i = wDrops.length-1; i >= 0; i--) {
+    const d = wDrops[i];
+    d.y += d.vy;
+    d.vy += 0.06;
+    d.life -= 0.008;
+    if (d.life <= 0 || d.y > WATER_BOT) {
+      // Splash at water surface
+      if (d.y >= WATER_Y && d.y < WATER_BOT+3) {
+        for (let s=0; s<3; s++) {
+          wSplash.push({
+            x: d.x, y: WATER_Y,
+            vx: (Math.random()-0.5)*1.0,
+            vy: -(0.3+Math.random()*0.5),
+            life: 0.7, color: d.color,
+          });
+        }
+      }
+      wDrops.splice(i,1); continue;
+    }
+    const ix = Math.floor(d.x), iy = Math.floor(d.y);
+    if (ix >= 0 && ix < W && iy >= ROAD_Y && iy < WATER_BOT) {
+      px(ix, iy, d.color);
+      // Trail pixel
+      if (iy-1 >= ROAD_Y) px(ix, iy-1, d.life > 0.7 ? d.color : WATER[1]);
+    }
+  }
+  // Splash
+  for (let i = wSplash.length-1; i >= 0; i--) {
+    const s = wSplash[i];
+    s.x += s.vx; s.y += s.vy; s.vy += 0.04;
+    s.life -= 0.06;
+    if (s.life <= 0) { wSplash.splice(i,1); continue; }
+    const ix = Math.floor(s.x), iy = Math.floor(s.y);
+    if (ix>=0&&ix<W&&iy>=0&&iy<H) px(ix, iy, s.color);
+  }
+}
+
+// ── Water ripple surface ──────────────────────────────────────────
+let rippleT = 0;
+function drawRipples() {
+  rippleT += 0.15;
+  for (let x = 2; x < W-2; x += 6) {
+    const phase = rippleT + x * 0.3;
+    const y = WATER_Y + Math.floor(Math.sin(phase) * 1.5);
+    px(x, y, WATER[2]);
+    px(x+2, y, WATER[3]);
+  }
+  // Glow column on water surface from falling cascade
+  for (let x = FALL_X1+2; x < FALL_X2-2; x++) {
+    if (Math.random() < 0.25) {
+      const col = Math.random() < 0.6 ? RED[3] : SILVER[3];
+      px(x, WATER_Y, col);
+    }
+  }
+}
+
+// ── Labels / titles ───────────────────────────────────────────────
+const TOTAL_MS = 7000;
+const FPS = 12, FRAME_MS = 1000/FPS;
+let t0=null, lastFrame=0, frame=0, running=false, rafId=null;
+let waterfallStarted = false;
+
+function render(elapsed) {
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw static bridge scene every frame (cheap, no canvas save needed)
+  drawStaticScene();
+
+  // Start waterfall after ~600ms
+  if (elapsed > 600) {
+    if (!waterfallStarted) waterfallStarted = true;
+    spawnWaterfall(elapsed);
+    updateWaterfall();
+    drawRipples();
+  }
+
+  // ── Reflection glimmers on water ─────────────────────────────────
+  if (elapsed > 1000 && frame % 2 === 0) {
+    const rx = FALL_X1 + 2 + Math.random()*(FALL_W-4);
+    const ry = WATER_Y + 2 + Math.random()*8;
+    const rc = Math.random() < 0.6 ? RED[2] : SILVER[2];
+    px(rx, ry, rc);
+  }
+
+  // ── "2ND PLACE" label (top-left sky area) ─────────────────────────
+  const shimIdx = frame % RED.length;
+  drawLabel('2ND', 3, 6, RED[2]);
+  drawLabel('PLACE', 3, 13, frame % 2 === 0 ? RED[1] : SILVER[1]);
+
+  // ── Mood text after 3s ────────────────────────────────────────────
+  if (elapsed > 3000) {
+    const alpha = Math.min(1, (elapsed-3000)/800);
+    const col = `rgba(170,34,68,${alpha.toFixed(2)})`;
+    ctx.fillStyle = col;
+    // Draw "SO CLOSE" manually
+    const tc = 'SO CLOSE';
+    const tw = labelWidth(tc);
+    // Draw pixel by pixel with alpha via fillStyle
+    drawLabel(tc, Math.floor((W-tw)/2), H-10, RED[2]);
+  }
+
+  frame++;
+}
+
+function loop(ts) {
+  if (!running) return;
+  if (!t0) t0 = ts;
+  const elapsed = ts - t0;
+  if (elapsed >= TOTAL_MS) { running = false; return; }
+  if (ts-lastFrame >= FRAME_MS) { lastFrame=ts; render(elapsed); }
+  rafId = requestAnimationFrame(loop);
+}
+
+function start() {
+  wDrops=[]; wSplash=[];
+  waterfallStarted = false; rippleT = 0;
+  t0=null; lastFrame=0; frame=0; running=true;
+  ctx.fillStyle=BG; ctx.fillRect(0,0,W,H);
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(loop);
+}
+
+canvas.addEventListener('click', start);
+canvas.addEventListener('touchend', e => { e.preventDefault(); start(); });
+start();
+</script>
+</body>
+</html>
