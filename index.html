@@ -2924,7 +2924,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
 // ============================================================
 // ROUND OVER MODAL
 // ============================================================
-function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null, onMainMenu=null }) {
+function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onContinue, eventLog=[], gameTricksPerPlayer=[0,0,0,0], gameSetsPerPlayer=[0,0,0,0], continueLabel="Deal Next Round", winScore=WIN_SCORE, onBack=null, onMainMenu=null }) {
   const [drillPlayer, setDrillPlayer] = useState(null);
   const [drillEvent, setDrillEvent] = useState(null);
   const isLandscape = typeof window !== "undefined" && window.innerWidth > window.innerHeight;
@@ -3203,6 +3203,7 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
       <RoundOverModal
         scores={scores}
         allNames={allNames}
+        playerEmojis={playerEmojis}
         roundScores={roundScores}
         onContinue={onRestart}
         eventLog={eventLog}
@@ -7887,6 +7888,7 @@ function DiamondsGame() {
         <RoundOverModal
           scores={totalScores}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           roundScores={roundScores}
           onContinue={startNextRound}
           eventLog={roundEventLog}
