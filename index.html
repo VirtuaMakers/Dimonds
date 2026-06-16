@@ -3689,24 +3689,6 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
               ))}
             </div>
           </div>
-          {/* Number of Players — coming soon */}
-          <div style={{...row, opacity:0.4}}>
-            <div>
-              <div style={label}>Number of Players <span style={{fontSize:9,color:VM.tealLight,fontStyle:"normal",letterSpacing:1,textTransform:"uppercase",fontWeight:700}}> Coming Soon</span></div>
-              <div style={sub}>2 / 3 / 4 player modes</div>
-            </div>
-            <div style={{display:"flex",gap:4,cursor:"not-allowed",pointerEvents:"none"}}>
-              {[2,3,4].map(n=>(
-                <div key={n} style={{
-                  background: n===4 ? "#ffffff22" : "#ffffff08",
-                  border:`1.5px solid ${n===4?"#ffffff44":"#ffffff1a"}`,
-                  borderRadius:16, padding:"5px 12px",
-                  color: n===4?"#ffffffaa":"#ffffff44",
-                  fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY,
-                }}>{n}</div>
-              ))}
-            </div>
-          </div>
           {/* Card Back */}
           <div style={{...row, borderBottom:"none", flexDirection:"column", alignItems:"flex-start", gap:10}}>
             <div><div style={label}>Card Back</div><div style={sub}>Choose your deck design</div></div>
@@ -3795,7 +3777,6 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
 // RULES PANEL
 // ============================================================
 function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, playerName }) {
-  const [localName, setLocalName] = useState(playerName || "");
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const sectionLabel = txt => (
     <div style={{fontSize:9,color:VM.tealLight+"99",letterSpacing:2,textTransform:"uppercase",
@@ -3819,22 +3800,6 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
         </div>
         {/* Scrollable body */}
         <div style={{flex:1,overflowY:"auto",padding:"14px 22px 22px",WebkitOverflowScrolling:"touch"}}>
-          <div style={{marginBottom:6}}>
-            <div style={{color:VM.gold,fontFamily:FONT_DISPLAY,fontWeight:800,fontSize:18,letterSpacing:0.5,marginBottom:8}}>Your Name</div>
-            <input
-              type="text"
-              value={localName}
-              onChange={e=>setLocalName(e.target.value)}
-              placeholder="Enter your name…"
-              style={{
-                background:"#ffffff14", border:`1.5px solid ${VM.tealLight}44`,
-                borderRadius:10, padding:"9px 13px", width:"100%", boxSizing:"border-box",
-                color:"#ffffffee", fontFamily:FONT_UI, fontSize:14, outline:"none",
-              }}
-            />
-          </div>
-          {/* Divider */}
-          <div style={{borderTop:`1px solid ${VM.tealLight}22`,margin:"16px 0"}}/>
           {/* AI Logo Banner */}
           <div style={{display:"flex",gap:6,marginBottom:18}}>
             {OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(opt=>(
@@ -3922,7 +3887,7 @@ function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, p
         </div>
         <div style={{padding:"14px 22px",borderTop:`1px solid ${VM.tealLight}22`,flexShrink:0,display:"flex",gap:10,justifyContent:"flex-end"}}>
           <GoldBtn onClick={onClose} secondary small>Cancel</GoldBtn>
-          <GoldBtn onClick={()=>onStart(localName.trim()||"You")}>Start Game ◆</GoldBtn>
+          <GoldBtn onClick={()=>onStart(playerName||"You")}>Start Game ◆</GoldBtn>
         </div>
       </div>
     </div>
@@ -4262,7 +4227,7 @@ function DiamondsGame() {
   const [sessionGamesPlayed, setSessionGamesPlayed] = useState(0);
   const sessionWinRecordedGame = useRef(0);
   const effectivePersonas = opponentSlots.map(id => OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]);
-  const allNames = [playerName, ...effectivePersonas.map(p => p.label)];
+  const allNames = [playerName || "You", ...effectivePersonas.map(p => p.label)];
   const playerEmojis = ["😎", ...effectivePersonas.map(p => p.emoji)];
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
@@ -6609,8 +6574,9 @@ function DiamondsGame() {
           value={nameInput}
           onChange={e=>setNameInput(e.target.value)}
           onKeyDown={e=>e.key==="Enter"&&(setPlayerName(nameInput.trim()||"You"),startGame(nameInput.trim()||"You"))}
-          placeholder="Enter your name..."
+          placeholder=" Enter your name..."
           maxLength={14}
+          autoFocus
           autoComplete="off" autoCorrect="off" autoCapitalize="off" spellCheck={false}
           style={{
             background:"rgba(255,255,255,0.06)",border:`1px solid ${VM.tealLight}33`,
