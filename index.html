@@ -936,6 +936,7 @@ function sortHandBySuit(hand) {
 }
 const APP_VERSION = "4.2";
 const WORKER_URL = "https://dimonds-ai.thirtytwobitrpg.workers.dev";
+const CORAL_LLM = "#FF7A4A";
 const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 30;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
@@ -6551,7 +6552,7 @@ function DiamondsGame() {
               transition:"all 0.2s",
               boxShadow: isLeading?`0 0 16px ${VM.tealLight}22`:"none",
             }}>
-              <div style={{fontSize:9,color:VM.tealLight+"aa",letterSpacing:1,marginBottom:1,fontFamily:FONT_UI}}>{n.slice(0,7)}</div>
+              <div style={{fontSize:9,color:(i>0&&effectivePersonas[i-1].type==='llm')?CORAL_LLM:VM.tealLight+"aa",letterSpacing:1,marginBottom:1,fontFamily:FONT_UI}}>{n.slice(0,7)}</div>
               <AnimatedNumber value={total} style={{
                 fontSize:20,fontWeight:800,fontFamily:FONT_DISPLAY,
                 color:isLeading?VM.gold:"#ffffffcc",
@@ -6602,7 +6603,7 @@ function DiamondsGame() {
             }}>
               <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
                 <span style={{fontSize:14}}>{effectivePersonas[i-1].emoji}</span>
-                <span style={{fontSize:10,color:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{effectivePersonas[i-1].label}</span>
+                <span style={{fontSize:10,color:effectivePersonas[i-1].type==='llm'?CORAL_LLM:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{effectivePersonas[i-1].label}</span>
                 {isActive&&<span style={{fontSize:8,color:VM.tealLight,marginLeft:"auto",animation:"pulse 1s infinite",fontFamily:FONT_UI}}>thinking…</span>}
               </div>
               {/* Fanned face-down cards for AI */}
