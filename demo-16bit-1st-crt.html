@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>CRT Monitor — Dimonds 1st Place</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { background:#000; display:flex; flex-direction:column; align-items:center;
+           justify-content:center; min-height:100vh; font-family:monospace; user-select:none; }
+    #monitor {
+      position:relative;
+      background:#0a0810;
+      border-radius:18px;
+      padding:28px 32px 32px;
+      box-shadow:
+        inset 0 0 60px rgba(0,0,0,0.9),
+        0 0 0 4px #1a1418,
+        0 0 0 8px #0e0c10,
+        0 0 0 12px #1a1620,
+        0 10px 40px rgba(0,0,0,0.8),
+        0 0 80px rgba(100,50,200,0.08);
+    }
+    #screen {
+      position:relative;
+      border-radius:6px;
+      overflow:hidden;
+      width:320px;
+      height:320px;
+      box-shadow:
+        inset 0 0 30px rgba(0,0,255,0.04),
+        0 0 20px rgba(100,60,200,0.15);
+    }
+    /* Base canvas — 16-bit scene */
+    #game {
+      position:absolute; top:0; left:0;
+      width:320px; height:320px;
+      image-rendering:pixelated;
+      image-rendering:crisp-edges;
+    }
+    /* CRT effects canvas — sits on top */
+    #crt {
+      position:absolute; top:0; left:0;
+      width:320px; height:320px;
+      pointer-events:none;
+    }
+    /* CSS scanlines — fastest implementation */
+    #scanlines {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px, transparent 2px,
+        rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 3px
+      );
+      pointer-events:none;
+      z-index:3;
+    }
+    /* Screen curvature: subtle vignette */
+    #vignette {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      background: radial-gradient(
+        ellipse 90% 90% at 50% 50%,
+        transparent 55%,
+        rgba(0,0,0,0.55) 100%
+      );
+      pointer-events:none;
+      z-index:4;
+    }
+    /* Phosphor glow bleed — very subtle */
+    #glow {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      box-shadow: inset 0 0 18px rgba(80,120,255,0.07);
+      pointer-events:none;
+      z-index:5;
+    }
+    /* Corner rounding mask */
+    #corners {
+      position:absolute; top:0; left:0; right:0; bottom:0;
+      border-radius:6px;
+      box-shadow: 0 0 0 4px #0a0810;
+      pointer-events:none;
+      z-index:6;
+    }
+    #monitor-base {
+      width:120px; height:16px;
+      background:linear-gradient(to bottom, #1a1620, #0e0c10);
+      margin:0 auto;
+      border-radius:0 0 8px 8px;
+      box-shadow:0 4px 8px rgba(0,0,0,0.5);
+    }
+    #label {
+      margin-top:10px; color:#4bc3af55; font-size:10px;
+      letter-spacing:3px; text-transform:uppercase; text-align:center;
+    }
+    #toggle {
+      margin-top:10px;
+      background:transparent; border:1px solid #4bc3af44; color:#4bc3af88;
+      font-family:monospace; font-size:9px; letter-spacing:2px;
+      padding:4px 14px; border-radius:2px; cursor:pointer;
+      text-transform:uppercase;
+    }
+    #toggle:hover { border-color:#4bc3af88; color:#4bc3afcc; }
+  </style>
+</head>
+<body>
+<div id="monitor">
+  <div id="screen">
+    <canvas id="game" width="160" height="160"></canvas>
+    <canvas id="crt"  width="320" height="320"></canvas>
+    <div id="scanlines"></div>
+    <div id="vignette"></div>
+    <div id="glow"></div>
+    <div id="corners"></div>
+  </div>
+  <div id="monitor-base"></div>
+</div>
+<div id="label">1st place · tap to replay</div>
+<button id="toggle">toggle CRT</button>
+
+<script>
+// ── 16-bit animation on the game canvas ───────────────────────────
+const gameCanvas = document.getElementById('game');
+const gc = gameCanvas.getContext('2d');
+gc.imageSmoothingEnabled = false;
+const W=160, H=160;
+
+// CRT overlay canvas
+const crtCanvas = document.getElementById('crt');
+const cc = crtCanvas.getContext('2d');
+
+// Toggle state
+let crtOn = true;
+document.getElementById('toggle').addEventListener('click', () => {
+  crtOn = !crtOn;
+  document.getElementById('scanlines').style.display = crtOn ? '' : 'none';
+  document.getElementById('vignette').style.display  = crtOn ? '' : 'none';
+  document.getElementById('glow').style.display      = crtOn ? '' : 'none';
+});
+
+// ── Palette ────────────────────────────────────────────────────────
+const GOLD   = ['#ffffff','#fffce0','#ffe464','#ffd700','#ffaa00','#dd7700','#994400','#552200'];
+const SILVER = ['#ffffff','#eeeeff','#ccccee','#aabbdd','#8899bb','#667799'];
+const RUBY   = ['#ffffff','#ffccdd','#ff6688','#dd2244','#aa0022','#660011'];
+const EMERALD= ['#ffffff','#ccffdd','#44cc88','#228855','#115533'];
+const VIOLET = ['#ffffff','#eeccff','#cc88ff','#aa44ee','#7722cc'];
+const STONE  = ['#1a1428','#221c34','#2e2644','#3a3254','#463e64','#120f1e','#100b1a','#5a4e74'];
+const MOUNT  = ['#0e0820','#130a28','#180e30','#1e1438','#251a44'];
+const SKY    = ['#040214','#060318','#08041e','#0a0526','#0e0930','#12103a','#161440','#1c1a4e'];
+const TORCH  = ['#ffffaa','#ffee44','#ffcc00','#ff8800','#ff5500','#cc3300'];
+
+function px(x,y,c){gc.fillStyle=c;gc.fillRect(x|0,y|0,1,1);}
+function fill(x,y,w,h,c){gc.fillStyle=c;gc.fillRect(x|0,y|0,w,h);}
+function hline(y,x1,x2,c){gc.fillStyle=c;gc.fillRect(x1|0,y|0,(x2-x1)|0,1);}
+function vline(x,y1,y2,c){gc.fillStyle=c;gc.fillRect(x|0,y1|0,1,(y2-y1)|0);}
+
+const F={
+  'A':[0b01110,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+  'C':[0b01111,0b10000,0b10000,0b10000,0b10000,0b10000,0b01111],
+  'E':[0b11111,0b10000,0b10000,0b11110,0b10000,0b10000,0b11111],
+  'H':[0b10001,0b10001,0b10001,0b11111,0b10001,0b10001,0b10001],
+  'I':[0b01110,0b00100,0b00100,0b00100,0b00100,0b00100,0b01110],
+  'L':[0b10000,0b10000,0b10000,0b10000,0b10000,0b10000,0b11111],
+  'N':[0b10001,0b11001,0b10101,0b10011,0b10001,0b10001,0b10001],
+  'O':[0b01110,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+  'P':[0b11110,0b10001,0b10001,0b11110,0b10000,0b10000,0b10000],
+  'R':[0b11110,0b10001,0b10001,0b11110,0b10010,0b10001,0b10001],
+  'S':[0b01111,0b10000,0b10000,0b01110,0b00001,0b00001,0b11110],
+  'T':[0b11111,0b00100,0b00100,0b00100,0b00100,0b00100,0b00100],
+  'U':[0b10001,0b10001,0b10001,0b10001,0b10001,0b10001,0b01110],
+  'W':[0b10001,0b10001,0b10001,0b10101,0b10101,0b11011,0b10001],
+  'Y':[0b10001,0b10001,0b01010,0b00100,0b00100,0b00100,0b00100],
+  '!':[0b00100,0b00100,0b00100,0b00100,0b00100,0b00000,0b00100],
+  '1':[0b00110,0b01110,0b00100,0b00100,0b00100,0b00100,0b01110],
+  ' ':[0,0,0,0,0,0,0],
+};
+function drawChar(ch,x,y,fg,sh){
+  const g=F[ch]; if(!g) return;
+  for(let r=0;r<7;r++) for(let c=4;c>=0;c--) if((g[r]>>c)&1){
+    if(sh){gc.fillStyle=sh;gc.fillRect(x+(4-c)+1,y+r+1,1,1);}
+    px(x+(4-c),y+r,fg);
+  }
+}
+function drawText(t,x,y,fg,sh){let cx=x;for(const ch of t){drawChar(ch,cx,y,fg,sh);cx+=6;}}
+function tw(t){return t.length*6-1;}
+
+const PEAKS=[[0,148],[6,142],[14,132],[22,122],[34,118],[44,128],[56,112],
+  [66,106],[76,116],[88,108],[100,118],[110,114],[122,120],[132,113],[144,122],[154,117],[160,148]];
+function mountainY(x){
+  for(let i=0;i<PEAKS.length-1;i++){
+    if(x>=PEAKS[i][0]&&x<=PEAKS[i+1][0]){
+      const t=(x-PEAKS[i][0])/(PEAKS[i+1][0]-PEAKS[i][0]);
+      return PEAKS[i][1]+t*(PEAKS[i+1][1]-PEAKS[i][1]);
+    }
+  } return H;
+}
+
+function drawScene(frame){
+  const bands=[[0,25,0],[25,50,1],[50,70,2],[70,88,3],[88,105,4],[105,120,5],[120,132,6],[132,145,7]];
+  for(const[y0,y1,si]of bands){
+    const ca=SKY[si],cb=SKY[Math.min(si+1,SKY.length-1)];
+    for(let y=y0;y<y1;y++) for(let x=0;x<W;x++){
+      gc.fillStyle=(y===y0||y===y1-1)&&(x+y)%2===0?cb:ca; gc.fillRect(x,y,1,1);
+    }
+  }
+  for(let x=0;x<W;x++){
+    const my=mountainY(x)|0, sL=120;
+    if(my<sL){
+      const sb=Math.min(my+5,sL);
+      for(let y=my;y<sb;y++){
+        const t=(y-my)/(sb-my);
+        gc.fillStyle=t<0.4?'#dde0f0':t<0.7?((x+y)%2===0?'#dde0f0':'#9090b0'):'#303058'; gc.fillRect(x,y,1,1);
+      }
+      for(let y=sb;y<H;y++){gc.fillStyle=MOUNT[Math.min(MOUNT.length-1,(y-sb)/20|0)]; gc.fillRect(x,y,1,1);}
+    } else {
+      for(let y=my;y<H;y++){gc.fillStyle=MOUNT[Math.min(MOUNT.length-1,(y-my)/18|0)]; gc.fillRect(x,y,1,1);}
+    }
+  }
+  drawTower(0,38,68,160); drawTower(122,160,68,160);
+  drawTorchFlame(19,68,frame); drawTorchFlame(140,68,frame+2);
+}
+function drawTower(x0,x1,y0,y1){
+  const tw2=x1-x0;
+  for(let y=y0+10;y<y1;y++){
+    for(let x=x0;x<x1;x++){
+      if((y-y0)%5===0){gc.fillStyle=STONE[5];gc.fillRect(x,y,1,1);continue;}
+      if((x-x0)%6===((((y-y0)/5)|0)%2)*3){gc.fillStyle=STONE[5];gc.fillRect(x,y,1,1);continue;}
+      const s=((((x-x0)/6)|0)+(((y-y0)/5)|0))%3;
+      gc.fillStyle=s===0?STONE[1]:s===1?STONE[2]:STONE[0]; gc.fillRect(x,y,1,1);
+    }
+  }
+  const mp=[x0+2,x0+(tw2/2-4)|0,x1-8];
+  for(const mx of mp){
+    for(let y=y0;y<y0+9;y++) for(let x=mx;x<mx+6;x++){
+      gc.fillStyle=y===y0?STONE[7]:x===mx||x===mx+5?STONE[3]:STONE[2]; gc.fillRect(x,y,1,1);
+    }
+  }
+  hline(y0+9,x0,x1,STONE[3]);
+  for(const wy of[y0+16,y0+38]){
+    const wx=x0+(tw2/2-4)|0, ww=7, wh=14;
+    fill(wx,wy+5,ww,wh-5,'#000'); for(let dy=0;dy<5;dy++)fill(wx+Math.max(0,3-dy),wy+dy,ww-Math.max(0,3-dy)*2,1,'#000');
+    fill(wx+1,wy+6,5,3,'#cc6600'); fill(wx+2,wy+7,3,2,'#ffaa00');
+    vline(wx-1,wy,wy+wh+1,STONE[7]); vline(wx+ww,wy,wy+wh+1,STONE[7]);
+  }
+  const bx=x0===0?x1:x0-3;
+  for(let y=y0+14;y<y1;y++) for(let x=bx;x<bx+3;x++){
+    gc.fillStyle=(y%5===0)||(x===bx)||(x===bx+2)?STONE[3]:STONE[2]; gc.fillRect(x,y,1,1);
+  }
+  vline(x0===0?x1-1:x0,y0+10,y1,STONE[7]);
+}
+function drawTorchFlame(x,y,frame){
+  const f=frame%6,j=f<3?0:f<5?1:-1;
+  [[0,-5,0],[j,-4,0],[0,-3,1],[-1,-2,2],[1,-2,1],[j,-1,3],[0,0,4],[0,1,5]].forEach(([dx,dy,ci])=>px(x+dx,y+dy,TORCH[ci]));
+  fill(x-1,y+2,3,5,STONE[3]);
+  gc.fillStyle='#ff880010'; gc.fillRect(x-4,y-6,9,8);
+}
+
+const STARS=Array.from({length:70},()=>({
+  x:Math.random()*W,y:Math.random()*105,r:Math.random()<0.15?2:1,
+  phase:Math.random()*Math.PI*2,spd:0.02+Math.random()*0.05,
+  col:['#ffffff','#ffffee','#eeeeff','#ffeedd'][Math.floor(Math.random()*4)],
+}));
+
+function drawCrown(cx,y,frame){
+  const shimmer=frame%2===0;
+  for(let x=cx-16;x<=cx+16;x++) fill(x,y+17,1,4,(x+y)%3===0?GOLD[1]:GOLD[3]);
+  for(let dy=0;dy<8;dy++){const w=12-dy; hline(y+9+dy,cx-w,cx+w,dy<2?GOLD[2]:dy<5?GOLD[3]:GOLD[4]);}
+  [{cx:cx,h:18},{cx:cx-11,h:11},{cx:cx+11,h:11}].forEach(({cx:px2,h})=>{
+    for(let dy=0;dy<h;dy++){
+      const hw=Math.max(1,Math.round((1-dy/h)*4));
+      for(let dx=-hw;dx<=hw;dx++){
+        gc.fillStyle=dy<3?GOLD[0]:dy<7?GOLD[1]:dy<12?GOLD[2]:GOLD[3];
+        gc.fillRect((px2+dx)|0,(y+h-dy)|0,1,1);
+      }
+    }
+    fill(px2-1,y+h-15,3,3,shimmer?'#ffffff':'#ffffcc');
+  });
+  fill(cx-2,y+18,5,3,RUBY[2]); fill(cx-1,y+19,3,1,RUBY[0]);
+  fill(cx-9,y+18,4,3,'#4488ff'); fill(cx-8,y+19,2,1,'#aaccff');
+  fill(cx+6,y+18,4,3,'#4488ff'); fill(cx+7,y+19,2,1,'#aaccff');
+  hline(y+17,cx-15,cx+15,GOLD[1]);
+}
+
+let particles=[], shells=[], bursts=[];
+function spawn(x,y,vx,vy,pal,life,decay,grav,type){
+  const c=Array.isArray(pal)?pal[Math.floor(Math.random()*pal.length)]:pal;
+  particles.push({x,y,vx,vy,color:c,pal,life,decay,grav,type,age:0});
+}
+function launchShell(x,targetY,pal){ shells.push({x,y:H+2,vy:(targetY-H-2)/22,targetY,pal,trail:[]}); }
+function explode(x,y,pal){
+  for(let ring=0;ring<2;ring++) bursts.push({x,y,r:ring*3,maxR:20+ring*6,pal,life:1.0});
+  for(let i=0;i<20;i++){
+    const a=(i/20)*Math.PI*2,s=1.4+Math.random()*0.8;
+    spawn(x,y,Math.cos(a)*s,Math.sin(a)*s-0.2,pal,1.0,0.022,0.012,'beam');
+    spawn(x,y,Math.cos(a)*s*0.6,Math.sin(a)*s*0.6,pal,0.85,0.030,0.01,'beam');
+  }
+  for(let i=0;i<50;i++){
+    const a=Math.random()*Math.PI*2,s=0.2+Math.random()*2.2;
+    spawn(x,y,Math.cos(a)*s,Math.sin(a)*s-0.4,pal,1.0,0.025+Math.random()*0.02,0.045,'spark');
+  }
+  bursts.push({x,y,r:0,maxR:8,pal:['#ffffff','#fffce0'],life:1.0,flash:true});
+}
+
+const SHOW=[
+  {t:200,fn:()=>launchShell(38,45,GOLD)},
+  {t:800,fn:()=>launchShell(122,38,RUBY)},
+  {t:1400,fn:()=>launchShell(80,28,SILVER)},
+  {t:2000,fn:()=>{launchShell(30,50,GOLD);launchShell(130,42,GOLD);}},
+  {t:2700,fn:()=>launchShell(80,22,GOLD)},
+  {t:3100,fn:()=>{
+    launchShell(50,30,VIOLET);launchShell(110,30,EMERALD);
+    setTimeout(()=>launchShell(80,18,[...GOLD.slice(0,3),...RUBY.slice(1,3),'#ffffff']),300);
+  }},
+  {t:4200,fn:()=>{
+    launchShell(30,40,GOLD);launchShell(80,22,GOLD);launchShell(130,40,GOLD);
+    setTimeout(()=>{launchShell(55,30,SILVER);launchShell(105,30,SILVER);},250);
+  }},
+];
+let firedShow=new Set();
+const CONF=['#ffd700','#ff4466','#44aaff','#44dd88','#ff88ff','#ffffff','#ffaa44','#aaffcc'];
+function spawnConf(){
+  spawn(Math.random()*W,-3,(Math.random()-0.5)*0.6,0.4+Math.random()*0.8,CONF,1.0,0.004,0.015,'confetti');
+}
+
+// ── CRT overlay rendered to crtCanvas ─────────────────────────────
+function drawCRT(elapsed, frame) {
+  cc.clearRect(0,0,320,320);
+  if (!crtOn) return;
+
+  // RGB chromatic aberration — draw tinted offset copies of game canvas
+  // Red channel: shift +1px right
+  cc.save();
+  cc.globalCompositeOperation = 'screen';
+  cc.globalAlpha = 0.12;
+  cc.filter = 'saturate(3) hue-rotate(0deg)';
+  cc.drawImage(gameCanvas, 2, 0, 320, 320);
+  cc.globalAlpha = 0.08;
+  cc.filter = 'saturate(3) hue-rotate(240deg)';
+  cc.drawImage(gameCanvas, -2, 0, 320, 320);
+  cc.globalAlpha = 1; cc.filter = 'none';
+  cc.restore();
+
+  // Phosphor bloom on bright areas — very faint blur overlay
+  cc.save();
+  cc.globalCompositeOperation = 'screen';
+  cc.globalAlpha = 0.06;
+  cc.filter = 'blur(2px) brightness(3)';
+  cc.drawImage(gameCanvas, 0, 0, 320, 320);
+  cc.globalAlpha = 1; cc.filter = 'none';
+  cc.restore();
+
+  // Random noise / static
+  if (frame % 4 === 0) {
+    for (let i=0; i<40; i++) {
+      const nx=Math.random()*320|0, ny=Math.random()*320|0;
+      cc.fillStyle = `rgba(255,255,255,${0.01+Math.random()*0.04})`;
+      cc.fillRect(nx, ny, Math.random()<0.3?2:1, 1);
+    }
+  }
+
+  // Occasional horizontal flicker line
+  if (Math.random() < 0.015) {
+    const fy = Math.random()*320|0;
+    cc.fillStyle = 'rgba(255,255,255,0.03)';
+    cc.fillRect(0, fy, 320, 1);
+  }
+}
+
+// ── Main render loop ───────────────────────────────────────────────
+const TOTAL=9000, FPS=16, FRAME=1000/FPS;
+let t0=null,lastF=0,frame=0,running=false,rafId=null;
+
+function render(elapsed){
+  drawScene(frame);
+  const st=elapsed*0.0025;
+  for(const s of STARS){
+    const b=0.35+0.65*Math.abs(Math.sin(s.phase+st*s.spd));
+    if(b<0.1) continue;
+    const a=(b*255|0).toString(16).padStart(2,'0');
+    gc.fillStyle=s.col+a; gc.fillRect(s.x|0,s.y|0,s.r,s.r);
+    if(s.r===2&&b>0.75){
+      gc.fillStyle='#ffffff'+(b*100|0).toString(16).padStart(2,'0');
+      gc.fillRect((s.x-1)|0,s.y|0,1,1); gc.fillRect((s.x+2)|0,s.y|0,1,1); gc.fillRect(s.x|0,(s.y-1)|0,1,1);
+    }
+  }
+  drawCrown(W/2,6,frame);
+  const title='1ST PLACE';const ttw=tw(title);
+  drawText(title,((W-ttw)/2)|0,40,GOLD[2],GOLD[7]);
+  if(elapsed>2000){const pos=((elapsed*0.06)%ttw)|0;fill(((W-ttw)/2)|0+pos,40,3,7,GOLD[0]);}
+  for(const seg of SHOW) if(elapsed>=seg.t&&!firedShow.has(seg.t)){firedShow.add(seg.t);seg.fn();}
+  for(let i=shells.length-1;i>=0;i--){
+    const s=shells[i]; s.trail.push({x:s.x,y:s.y}); if(s.trail.length>9) s.trail.shift();
+    s.y+=s.vy;
+    for(let ti=0;ti<s.trail.length;ti++){
+      const a=ti/s.trail.length;
+      gc.fillStyle=s.pal[(a<0.33?0:a<0.66?1:2)]+(Math.floor(a*200)).toString(16).padStart(2,'0');
+      gc.fillRect(s.trail[ti].x|0,s.trail[ti].y|0,1,1);
+    }
+    fill(s.x-1,s.y-1,2,2,s.pal[0]);
+    if(s.y<=s.targetY){explode(s.x,s.y,s.pal);shells.splice(i,1);}
+  }
+  for(let i=bursts.length-1;i>=0;i--){
+    const b=bursts[i]; b.r+=b.flash?1.5:1.2; b.life-=b.flash?0.10:0.05;
+    if(b.life<=0||b.r>b.maxR){bursts.splice(i,1);continue;}
+    const a=(b.life*255|0).toString(16).padStart(2,'0'),ri=b.r|0;
+    gc.fillStyle=(b.flash?'#ffffff':b.pal[0])+a;
+    for(let ang=0;ang<360;ang+=3){const rad=ang*Math.PI/180; gc.fillRect((b.x+Math.cos(rad)*ri)|0,(b.y+Math.sin(rad)*ri)|0,1,1);}
+    if(!b.flash&&b.r>6){
+      gc.fillStyle=b.pal[Math.min(1,b.pal.length-1)]+a;
+      const r2=(b.r*0.6)|0;
+      for(let ang=0;ang<360;ang+=5){const rad=ang*Math.PI/180; gc.fillRect((b.x+Math.cos(rad)*r2)|0,(b.y+Math.sin(rad)*r2)|0,1,1);}
+    }
+  }
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i]; p.age++; p.x+=p.vx; p.y+=p.vy; p.vy+=p.grav; p.vx*=0.987; p.life-=p.decay;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    const ix=p.x|0,iy=p.y|0; if(ix<0||ix>=W||iy<0||iy>=H) continue;
+    if(p.type==='beam'){
+      px(ix,iy,p.color);
+      if(p.life>0.55){gc.fillStyle=(Array.isArray(p.pal)?p.pal[1]||p.pal[0]:p.color)+'aa';gc.fillRect(ix+1,iy,1,1);gc.fillRect(ix-1,iy,1,1);gc.fillRect(ix,iy-1,1,1);}
+    } else if(p.type==='confetti'){fill(ix,iy,Math.max(1,2+(Math.sin(p.age*0.6)*1.4|0)),2,p.color);}
+    else {px(ix,iy,p.color); if(p.life>0.6){gc.fillStyle=(Array.isArray(p.pal)&&p.pal.length>1?p.pal[1]:p.color)+'88';gc.fillRect(ix+1,iy,1,1);}}
+  }
+  if(elapsed>800){if(frame%2===0)spawnConf();if(Math.random()<0.35)spawnConf();}
+  if(elapsed>4800){const win='YOU WIN!',ww=tw(win),fc=frame%4<2?GOLD[0]:GOLD[2];drawText(win,((W-ww)/2)|0,53,fc,GOLD[7]);}
+
+  // Draw CRT effects on top
+  drawCRT(elapsed, frame);
+  frame++;
+}
+
+function loop(ts){
+  if(!running) return;
+  if(!t0) t0=ts;
+  const el=ts-t0;
+  if(el>=TOTAL){running=false;return;}
+  if(ts-lastF>=FRAME){lastF=ts;render(el);}
+  rafId=requestAnimationFrame(loop);
+}
+function start(){
+  particles=[];shells=[];bursts=[];firedShow=new Set();
+  t0=null;lastF=0;frame=0;running=true;
+  if(rafId) cancelAnimationFrame(rafId);
+  rafId=requestAnimationFrame(loop);
+}
+gameCanvas.addEventListener('click',start);
+gameCanvas.addEventListener('touchend',e=>{e.preventDefault();start();});
+start();
+</script>
+</body>
+</html>
