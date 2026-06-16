@@ -934,7 +934,7 @@ function sortHandBySuit(hand) {
     return RANK_VALUE[a.rank] - RANK_VALUE[b.rank];
   });
 }
-const APP_VERSION = "4.2";
+const APP_VERSION = "4.3";
 const WORKER_URL = "https://dimonds-ai.thirtytwobitrpg.workers.dev";
 const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 30;
@@ -3194,7 +3194,7 @@ function RoundOverModal({ scores, allNames, roundScores, onContinue, eventLog=[]
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0 }) {
+function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0, llmTaunts={}, onSpeakTaunt }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -3240,29 +3240,45 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
             <span style={{color:"#c9a84c55",fontSize:9,letterSpacing:1,minWidth:44,textAlign:"center",fontFamily:FONT_UI}}>PTS.</span>
           </div>
         </div>
-        {sorted.map((p,i)=>(
+        {sorted.map((p,i)=>{
+          const taunt = llmTaunts[p.i];
+          return (
           <div key={p.n} style={{
-            display:"flex",justifyContent:"space-between",alignItems:"center",
             background:i===0?VM.tealLight+"16":"rgba(255,255,255,0.04)",
-            border:`1px solid ${i===0?VM.tealLight+"55":"rgba(255,255,255,0.08)"}`,
-            borderRadius:10,padding:"10px 14px",marginBottom:8,
+            border:`1px solid ${taunt?taunt.color+"55":i===0?VM.tealLight+"55":"rgba(255,255,255,0.08)"}`,
+            borderRadius:10,marginBottom:8,overflow:"hidden",
           }}>
-            <span style={{color:i===0?VM.tealLight:"#ffffffaa",fontFamily:FONT_UI,fontSize:14}}>
-              {["🥇","🥈","🥉","🎖️"][i]} {p.n}
-            </span>
-            <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <div style={{textAlign:"center",minWidth:36}}>
-                <div style={{color:"#7ec8a4",fontSize:15,fontWeight:700,lineHeight:1}}>{gameTricksPerPlayer[p.i]||0}</div>
-              </div>
-              <div style={{textAlign:"center",minWidth:30}}>
-                <div style={{color:"#8a9fe0",fontSize:15,fontWeight:700,lineHeight:1}}>{gameSetsPerPlayer[p.i]||0}</div>
-              </div>
-              <div style={{textAlign:"center",minWidth:44}}>
-                <div style={{color:i===0?VM.gold:"#ffffffcc",fontWeight:800,fontSize:20,fontFamily:FONT_DISPLAY,lineHeight:1}}>{p.s}</div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 14px"}}>
+              <span style={{color:i===0?VM.tealLight:"#ffffffaa",fontFamily:FONT_UI,fontSize:14}}>
+                {["🥇","🥈","🥉","🎖️"][i]} {p.n}
+              </span>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <div style={{textAlign:"center",minWidth:36}}>
+                  <div style={{color:"#7ec8a4",fontSize:15,fontWeight:700,lineHeight:1}}>{gameTricksPerPlayer[p.i]||0}</div>
+                </div>
+                <div style={{textAlign:"center",minWidth:30}}>
+                  <div style={{color:"#8a9fe0",fontSize:15,fontWeight:700,lineHeight:1}}>{gameSetsPerPlayer[p.i]||0}</div>
+                </div>
+                <div style={{textAlign:"center",minWidth:44}}>
+                  <div style={{color:i===0?VM.gold:"#ffffffcc",fontWeight:800,fontSize:20,fontFamily:FONT_DISPLAY,lineHeight:1}}>{p.s}</div>
+                </div>
               </div>
             </div>
+            {taunt && (
+              <div style={{display:"flex",alignItems:"center",borderTop:`1px solid ${taunt.color}33`,background:taunt.color+"11",padding:"5px 10px",gap:6}}>
+                <button onClick={()=>onSpeakTaunt&&onSpeakTaunt(taunt.text,taunt.provider)}
+                  style={{background:"none",border:"none",cursor:"pointer",fontSize:14,padding:"0 2px",flexShrink:0,lineHeight:1}}>🔊</button>
+                <div style={{overflow:"hidden",flex:1}}>
+                  <div style={{animation:"tauntScroll 14s linear infinite",whiteSpace:"nowrap",display:"inline-block",
+                    fontSize:10,color:taunt.color,fontFamily:FONT_UI,fontStyle:"italic"}}>
+                    {taunt.text}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        ))}
+          );
+        })}
         {sessionGamesPlayed > 0 && (
           <div style={{marginTop:16,padding:"10px 14px",background:"#ffffff06",border:"1px solid #ffffff11",borderRadius:10,textAlign:"center"}}>
             <div style={{color:VM.tealLight+"88",fontSize:9,letterSpacing:2,textTransform:"uppercase",marginBottom:8,fontFamily:FONT_UI}}>
@@ -3860,6 +3876,7 @@ function DiamondsGame() {
   const [llmComments, setLlmComments] = useState([]);
   const [llmCommentToken, setLlmCommentToken] = useState(0);
   const llmCommentTokenRef = useRef(0);
+  const [llmTaunts, setLlmTaunts] = useState({});
   const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
   function setTutorialEnabled(valOrFn) {
     setTutorialEnabledState(prev => {
@@ -4384,7 +4401,7 @@ function DiamondsGame() {
     setHands(newHands);
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
-    setLlmComments([]); setLlmCommentToken(0); llmCommentTokenRef.current = 0;
+    setLlmComments([]); setLlmCommentToken(0); llmCommentTokenRef.current = 0; setLlmTaunts({});
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -5879,6 +5896,51 @@ function DiamondsGame() {
     else eventDesc = `${winner} won a trick and scored ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`;
     triggerLLMComment(eventDesc, { scores: totalScores });
   }, [trickResult]);
+
+  // ---- End-of-game taunts ----
+  function speakTaunt(text, provider) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(text);
+    if (provider === 'gemini')  { utt.lang = 'en-GB'; utt.rate = 0.85; utt.pitch = 1.1; }
+    else if (provider === 'llama')   { utt.lang = 'en-US'; utt.rate = 1.0;  utt.pitch = 0.9; }
+    else if (provider === 'mistral') { utt.lang = 'fr-FR'; utt.rate = 0.9;  utt.pitch = 1.05; }
+    window.speechSynthesis.speak(utt);
+  }
+
+  useEffect(() => {
+    if (phase !== 'gameover') return;
+    const llmSlots = opponentSlotsRef.current
+      .map((id, i) => ({ id, playerIdx: i + 1 }))
+      .filter(({ id }) => ['gemini','llama','mistral'].includes(id));
+    if (!llmSlots.length) return;
+    setLlmTaunts({});
+    const sorted = allNames.map((n,i) => ({ n, s: totalScores[i]||0, i }))
+      .sort((a,b) => b.s-a.s || (a.i===0?1:b.i===0?-1:a.i-b.i));
+    const placements = {};
+    sorted.forEach((p, rank) => { placements[p.i] = rank + 1; });
+    llmSlots.forEach(({ id, playerIdx }) => {
+      const opt = OPPONENT_OPTIONS.find(o => o.id === id);
+      const thisPlacement = placements[playerIdx] ?? 4;
+      fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: 'taunt',
+          provider: id,
+          placement: thisPlacement,
+          allNames,
+          scores: totalScores,
+          winnerName: sorted[0].n,
+          thisScore: totalScores[playerIdx] || 0,
+          topScore: sorted[0].s,
+        }),
+      }).then(r => r.json()).then(data => {
+        const text = data?.text?.trim();
+        if (text) setLlmTaunts(prev => ({ ...prev, [playerIdx]: { text, color: opt.color, name: opt.label, provider: id } }));
+      }).catch(() => {});
+    });
+  }, [phase]);
 
   // ---- AI turns ----
   useEffect(() => {
@@ -7834,6 +7896,8 @@ function DiamondsGame() {
           winScore={winScore}
           sessionWins={sessionWins}
           sessionGamesPlayed={sessionGamesPlayed}
+          llmTaunts={llmTaunts}
+          onSpeakTaunt={speakTaunt}
         />
       )}
 
@@ -7887,6 +7951,7 @@ function DiamondsGame() {
       )}
 
       <style>{`
+        @keyframes tauntScroll { 0%{transform:translateX(100%)} 100%{transform:translateX(-100%)} }
         @keyframes retroBlink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes slideIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
