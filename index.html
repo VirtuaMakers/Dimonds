@@ -4011,7 +4011,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
           ) : (
             <>
               {[
-                {role:"Director", name:"Chris Bruckmann"},
+                {role:"Director", name:"Christopher Bruckmann"},
                 {role:"Coding", name:"Claude (Anthropic)"},
                 {role:"Concepts", name:"ChatGPT (OpenAI)"},
                 {role:"Graphics", name:"Copilot (Microsoft)\nGemini (Alphabet)\nDesigner (Microsoft)\nGerardus Dunkel"},
@@ -6682,8 +6682,9 @@ function DiamondsGame() {
         return;
       }
       setOpponentSlots(prev => {
-        if (prev.includes(optId)) return prev;
-        return [...prev.slice(1), optId];
+        if (prev.includes(optId)) return prev.filter(id => id !== optId);
+        if (prev.length >= 3) return prev;
+        return [...prev, optId];
       });
     }
     const tileStyle = (isSelected) => ({
@@ -6854,8 +6855,10 @@ function DiamondsGame() {
               <div style={{padding:"18px 22px 20px"}}>
                 {opponentPickerContent}
                 <div style={{marginTop:16,display:"flex",justifyContent:"center"}}>
-                  <GoldBtn onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
-                    DEAL ME IN ◆
+                  <GoldBtn
+                    disabled={opponentSlots.length !== 3}
+                    onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
+                    {opponentSlots.length === 3 ? "DEAL ME IN ◆" : `Choose ${3 - opponentSlots.length} more ◆`}
                   </GoldBtn>
                 </div>
               </div>
