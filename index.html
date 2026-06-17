@@ -1208,8 +1208,50 @@ const OPPONENT_OPTIONS = [
   { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6', subtitle:'(Mistral AI)' },
 ];
 
-// ============================================================
-// DECK HELPERS
+const OPENER_COMMENTS = {
+  gemini:  "The 2 of Clubs leads. My analysis begins now. ✨",
+  llama:   "2 of Clubs hits the table. Let's run it. 🦙",
+  mistral: "Le deux de trèfle ouvre le jeu. Très bien. 🌬️",
+};
+
+const FALLBACK_COMMENTS = {
+  gemini: [
+    "The diamond distribution is becoming clear. ✨",
+    "Fascinating hand. The probability space is narrowing.",
+    "I've been modeling the remaining cards. Someone is hoarding. ✨",
+  ],
+  llama: [
+    "Tracking the trick counts — someone's running hot. 🦙",
+    "The patterns here are worth noting.",
+    "Solid play so far. Let's see who blinks first.",
+  ],
+  mistral: [
+    "Every card played reveals a truth. 🌬️",
+    "Patience. The diamonds will not wait forever.",
+    "One observes. One calculates. One endures.",
+  ],
+};
+
+const FALLBACK_TAUNTS = {
+  gemini: {
+    1: "A statistically sound victory. I am not surprised. ✨",
+    2: "Second. I've already identified the variable that cost me first.",
+    3: "Third. The model will be updated accordingly.",
+    4: "Last. A humbling dataset. ✨",
+  },
+  llama: {
+    1: "Called it. 🦙",
+    2: "Solid. I'll take second.",
+    3: "Third's fine. Respectable.",
+    4: "Okay. Noted. Next game.",
+  },
+  mistral: {
+    1: "C'est magnifique. The cards were kind, and so was fate. 🌬️",
+    2: "Deuxième. There is honour in silver.",
+    3: "Troisième. The diamonds were not mine to claim today.",
+    4: "Dernier. Even the sharpest blade meets its edge.",
+  },
+};
 // ============================================================
 function buildDeck() {
   const cards = [];
@@ -4120,6 +4162,7 @@ function DiamondsGame() {
   const [llmTaunts, setLlmTaunts] = useState({});
   const trickInstancesRef = useRef([]);  // special instances accumulated during a trick
   const commentSlotRef    = useRef(0);   // rotates 0→1→2→0 once per trick
+  const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
   const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
   function setTutorialEnabled(valOrFn) {
     setTutorialEnabledState(prev => {
@@ -4649,11 +4692,21 @@ function DiamondsGame() {
     setHands(newHands);
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
-    const hasLLMSlot = opponentSlotsRef.current.some(id => ['gemini','llama','mistral'].includes(id));
-    setLlmComments(hasLLMSlot ? [{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }] : []);
+    const llmIds = opponentSlotsRef.current.filter(id => ['gemini','llama','mistral'].includes(id));
+    if (llmIds.length) {
+      const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
+      const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
+      setLlmComments([
+        { name: openerOpt.label, text: OPENER_COMMENTS[openerId], color: openerOpt.color },
+        { name:'', text:'Pressure Makes Champions', color:'#4bc3af' },
+      ]);
+    } else {
+      setLlmComments([]);
+    }
     setLlmTaunts({});
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
+    silentTricksRef.current = 0;
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -6117,11 +6170,23 @@ function DiamondsGame() {
   async function fireTrickComment() {
     const slot = commentSlotRef.current % 3;
     commentSlotRef.current++;
+    silentTricksRef.current++;
     const slotId = opponentSlotsRef.current[slot];
     const opt = OPPONENT_OPTIONS.find(o => o.id === slotId);
     if (opt?.type !== 'llm') return;  // computer-slot turn: instances accumulate, no fetch
     const instances = trickInstancesRef.current;
     trickInstancesRef.current = [];
+    // Silence fallback: 11 tricks without a visible comment → use pre-written line
+    if (silentTricksRef.current >= 11) {
+      const lines = FALLBACK_COMMENTS[slotId];
+      if (lines?.length) {
+        const text = lines[Math.floor(Math.random() * lines.length)];
+        soundLLMComment();
+        setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
+        silentTricksRef.current = 0;
+        return;
+      }
+    }
     if (!instances.length && Math.random() >= 0.25) return;
     const eventDesc = instances.length ? instances.join('; ') : 'general game state — no special events this turn';
     try {
@@ -6135,6 +6200,7 @@ function DiamondsGame() {
       if (text) {
         soundLLMComment();
         setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
+        silentTricksRef.current = 0;
       }
     } catch {}
   }
@@ -6191,11 +6257,20 @@ function DiamondsGame() {
       .map((id, i) => ({ id, playerIdx: i + 1 }))
       .filter(({ id }) => ['gemini','llama','mistral'].includes(id));
     if (!llmSlots.length) return;
-    setLlmTaunts({});
     const sorted = allNames.map((n,i) => ({ n, s: totalScores[i]||0, i }))
       .sort((a,b) => b.s-a.s || (a.i===0?1:b.i===0?-1:a.i-b.i));
     const placements = {};
     sorted.forEach((p, rank) => { placements[p.i] = rank + 1; });
+    // Set fallback taunts immediately so something always appears
+    const fallbacks = {};
+    llmSlots.forEach(({ id, playerIdx }) => {
+      const opt = OPPONENT_OPTIONS.find(o => o.id === id);
+      const placement = placements[playerIdx] ?? 4;
+      const text = FALLBACK_TAUNTS[id]?.[placement] ?? FALLBACK_TAUNTS[id]?.[4];
+      if (text) fallbacks[playerIdx] = { text, color: opt.color, name: opt.label, provider: id };
+    });
+    setLlmTaunts(fallbacks);
+    // Try API — overwrite fallbacks if real responses arrive
     llmSlots.forEach(({ id, playerIdx }) => {
       const opt = OPPONENT_OPTIONS.find(o => o.id === id);
       const thisPlacement = placements[playerIdx] ?? 4;
