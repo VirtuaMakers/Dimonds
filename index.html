@@ -4785,6 +4785,31 @@ function DiamondsGame() {
     setHands(newHands);
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
+    {
+      const llmIds = opponentSlotsRef.current.filter(id => ['gemini','llama','mistral'].includes(id));
+      if (llmIds.length) {
+        const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
+        const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
+        setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
+        fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the round', context: { scores: [0,0,0,0] } }),
+        }).then(r => r.json()).then(data => {
+          const text = data?.text?.trim();
+          if (text) {
+            soundLLMComment();
+            setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
+          }
+        }).catch(() => {});
+      } else {
+        setLlmComments([]);
+      }
+    }
+    setLlmTaunts({});
+    trickInstancesRef.current = [];
+    commentSlotRef.current = 0;
+    silentTricksRef.current = 0;
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
