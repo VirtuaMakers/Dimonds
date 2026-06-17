@@ -4102,14 +4102,7 @@ function DiamondsGame() {
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showOpponentModal, setShowOpponentModal] = useState(false);
-  const [opponentSlots, setOpponentSlots] = useState(() => {
-    const all = OPPONENT_OPTIONS.map(o => o.id);
-    for (let i = all.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [all[i], all[j]] = [all[j], all[i]];
-    }
-    return all.slice(0, 3);
-  });
+  const [opponentSlots, setOpponentSlots] = useState([]);
   const opponentSlotsRef = useRef(opponentSlots);
   useEffect(() => { opponentSlotsRef.current = opponentSlots; }, [opponentSlots]);
   const [deckTheme, setDeckTheme] = useState("skyscraper");
@@ -6681,10 +6674,9 @@ function DiamondsGame() {
         return;
       }
       setOpponentSlots(prev => {
-        if (prev.includes(optId)) return prev;  // already in — no-op
-        const next = [...prev];
-        next[Math.floor(Math.random() * 3)] = optId;  // swap a random slot
-        return next;
+        if (prev.includes(optId)) return prev.filter(id => id !== optId);
+        if (prev.length >= 3) return prev;
+        return [...prev, optId];
       });
     }
     const tileStyle = (isSelected) => ({
@@ -6855,8 +6847,10 @@ function DiamondsGame() {
               <div style={{padding:"18px 22px 20px"}}>
                 {opponentPickerContent}
                 <div style={{marginTop:16,display:"flex",justifyContent:"center"}}>
-                  <GoldBtn onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
-                    DEAL ME IN ◆
+                  <GoldBtn
+                    disabled={opponentSlots.length !== 3}
+                    onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
+                    {opponentSlots.length === 3 ? "DEAL ME IN ◆" : `Choose ${3 - opponentSlots.length} more ◆`}
                   </GoldBtn>
                 </div>
               </div>
