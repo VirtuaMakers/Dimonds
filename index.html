@@ -6338,6 +6338,33 @@ function DiamondsGame() {
     });
   }, [phase]);
 
+  // ---- Dimonds broken — all LLMs comment simultaneously ----
+  useEffect(() => {
+    if (!diamondsBroken) return;
+    const llmSlots = opponentSlotsRef.current
+      .filter(id => ['gemini','llama','mistral'].includes(id))
+      .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
+      .filter(({ opt }) => opt);
+    if (!llmSlots.length) return;
+    llmSlots.forEach(({ id, opt }) => {
+      fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: 'comment', provider: id,
+          event: "Dimonds have just been broken — the first diamond card has entered play. Say something funny or make any kind of diamond reference: gemstones, rap lyrics, baseball diamonds, Neil Diamond, engagement rings, anything goes.",
+          context: { scores: totalScores },
+        }),
+      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+        const text = data?.text?.trim();
+        if (text) {
+          soundLLMComment();
+          setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
+        }
+      }).catch(() => {});
+    });
+  }, [diamondsBroken]);
+
   // ---- AI turns ----
   useEffect(() => {
     if (phase !== "playing") return;
