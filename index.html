@@ -1208,12 +1208,6 @@ const OPPONENT_OPTIONS = [
   { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6', subtitle:'(Mistral AI)' },
 ];
 
-const OPENER_COMMENTS = {
-  gemini:  "The 2 of Clubs leads. My analysis begins now. ✨",
-  llama:   "2 of Clubs hits the table. Let's run it. 🦙",
-  mistral: "Le deux de trèfle ouvre le jeu. Très bien. 🌬️",
-};
-
 const FALLBACK_COMMENTS = {
   gemini: [
     "The diamond distribution is becoming clear. ✨",
@@ -4696,10 +4690,18 @@ function DiamondsGame() {
     if (llmIds.length) {
       const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
       const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
-      setLlmComments([
-        { name: openerOpt.label, text: OPENER_COMMENTS[openerId], color: openerOpt.color },
-        { name:'', text:'Pressure Makes Champions', color:'#4bc3af' },
-      ]);
+      setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
+      fetch(WORKER_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the round', context: { scores: [0,0,0,0] } }),
+      }).then(r => r.json()).then(data => {
+        const text = data?.text?.trim();
+        if (text) {
+          soundLLMComment();
+          setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
+        }
+      }).catch(() => {});
     } else {
       setLlmComments([]);
     }
