@@ -6122,12 +6122,11 @@ function DiamondsGame() {
   }
 
   async function fireTrickComment() {
-    const llmSlots = opponentSlotsRef.current
-      .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
-      .filter(({ opt }) => opt?.type === 'llm');
-    if (!llmSlots.length) return;
-    const { id: slotId, opt } = llmSlots[commentSlotRef.current % llmSlots.length];
+    const slot = commentSlotRef.current % 3;
     commentSlotRef.current++;
+    const slotId = opponentSlotsRef.current[slot];
+    const opt = OPPONENT_OPTIONS.find(o => o.id === slotId);
+    if (opt?.type !== 'llm') return;  // computer-slot turn: instances accumulate, no fetch
     const instances = trickInstancesRef.current;
     trickInstancesRef.current = [];
     if (!instances.length && Math.random() >= 0.25) return;
