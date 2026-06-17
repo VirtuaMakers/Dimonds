@@ -4157,6 +4157,7 @@ function DiamondsGame() {
   const trickInstancesRef = useRef([]);  // special instances accumulated during a trick
   const commentSlotRef    = useRef(0);   // rotates 0→1→2→0 once per trick
   const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
+  const openerAbortRef    = useRef(null); // aborts stale opener fetch on rapid restart
   const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
   function setTutorialEnabled(valOrFn) {
     setTutorialEnabledState(prev => {
@@ -4691,11 +4692,15 @@ function DiamondsGame() {
       const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
       const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
       setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
+      if (openerAbortRef.current) openerAbortRef.current.abort();
+      const openerCtrl = new AbortController();
+      openerAbortRef.current = openerCtrl;
       fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the round', context: { scores: [0,0,0,0] } }),
-      }).then(r => r.json()).then(data => {
+        body: JSON.stringify({ action: 'comment', provider: openerId, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
+        signal: openerCtrl.signal,
+      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
         const text = data?.text?.trim();
         if (text) {
           soundLLMComment();
@@ -4739,6 +4744,7 @@ function DiamondsGame() {
     setRuleOfThreeOffered([null,null,null,null]);
     setSwingingParadoxOffered([null,null,null,null]);
     setPendingFireworks(false);
+    setShowFireworks(false);
     setGoldenAgeActive(false);
     goldenAgeRef.current = false;
     setRoundScores([0,0,0,0]);
@@ -4791,11 +4797,15 @@ function DiamondsGame() {
         const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
         const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
         setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
+        if (openerAbortRef.current) openerAbortRef.current.abort();
+        const openerCtrl = new AbortController();
+        openerAbortRef.current = openerCtrl;
         fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the round', context: { scores: [0,0,0,0] } }),
-        }).then(r => r.json()).then(data => {
+          body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
+          signal: openerCtrl.signal,
+        }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
           const text = data?.text?.trim();
           if (text) {
             soundLLMComment();
@@ -6205,12 +6215,12 @@ function DiamondsGame() {
     trickInstancesRef.current = [];
     // Silence fallback: 11 tricks without a visible comment → use pre-written line
     if (silentTricksRef.current >= 11) {
+      silentTricksRef.current = 0;  // always reset — prevents permanent jam on unknown slotId
       const lines = FALLBACK_COMMENTS[slotId];
       if (lines?.length) {
         const text = lines[Math.floor(Math.random() * lines.length)];
         soundLLMComment();
         setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
-        silentTricksRef.current = 0;
         return;
       }
     }
@@ -6222,6 +6232,7 @@ function DiamondsGame() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: 'comment', provider: slotId, event: eventDesc, context: { scores: totalScores } }),
       });
+      if (!res.ok) return;
       const data = await res.json();
       const text = data?.text?.trim();
       if (text) {
@@ -6229,20 +6240,26 @@ function DiamondsGame() {
         setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
         silentTricksRef.current = 0;
       }
-    } catch {}
+    } catch(e) { console.warn('[comment]', e?.message||e); }
   }
 
   async function askLLMForCard(provider, hand, trickPlays, gameState) {
+    const ctrl = new AbortController();
+    const timeout = setTimeout(() => ctrl.abort(), 8000);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, hand, trick: trickPlays, gameState }),
+        signal: ctrl.signal,
       });
+      clearTimeout(timeout);
+      if (!res.ok) return null;
       const data = await res.json();
       const cardId = data?.cardId?.trim();
       return hand.find(c => c.id === cardId) || null;
     } catch {
+      clearTimeout(timeout);
       return null;
     }
   }
@@ -6283,7 +6300,7 @@ function DiamondsGame() {
     const llmSlots = opponentSlotsRef.current
       .map((id, i) => ({ id, playerIdx: i + 1 }))
       .filter(({ id }) => ['gemini','llama','mistral'].includes(id));
-    if (!llmSlots.length) return;
+    if (!llmSlots.length) { setLlmTaunts({}); return; }
     const sorted = allNames.map((n,i) => ({ n, s: totalScores[i]||0, i }))
       .sort((a,b) => b.s-a.s || (a.i===0?1:b.i===0?-1:a.i-b.i));
     const placements = {};
@@ -6314,7 +6331,7 @@ function DiamondsGame() {
           thisScore: totalScores[playerIdx] || 0,
           topScore: sorted[0].s,
         }),
-      }).then(r => r.json()).then(data => {
+      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
         const text = data?.text?.trim();
         if (text) setLlmTaunts(prev => ({ ...prev, [playerIdx]: { text, color: opt.color, name: opt.label, provider: id } }));
       }).catch(() => {});
