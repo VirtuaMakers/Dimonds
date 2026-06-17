@@ -6681,9 +6681,10 @@ function DiamondsGame() {
         return;
       }
       setOpponentSlots(prev => {
-        if (prev.includes(optId)) return prev.filter(id => id !== optId);
-        if (prev.length >= 3) return prev;
-        return [...prev, optId];
+        if (prev.includes(optId)) return prev;  // already in — no-op
+        const next = [...prev];
+        next[Math.floor(Math.random() * 3)] = optId;  // swap a random slot
+        return next;
       });
     }
     const tileStyle = (isSelected) => ({
@@ -6854,10 +6855,8 @@ function DiamondsGame() {
               <div style={{padding:"18px 22px 20px"}}>
                 {opponentPickerContent}
                 <div style={{marginTop:16,display:"flex",justifyContent:"center"}}>
-                  <GoldBtn
-                    disabled={opponentSlots.length !== 3}
-                    onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
-                    {opponentSlots.length === 3 ? "DEAL ME IN ◆" : `Choose ${3 - opponentSlots.length} more ◆`}
+                  <GoldBtn onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
+                    DEAL ME IN ◆
                   </GoldBtn>
                 </div>
               </div>
