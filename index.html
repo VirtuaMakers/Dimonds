@@ -6122,14 +6122,14 @@ function DiamondsGame() {
   }
 
   async function fireTrickComment() {
-    const slot = commentSlotRef.current % 3;
+    const llmSlots = opponentSlotsRef.current
+      .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
+      .filter(({ opt }) => opt?.type === 'llm');
+    if (!llmSlots.length) return;
+    const { id: slotId, opt } = llmSlots[commentSlotRef.current % llmSlots.length];
     commentSlotRef.current++;
     const instances = trickInstancesRef.current;
     trickInstancesRef.current = [];
-    const slotId = opponentSlotsRef.current[slot];
-    const opt = OPPONENT_OPTIONS.find(o => o.id === slotId);
-    if (opt?.type !== 'llm') return;
-    // 25% chance to comment even with no instances (general game-state read)
     if (!instances.length && Math.random() >= 0.25) return;
     const eventDesc = instances.length ? instances.join('; ') : 'general game state — no special events this turn';
     try {
