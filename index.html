@@ -5039,30 +5039,35 @@ function DiamondsGame() {
     setHands(newHands);
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
-    const llmIds = opponentSlotsRef.current.filter(id => ['gemini','llama','mistral'].includes(id));
+    const llmIds = opponentSlotsRef.current
+      .filter(id => ['gemini','llama','mistral'].includes(id))
+      .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
+      .filter(({ opt }) => opt);
     if (llmIds.length) {
-      const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
-      const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
       setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
       if (openerAbortRef.current) openerAbortRef.current.abort();
       const openerCtrl = new AbortController();
       openerAbortRef.current = openerCtrl;
-      fetch(WORKER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: 'comment', provider: openerId, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
-        signal: openerCtrl.signal,
-      }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
-        const text = data?.text?.trim();
-        if (text) {
-          soundLLMComment();
-          setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
+      llmIds.forEach(({ id, opt }) => {
+        if (llmSubstitutedRef.current[id]) {
+          const text = pickSub(id, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          return;
         }
-      }).catch(e => {
-        if (e?.name === 'AbortError') return;
-        llmSubstitutedRef.current[openerId] = true;
-        const text = pickSub(openerId, 'trick1');
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5)); }
+        fetch(WORKER_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: 'comment', provider: id, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
+          signal: openerCtrl.signal,
+        }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+          const text = data?.text?.trim();
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        }).catch(e => {
+          if (e?.name === 'AbortError') return;
+          llmSubstitutedRef.current[id] = true;
+          const text = pickSub(id, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        });
       });
     } else {
       setLlmComments([]);
@@ -5152,30 +5157,35 @@ function DiamondsGame() {
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
     {
-      const llmIds = opponentSlotsRef.current.filter(id => ['gemini','llama','mistral'].includes(id));
+      const llmIds = opponentSlotsRef.current
+        .filter(id => ['gemini','llama','mistral'].includes(id))
+        .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
+        .filter(({ opt }) => opt);
       if (llmIds.length) {
-        const openerId = llmIds[Math.floor(Math.random() * llmIds.length)];
-        const openerOpt = OPPONENT_OPTIONS.find(o => o.id === openerId);
         setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
         if (openerAbortRef.current) openerAbortRef.current.abort();
         const openerCtrl = new AbortController();
         openerAbortRef.current = openerCtrl;
-        fetch(WORKER_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
-          signal: openerCtrl.signal,
-        }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
-          const text = data?.text?.trim();
-          if (text) {
-            soundLLMComment();
-            setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
+        llmIds.forEach(({ id, opt }) => {
+          if (llmSubstitutedRef.current[id]) {
+            const text = pickSub(id, 'trick1');
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            return;
           }
-        }).catch(e => {
-          if (e?.name === 'AbortError') return;
-          llmSubstitutedRef.current[openerId] = true;
-          const text = pickSub(openerId, 'trick1');
-          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5)); }
+          fetch(WORKER_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: 'comment', provider: id, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
+            signal: openerCtrl.signal,
+          }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+            const text = data?.text?.trim();
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          }).catch(e => {
+            if (e?.name === 'AbortError') return;
+            llmSubstitutedRef.current[id] = true;
+            const text = pickSub(id, 'trick1');
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          });
         });
       } else {
         setLlmComments([]);
