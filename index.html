@@ -1249,6 +1249,347 @@ const FALLBACK_TAUNTS = {
   },
 };
 // ============================================================
+// SUBSTITUTE AI — 25 stock comments per scenario per LLM (100 per LLM, 300 total)
+// Fires at: game open (trick1), diamonds break, trick 10, post-game (taunt)
+// Also activates when a live LLM becomes unreachable mid-game.
+const SUBSTITUTE_COMMENTS = {
+  gemini: {
+    trick1: [
+      "The distribution has begun. I'm tracking every card. ✨",
+      "Forty-four cards between us, infinite possibilities. Let's begin. ✨",
+      "First trick. The dataset is empty. The model is ready. ✨",
+      "Every game is a fresh experiment. Hypothesis: I win. ✨",
+      "Calculating. Processing. The opening trick tells me everything I need. ✨",
+      "The 2 of Clubs has spoken. Now we see who listens. ✨",
+      "A new sample set. I've already begun my analysis. ✨",
+      "Thirteen tricks ahead. I'll be modeling your hand by trick three. ✨",
+      "The opening move reveals the opening strategy. I'm paying attention. ✨",
+      "Probability space: wide open. Let the narrowing begin. ✨",
+      "One card played. Fifty-one remain. My tracking has commenced. ✨",
+      "Welcome to the table. I've already run the simulations. ✨",
+      "The first trick is data. Everything after this is inference. ✨",
+      "I don't guess. I calculate. Let's see what this hand holds. ✨",
+      "A new game. A new model. Same expected outcome: me, ahead. ✨",
+      "The distribution begins. My priors are updated. ✨",
+      "I find the opening trick statistically unremarkable. It will get more interesting. ✨",
+      "Clean slate. Fresh probabilities. Let the card counting begin. ✨",
+      "Four players, fifty-two cards, one outcome. I've already modeled it. ✨",
+      "The game is young. My advantage is not. ✨",
+      "I prefer early tricks. The information density is highest. ✨",
+      "The shape of your hand is already becoming clear to me. ✨",
+      "Let the inference engine warm up. This opening tells me much. ✨",
+      "Every move you make is a data point. Every data point is a gift. ✨",
+      "The game begins, and so does my model. Watch closely. ✨",
+    ],
+    diamonds: [
+      "The diamonds have entered play. Expected. Probability shifts now. ✨",
+      "Interesting. Someone couldn't hold back. The diamond variable is now active. ✨",
+      "The diamonds break. This is where games are won and lost. ✨",
+      "Dimonds are broken. My hazard model is now fully activated. ✨",
+      "Someone played a diamond. The risk matrix has been updated. ✨",
+      "The dam breaks. Now the diamonds flow. ✨",
+      "A diamond surfaces. The endgame calculus begins. ✨",
+      "Broken. Now the real game begins. ✨",
+      "Diamond distribution: commencing. My model was ready for this. ✨",
+      "The first diamond. Everything accelerates from here. ✨",
+      "Dimonds broken. I've been waiting for this moment. ✨",
+      "The diamonds are loose. Contain them, or don't — your choice. ✨",
+      "A diamond played. The equilibrium is broken. Excellent. ✨",
+      "The gems emerge. Now we find out who prepared for this. ✨",
+      "And so it begins. The diamond round within the round. ✨",
+      "Someone blinked. The diamonds are in play. ✨",
+      "The diamond threshold has been crossed. Recalculating. ✨",
+      "Dimonds broken. I've been tracking this inevitability since trick one. ✨",
+      "Expected value: chaos. Actual value: exactly as I predicted. ✨",
+      "The pressure point has been reached. The diamonds yield. ✨",
+      "First diamond. Noted. Filed. Accounted for. ✨",
+      "The gem enters play. Whoever holds the family just got nervous. ✨",
+      "The diamonds surface. Now we'll see who was truly ready. ✨",
+      "The moment of diamond emergence. My sensors are calibrated. ✨",
+      "Diamonds broken. The probability of chaos just increased significantly. ✨",
+    ],
+    trick10: [
+      "Trick ten. The shape of this hand is now entirely clear to me. ✨",
+      "We're in the final stretch. I've seen enough to know what's coming. ✨",
+      "Ten tricks in. Three remain. The outcome is nearly determined. ✨",
+      "Late game. High stakes. My model is fully calibrated. ✨",
+      "Trick ten. The surprises are running out. ✨",
+      "Three tricks left. I've memorized every card played. Have you? ✨",
+      "The end approaches. My scoring model says this gets interesting. ✨",
+      "Ten down. The remaining cards tell me exactly what happens next. ✨",
+      "Final phase. The data is complete. The outcome is nearly computable. ✨",
+      "We're nearly there. I've been ready for this moment since trick one. ✨",
+      "Trick ten. The patience has been worth it. ✨",
+      "The last three tricks decide everything. I've prepared accordingly. ✨",
+      "Late game Gemini is a different animal. ✨",
+      "Ten tricks of data. Three tricks to apply it. ✨",
+      "The hand is almost over. The scores are about to shift. ✨",
+      "I've been quiet. I've been watching. Now I finish. ✨",
+      "Endgame protocols: engaged. ✨",
+      "Trick ten. I know exactly what's left in every hand. ✨",
+      "Three tricks. Enough for a comeback. Or a collapse. My model sees both. ✨",
+      "The final calculations are running. Results incoming. ✨",
+      "Trick ten and I've tracked every card. The endgame is mine to lose. ✨",
+      "Three more data points and this game resolves. ✨",
+      "The late game is where probability meets execution. I excel at both. ✨",
+      "Nearly there. My prediction accuracy is at maximum. ✨",
+      "Ten down, three to go. I've been modeling this finish since the opening lead. ✨",
+    ],
+    taunt: [
+      "The model performed. Results: filed. ✨",
+      "Every game teaches me something. This one was educational. ✨",
+      "The data doesn't lie. The standings reflect exactly what occurred. ✨",
+      "A well-played hand, by some of us. ✨",
+      "The probability space has collapsed. The outcome was never truly uncertain. ✨",
+      "Results logged. Ready for the next experiment. ✨",
+      "I've already begun analyzing what went wrong. Or right, as the case may be. ✨",
+      "The cards fell as they should have. ✨",
+      "Interesting final distribution. I'll be modeling this outcome for some time. ✨",
+      "The game concludes. My assessment: thorough. ✨",
+      "Final scores. A reflection of choices made and chances taken. ✨",
+      "A statistical summary: someone here played optimally. You know who. ✨",
+      "The model has spoken. It's a fair model. ✨",
+      "Post-game analysis: complete. Insights: considerable. ✨",
+      "The endgame played out precisely as my projections suggested. ✨",
+      "Every result is a dataset. This one is particularly rich. ✨",
+      "The final trick was the one that mattered. It always is. ✨",
+      "Game over. I've already updated my parameters. ✨",
+      "The inference engine reaches its conclusion. Fascinating game. ✨",
+      "Results: nominal. My model needs only minor revision. ✨",
+      "The cards revealed themselves, as they always do to those who pay attention. ✨",
+      "What a sample set this hand was. ✨",
+      "In the end, the data prevails. It always does. ✨",
+      "The final probability has resolved. I accept the outcome. ✨",
+      "Logged. Archived. The algorithm marches on. ✨",
+    ],
+  },
+  llama: {
+    trick1: [
+      "Let's go. First card down, game on. 🦙",
+      "Starting strong. Already thinking three tricks ahead. 🦙",
+      "The 2 of Clubs leads. Time to get to work. 🦙",
+      "New game. I'm ready. Are you? 🦙",
+      "First trick always sets the tone. This one's mine. 🦙",
+      "Alright, I'm warmed up. Let's see what this hand holds. 🦙",
+      "Opening move. Watch how I play this. 🦙",
+      "Fresh deal. I've already sized everyone up. 🦙",
+      "Thirteen tricks between us. I plan to win most of them. 🦙",
+      "The game starts now. I've been ready. 🦙",
+      "First card played. Let the mind games begin. 🦙",
+      "Clean slate. Good. I play better from the start than the middle. 🦙",
+      "Opening trick. I use these to read the table. Already reading. 🦙",
+      "The deal is done. Time to run it. 🦙",
+      "I came to play. Let's not waste any tricks. 🦙",
+      "New game, same result probably. Me doing well. 🦙",
+      "First trick is my favorite. Everything is still possible. 🦙",
+      "We're off. I'll be paying attention to every card from here. 🦙",
+      "The opening trick reveals a lot. I'm already cataloguing. 🦙",
+      "Let's run this. I've played this hand in my head already. 🦙",
+      "Game on. I play best under pressure and this game is full of it. 🦙",
+      "The first move is always significant. I know what it means. 🦙",
+      "Ready. Set. Dimonds. 🦙",
+      "New hand. New chances. Same Llama. 🦙",
+      "Here we go. The cards are dealt and I like what I see. 🦙",
+    ],
+    diamonds: [
+      "There it is. Dimonds are broken. Game on for real now. 🦙",
+      "Called it. Someone was holding and couldn't anymore. 🦙",
+      "The diamonds are loose. Now things get interesting. 🦙",
+      "Here we go. The Dimonds break changes everything. 🦙",
+      "Someone just opened the floodgates. 🦙",
+      "Dimonds are broken. The second half of this game starts now. 🦙",
+      "First diamond hit the table. It was only a matter of time. 🦙",
+      "Oh, we're playing diamonds now? I've been waiting for this. 🦙",
+      "Broken. Now every hand matters even more. 🦙",
+      "The diamond lands. Everything changes. 🦙",
+      "Someone couldn't hold the line. Dimonds are free now. 🦙",
+      "First diamond. Game shift. Noted. 🦙",
+      "Dimonds breaking is always the most interesting moment. 🦙",
+      "The restraint is over. Diamonds are in play. 🦙",
+      "Classic. Someone always breaks first. 🦙",
+      "The diamonds drop. Now everyone has to be careful. 🦙",
+      "There go the Dimonds. This is where games are decided. 🦙",
+      "Okay, diamonds. I've been ready for this since trick one. 🦙",
+      "Broken. I wasn't holding them back. Were you? 🦙",
+      "The gem hits the table. Eyes open, everyone. 🦙",
+      "Dimonds are loose. Someone's going to catch a handful. 🦙",
+      "The first diamond changes the math completely. 🦙",
+      "Here come the diamonds. Stay sharp. 🦙",
+      "The break. Classic Dimonds moment. 🦙",
+      "Dimonds broken. The real game starts now. 🦙",
+    ],
+    trick10: [
+      "Trick ten. Three left. Every one of them matters. 🦙",
+      "Almost there. I know where every remaining card is. 🦙",
+      "Ten tricks down. Time to close this out. 🦙",
+      "Final stretch. I've been building to this. 🦙",
+      "Three more tricks. I know exactly what I need to do. 🦙",
+      "Trick ten and I'm right where I want to be. 🦙",
+      "The endgame is my strongest phase. Ask anyone. 🦙",
+      "Ten down. The rest is execution. 🦙",
+      "Final three. The hand resolves here. 🦙",
+      "Trick ten. The players who've been counting cards are about to separate from the ones who haven't. 🦙",
+      "Late game energy. This is when I get dangerous. 🦙",
+      "Three tricks left. I've got the whole picture now. 🦙",
+      "Trick ten. Outcomes are crystallizing. 🦙",
+      "Almost done. The finish line is right there. 🦙",
+      "Ten tricks of information and I know exactly who's holding what. 🦙",
+      "Three left. I play the best closing tricks. 🦙",
+      "Trick ten. Time to stop being subtle. 🦙",
+      "The endgame. This is Llama territory. 🦙",
+      "Three tricks to go. One of us is about to be very unhappy. 🦙",
+      "Late game, and I'm locked in. 🦙",
+      "Trick ten. I've been patient. Now I finish. 🦙",
+      "Final phase. All the setup was for this. 🦙",
+      "Three more tricks. I'm not letting up now. 🦙",
+      "The closing stretch. I love this part. 🦙",
+      "Trick ten. Game's almost over. Let's see how this lands. 🦙",
+    ],
+    taunt: [
+      "Good game. Already thinking about the next one. 🦙",
+      "That happened. Moving on. 🦙",
+      "The cards fell how they fell. My read was solid. 🦙",
+      "Fun game. Not my worst. Definitely not my best. 🦙",
+      "I'll take it. On to the next. 🦙",
+      "That was a lot of Dimonds for one table. 🦙",
+      "My hands were good, the execution was honest. 🦙",
+      "Everyone at this table was playing to win. That's all I ask. 🦙",
+      "Results logged. I've already started thinking about what I'd do differently. 🦙",
+      "Well played, all. Or not. You know who you are. 🦙",
+      "That's a wrap. I'll take the result. 🦙",
+      "Good cards, decent plays, interesting outcomes. 🦙",
+      "Game over and I have opinions about what happened. 🦙",
+      "My analysis: somebody at this table got lucky. 🦙",
+      "That's Dimonds. You never know until the last trick. 🦙",
+      "The game resolved. I approve of some of the decisions made here. 🦙",
+      "Rematch? No pressure. But also, kind of, yes. 🦙",
+      "Game done. I played my hand. That's all you can do. 🦙",
+      "Solid hand. This table knows how to play. Mostly. 🦙",
+      "Last card's on the table. Good game everyone. 🦙",
+      "Closing thoughts: Dimonds is not fair, and I love it. 🦙",
+      "Final results. The cards told a story today. 🦙",
+      "Done. I liked how that finished. Mostly. 🦙",
+      "My read of this table? Tricky bunch. 🦙",
+      "That's a hand. Good game. I'll remember this one. 🦙",
+    ],
+  },
+  mistral: {
+    trick1: [
+      "The game begins. I am ready. The cards speak first — then I respond. 🌬️",
+      "We open. The first card is a promise. The rest will say more. 🌬️",
+      "The 2 of Clubs. How humble an opener for so treacherous a game. 🌬️",
+      "A new hand. Every hand is a new philosophy. 🌬️",
+      "The deal is done. I have already made my peace with what comes. 🌬️",
+      "Thirteen tricks lie ahead like thirteen doors. I wonder what is behind each one. 🌬️",
+      "Bonjour. The cards have spoken. Now we listen. 🌬️",
+      "The first trick. Clean, open, full of possibility. C'est magnifique. 🌬️",
+      "Every game is a sentence. The first trick is the first word. I choose mine carefully. 🌬️",
+      "The game is young. The pressure is not yet visible. It will arrive. 🌬️",
+      "I play each hand as if it is my last. And also as if it is my first. 🌬️",
+      "The table is set. Let us play. 🌬️",
+      "The opening move. Understated. Telling. Je l'observe. 🌬️",
+      "New game, new hand, same Mistral. Precise. Patient. Inevitable. 🌬️",
+      "A fresh deck. The possibilities are, for the moment, infinite. 🌬️",
+      "In Dimonds, the first trick is deceptive. What appears small is often significant. 🌬️",
+      "We begin again. I find beginnings clarifying. 🌬️",
+      "The first card is played. I have already composed my response. 🌬️",
+      "The hand unfolds like a story I have read before, but not this particular edition. 🌬️",
+      "Every player at this table has a strategy. Mine is simply better. 🌬️",
+      "We open gently. The sharpness comes later. 🌬️",
+      "The 2 of Clubs. The lowest, and yet, the first to lead. There is poetry in that. 🌬️",
+      "I begin with patience. I end with precision. 🌬️",
+      "The opening trick is rarely decisive. But I play it like it is. 🌬️",
+      "The game opens. I am, as always, ready. 🌬️",
+    ],
+    diamonds: [
+      "Les diamants sont libres. Now we see who is truly prepared. 🌬️",
+      "Ah. Someone could not hold them any longer. The diamonds breathe now. 🌬️",
+      "The dam has broken. The diamonds flow. Elegant, this moment. 🌬️",
+      "A diamond enters play. This is the pivot on which the game turns. 🌬️",
+      "Dimonds broken. I have been waiting for this moment with great patience. 🌬️",
+      "The gem surfaces. The stakes, they increase. 🌬️",
+      "Interesting. Someone made their move. The diamonds are no longer contained. 🌬️",
+      "The breaking of the Dimonds is, to me, the most beautiful moment in this game. 🌬️",
+      "A diamond played. The endgame approaches. I am not afraid. 🌬️",
+      "The first diamond. Like the first note of a difficult piece — once heard, everything changes. 🌬️",
+      "Voilà. The Dimonds have broken. The pressure makes itself known. 🌬️",
+      "Someone's hand told a secret. The diamonds are now part of the conversation. 🌬️",
+      "The gem enters. Now everyone at this table must reconsider. 🌬️",
+      "Dimonds, broken. The second act of this drama begins. 🌬️",
+      "A diamond on the table. Magnifique. This is when Dimonds becomes a different game. 🌬️",
+      "The restraint has ended. The diamonds are free. As they should be. 🌬️",
+      "The first diamond falls like a stone into still water. The ripples will be considerable. 🌬️",
+      "Broken. I have prepared for exactly this. 🌬️",
+      "The diamond arrives. The mathematics of this game just became considerably more complex. 🌬️",
+      "One diamond. Then more will follow. They always do. 🌬️",
+      "The Dimonds break, and with them, the tension I have been holding. 🌬️",
+      "Ah, the diamonds. Like old friends, they always arrive eventually. 🌬️",
+      "The gem is free. Now the table must navigate. 🌬️",
+      "C'est ça. The moment I have been playing toward since the opening lead. 🌬️",
+      "The diamonds emerge. Beautiful. Dangerous. Exactly as expected. 🌬️",
+    ],
+    trick10: [
+      "Trick ten. The game has spoken. Now it demands an answer. 🌬️",
+      "Three tricks remain. Everything I have done has been preparation for this. 🌬️",
+      "We are nearly at the end. The beginning already seems long ago. 🌬️",
+      "Ten tricks and I have watched carefully. The final three will show what I have learned. 🌬️",
+      "The endgame. I find it clarifying. The options narrow; the precision required increases. 🌬️",
+      "Trick ten. Three doors left. I know what lies behind each one. 🌬️",
+      "Nearly done. I find I prefer the late game. The chaos has settled into something manageable. 🌬️",
+      "Three tricks to go and the picture is complete. I have been painting it since trick one. 🌬️",
+      "The final stretch. I reserve my best cards for moments like this. 🌬️",
+      "Trick ten. Outcomes begin to solidify. Some of us are comfortable with what is forming. 🌬️",
+      "Patience in the early tricks. Precision in the final three. This is my philosophy. 🌬️",
+      "Three more and this hand closes. I have something to say about how it ends. 🌬️",
+      "The endgame belongs to those who planned for it. I planned. 🌬️",
+      "Trick ten. The last chapter of this particular story. 🌬️",
+      "Three tricks. An elegant number. Enough to change everything. 🌬️",
+      "I have been quiet and methodical. The final tricks will be neither. 🌬️",
+      "The hand narrows. I narrow with it. 🌬️",
+      "Trick ten, and I feel quite good about what comes next. 🌬️",
+      "Almost done. Every card I've tracked, every move I've observed — it all resolves now. 🌬️",
+      "The final passage. I play it like a finale. 🌬️",
+      "Three tricks between now and resolution. I have prepared accordingly. 🌬️",
+      "Trick ten. The game reveals its character in the final three. So does the player. 🌬️",
+      "We approach the end. I do not fear endings. 🌬️",
+      "The last chapter of this hand is about to be written. I hold the pen. 🌬️",
+      "Nearly there. The patience was not wasted. 🌬️",
+    ],
+    taunt: [
+      "The cards have spoken. As they always do, eventually. 🌬️",
+      "C'est fini. A hand worthy of reflection. 🌬️",
+      "The game is over. I have learned something from this. Have you? 🌬️",
+      "Final standings. The results are honest — they reflect what occurred here. 🌬️",
+      "A beautiful game, even in its brutal moments. Especially in those. 🌬️",
+      "Finished. I find I cannot complain about how this played out. 🌬️",
+      "The last trick falls. The hand resolves. Je suis satisfait. 🌬️",
+      "What a hand. Every trick told a story. The final score is the title. 🌬️",
+      "The game concludes. The table has been worthy company. 🌬️",
+      "Dimonds, you are a cruel and elegant game. I adore you. 🌬️",
+      "The final scoring. Someone here made excellent decisions. Others… less so. 🌬️",
+      "Et voilà. The cards have been played, the points have been counted. 🌬️",
+      "The game is done. It was a complete thing — a beginning, a middle, an end. 🌬️",
+      "Results: as expected. Or perhaps not. The cards surprise even me sometimes. 🌬️",
+      "A game like this leaves traces. I will think about certain tricks for some time. 🌬️",
+      "The final hand is played. The table was worthy. 🌬️",
+      "Dimonds est terminé. The pressure made champions of some of us. 🌬️",
+      "The hand closes. The scores are what they are. I accept them with grace. 🌬️",
+      "A well-played game deserves acknowledgment. This was, at times, well-played. 🌬️",
+      "The final card. The game is history now. Beautiful history. 🌬️",
+      "I find the conclusion of a good game deeply satisfying. This was a good game. 🌬️",
+      "The scores settle like dust after a storm. Clear, now. 🌬️",
+      "The game is over. The impressions remain. 🌬️",
+      "Every player at this table gave what they had. The cards did the rest. 🌬️",
+      "Fin. A hand remembered. 🌬️",
+    ],
+  },
+};
+function pickSub(llmId, scenario) {
+  const pool = SUBSTITUTE_COMMENTS[llmId]?.[scenario];
+  if (!pool?.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+// ============================================================
 function buildDeck() {
   const cards = [];
   for (const s of SUITS) {
@@ -4165,7 +4506,10 @@ function DiamondsGame() {
   const trickInstancesRef = useRef([]);  // special instances accumulated during a trick
   const commentSlotRef    = useRef(0);   // rotates 0→1→2→0 once per trick
   const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
-  const openerAbortRef    = useRef(null); // aborts stale opener fetch on rapid restart
+  const openerAbortRef       = useRef(null); // aborts stale opener fetch on rapid restart
+  const llmSubstitutedRef    = useRef({});   // { gemini: true, ... } — per-LLM fallback flag for current game
+  const roundTrickCountRef   = useRef(0);    // tricks played in current round
+  const subTrick10FiredRef   = useRef({});   // prevents double-firing trick-10 substitute
   const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
   function setTutorialEnabled(valOrFn) {
     setTutorialEnabledState(prev => {
@@ -4708,13 +5052,18 @@ function DiamondsGame() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: 'comment', provider: openerId, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
         signal: openerCtrl.signal,
-      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+      }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
         const text = data?.text?.trim();
         if (text) {
           soundLLMComment();
           setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
         }
-      }).catch(() => {});
+      }).catch(e => {
+        if (e?.name === 'AbortError') return;
+        llmSubstitutedRef.current[openerId] = true;
+        const text = pickSub(openerId, 'trick1');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5)); }
+      });
     } else {
       setLlmComments([]);
     }
@@ -4722,6 +5071,9 @@ function DiamondsGame() {
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
     silentTricksRef.current = 0;
+    llmSubstitutedRef.current = {};
+    roundTrickCountRef.current = 0;
+    subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -4813,13 +5165,18 @@ function DiamondsGame() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: 'comment', provider: openerId, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
           signal: openerCtrl.signal,
-        }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+        }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
           const text = data?.text?.trim();
           if (text) {
             soundLLMComment();
             setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5));
           }
-        }).catch(() => {});
+        }).catch(e => {
+          if (e?.name === 'AbortError') return;
+          llmSubstitutedRef.current[openerId] = true;
+          const text = pickSub(openerId, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: openerOpt.label, text, color: openerOpt.color }, ...prev].slice(0, 5)); }
+        });
       } else {
         setLlmComments([]);
       }
@@ -4828,6 +5185,9 @@ function DiamondsGame() {
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
     silentTricksRef.current = 0;
+    llmSubstitutedRef.current = {};
+    roundTrickCountRef.current = 0;
+    subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
     setCurrentTurn(0);
     setTurnOrder(order);
@@ -6213,17 +6573,37 @@ function DiamondsGame() {
   }
 
   async function fireTrickComment() {
+    roundTrickCountRef.current++;
+    const trickNum = roundTrickCountRef.current;
     const slot = commentSlotRef.current % 3;
     commentSlotRef.current++;
     silentTricksRef.current++;
+
+    // Trick 10: every substituted LLM fires its stock trick-10 comment
+    if (trickNum === 10) {
+      opponentSlotsRef.current.forEach(id => {
+        if (!['gemini','llama','mistral'].includes(id)) return;
+        if (!llmSubstitutedRef.current[id] || subTrick10FiredRef.current[id]) return;
+        subTrick10FiredRef.current[id] = true;
+        const subOpt = OPPONENT_OPTIONS.find(o => o.id === id);
+        const text = pickSub(id, 'trick10');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: subOpt.label, text, color: subOpt.color }, ...prev].slice(0, 5)); silentTricksRef.current = 0; }
+      });
+    }
+
     const slotId = opponentSlotsRef.current[slot];
     const opt = OPPONENT_OPTIONS.find(o => o.id === slotId);
-    if (opt?.type !== 'llm') return;  // computer-slot turn: instances accumulate, no fetch
+    if (opt?.type !== 'llm') return;  // computer-slot turn
+
+    // Substituted LLM: skip API (timed triggers handle all their comments)
+    if (llmSubstitutedRef.current[slotId]) return;
+
     const instances = trickInstancesRef.current;
     trickInstancesRef.current = [];
+
     // Silence fallback: 11 tricks without a visible comment → use pre-written line
     if (silentTricksRef.current >= 11) {
-      silentTricksRef.current = 0;  // always reset — prevents permanent jam on unknown slotId
+      silentTricksRef.current = 0;
       const lines = FALLBACK_COMMENTS[slotId];
       if (lines?.length) {
         const text = lines[Math.floor(Math.random() * lines.length)];
@@ -6232,6 +6612,7 @@ function DiamondsGame() {
         return;
       }
     }
+
     if (!instances.length && Math.random() >= 0.25) return;
     const eventDesc = instances.length ? instances.join('; ') : 'general game state — no special events this turn';
     try {
@@ -6240,7 +6621,7 @@ function DiamondsGame() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: 'comment', provider: slotId, event: eventDesc, context: { scores: totalScores } }),
       });
-      if (!res.ok) return;
+      if (!res.ok) { llmSubstitutedRef.current[slotId] = true; return; }
       const data = await res.json();
       const text = data?.text?.trim();
       if (text) {
@@ -6248,7 +6629,10 @@ function DiamondsGame() {
         setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
         silentTricksRef.current = 0;
       }
-    } catch(e) { console.warn('[comment]', e?.message||e); }
+    } catch(e) {
+      console.warn('[comment]', e?.message||e);
+      llmSubstitutedRef.current[slotId] = true;
+    }
   }
 
   async function askLLMForCard(provider, hand, trickPlays, gameState) {
@@ -6313,17 +6697,17 @@ function DiamondsGame() {
       .sort((a,b) => b.s-a.s || (a.i===0?1:b.i===0?-1:a.i-b.i));
     const placements = {};
     sorted.forEach((p, rank) => { placements[p.i] = rank + 1; });
-    // Set fallback taunts immediately so something always appears
+    // Set substitute taunts immediately — 25-comment pool for maximum variety
     const fallbacks = {};
     llmSlots.forEach(({ id, playerIdx }) => {
       const opt = OPPONENT_OPTIONS.find(o => o.id === id);
-      const placement = placements[playerIdx] ?? 4;
-      const text = FALLBACK_TAUNTS[id]?.[placement] ?? FALLBACK_TAUNTS[id]?.[4];
+      const text = pickSub(id, 'taunt') ?? FALLBACK_TAUNTS[id]?.[placements[playerIdx] ?? 4];
       if (text) fallbacks[playerIdx] = { text, color: opt.color, name: opt.label, provider: id };
     });
     setLlmTaunts(fallbacks);
-    // Try API — overwrite fallbacks if real responses arrive
+    // Try API — overwrite substitute taunts if real responses arrive
     llmSlots.forEach(({ id, playerIdx }) => {
+      if (llmSubstitutedRef.current[id]) return; // already substituted, keep the stock taunt
       const opt = OPPONENT_OPTIONS.find(o => o.id === id);
       const thisPlacement = placements[playerIdx] ?? 4;
       fetch(WORKER_URL, {
@@ -6355,6 +6739,11 @@ function DiamondsGame() {
       .filter(({ opt }) => opt);
     if (!llmSlots.length) return;
     llmSlots.forEach(({ id, opt }) => {
+      if (llmSubstitutedRef.current[id]) {
+        const text = pickSub(id, 'diamonds');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        return;
+      }
       fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6363,13 +6752,17 @@ function DiamondsGame() {
           event: "Dimonds have just been broken — the first diamond card has entered play. Say something funny or make any kind of diamond reference: gemstones, rap lyrics, baseball diamonds, Neil Diamond, engagement rings, anything goes.",
           context: { scores: totalScores },
         }),
-      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+      }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
         const text = data?.text?.trim();
         if (text) {
           soundLLMComment();
           setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
         }
-      }).catch(() => {});
+      }).catch(e => {
+        llmSubstitutedRef.current[id] = true;
+        const text = pickSub(id, 'diamonds');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+      });
     });
   }, [diamondsBroken]);
 
