@@ -5069,7 +5069,7 @@ function DiamondsGame() {
           const text = pickSub(id, 'trick1');
           if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
         };
-        const timer = setTimeout(fireSub, 6000);
+        const timer = setTimeout(fireSub, 10000);
         fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -5199,7 +5199,7 @@ function DiamondsGame() {
             const text = pickSub(id, 'trick1');
             if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
           };
-          const timer = setTimeout(fireSub, 6000);
+          const timer = setTimeout(fireSub, 10000);
           fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -6796,7 +6796,7 @@ function DiamondsGame() {
         const text = pickSub(id, 'diamonds');
         if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
       };
-      const timer = setTimeout(fireSub, 6000);
+      const timer = setTimeout(fireSub, 10000);
       fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
