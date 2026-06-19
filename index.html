@@ -4483,6 +4483,7 @@ function DiamondsGame() {
   const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
   const openerAbortRef       = useRef(null); // aborts stale opener fetch on rapid restart
   const llmSubstitutedRef    = useRef({});   // { gemini: true, ... } — per-LLM fallback flag for current game
+  const llmFailCountRef      = useRef({});   // consecutive per-trick failures before substitution
   const roundTrickCountRef   = useRef(0);    // tricks played in current round
   // AI card knowledge: populated on steal, degrades 5%/round for Gordy+Vicky, permanent for Guy/LLMs
   // Structure: { [playerIdx]: { [opponentIdx]: Set<cardId> } }
@@ -5054,14 +5055,15 @@ function DiamondsGame() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: 'comment', provider: id, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
           signal: openerCtrl.signal,
-        }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+        }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+          if (data == null) return; // error response — let timer fire at 21s
           clearTimeout(timer);
           const text = data?.text?.trim();
           if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
           else fireSub();
         }).catch(e => {
-          clearTimeout(timer);
-          if (e?.name !== 'AbortError') fireSub();
+          if (e?.name === 'AbortError') clearTimeout(timer);
+          // Other failures: let the timer fire at 21s
         });
       }
     } else {
@@ -5073,6 +5075,7 @@ function DiamondsGame() {
     commentSlotRef.current = 0;
     silentTricksRef.current = 0;
     llmSubstitutedRef.current = {};
+    llmFailCountRef.current = {};
     roundTrickCountRef.current = 0;
     subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
@@ -5186,14 +5189,15 @@ function DiamondsGame() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: 'comment', provider: id, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
             signal: openerCtrl.signal,
-          }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+          }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+            if (data == null) return; // error response — let timer fire at 21s
             clearTimeout(timer);
             const text = data?.text?.trim();
             if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
             else fireSub();
           }).catch(e => {
-            clearTimeout(timer);
-            if (e?.name !== 'AbortError') fireSub();
+            if (e?.name === 'AbortError') clearTimeout(timer);
+            // Other failures: let the timer fire at 21s
           });
         }
       } else {
@@ -5206,6 +5210,7 @@ function DiamondsGame() {
     commentSlotRef.current = 0;
     silentTricksRef.current = 0;
     llmSubstitutedRef.current = {};
+    llmFailCountRef.current = {};
     roundTrickCountRef.current = 0;
     subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
@@ -6689,23 +6694,34 @@ function DiamondsGame() {
 
     if (!instances.length) return;  // only fire on significant events
     const eventDesc = instances.join('; ');
+    const trickCtrl = new AbortController();
+    const trickTimeout = setTimeout(() => trickCtrl.abort(), 21000);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: 'comment', provider: slotId, event: eventDesc, context: { scores: totalScores } }),
+        signal: trickCtrl.signal,
       });
-      if (!res.ok) { llmSubstitutedRef.current[slotId] = true; return; }
+      clearTimeout(trickTimeout);
+      if (!res.ok) {
+        llmFailCountRef.current[slotId] = (llmFailCountRef.current[slotId] || 0) + 1;
+        if (llmFailCountRef.current[slotId] >= 3) llmSubstitutedRef.current[slotId] = true;
+        return;
+      }
       const data = await res.json();
       const text = data?.text?.trim();
       if (text) {
+        llmFailCountRef.current[slotId] = 0;
         soundLLMComment();
         setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
         silentTricksRef.current = 0;
       }
     } catch(e) {
-      console.warn('[comment]', e?.message||e);
-      llmSubstitutedRef.current[slotId] = true;
+      clearTimeout(trickTimeout);
+      if (e?.name !== 'AbortError') console.warn('[comment]', e?.message||e);
+      llmFailCountRef.current[slotId] = (llmFailCountRef.current[slotId] || 0) + 1;
+      if (llmFailCountRef.current[slotId] >= 3) llmSubstitutedRef.current[slotId] = true;
     }
   }
 
@@ -6839,12 +6855,13 @@ function DiamondsGame() {
           event: "Dimonds have just been broken — the first diamond card has entered play. Say something funny or make any kind of diamond reference: gemstones, rap lyrics, baseball diamonds, Neil Diamond, engagement rings, anything goes.",
           context: { scores: totalScores },
         }),
-      }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+      }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+        if (data == null) return; // error response — let timer fire at 21s
         clearTimeout(timer);
         const text = data?.text?.trim();
         if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         else fireSub();
-      }).catch(() => { clearTimeout(timer); fireSub(); });
+      }).catch(e => { if (e?.name !== 'AbortError') return; clearTimeout(timer); });
     });
   }, [diamondsBroken]);
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v19';
+const CACHE_NAME = 'dimonds-v20';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
@@ -28,7 +28,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   // Network-first for AI worker requests; cache-first for everything else
   if (e.request.url.includes('workers.dev')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
+    e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;
   }
   e.respondWith(
