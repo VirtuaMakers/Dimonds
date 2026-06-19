@@ -7786,11 +7786,11 @@ function DiamondsGame() {
           }}>
             {/* Dimonds scoring key */}
             <div style={{color:VM.red+"cc",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:3}}>
+            <div style={{display:"flex",gap:8,flexWrap:"nowrap",marginBottom:3}}>
               {[["K♦","+5"],["Q♦","+4"],["J♦","+3"],["A♦","+2"],["#s","+1"]].map(([card,pts]) => (
-                <div key={card} style={{display:"flex",alignItems:"center",gap:5}}>
-                  <span style={{color:VM.red,fontSize:44,fontWeight:700,fontFamily:FONT_UI,lineHeight:1}}>{card}</span>
-                  <span style={{color:VM.tealLight,fontSize:44,fontWeight:700,fontFamily:FONT_UI,lineHeight:1}}>{pts}</span>
+                <div key={card} style={{display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{color:VM.red,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
+                  <span style={{color:VM.tealLight,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
                 </div>
               ))}
             </div>
