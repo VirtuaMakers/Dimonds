@@ -5371,9 +5371,7 @@ function DiamondsGame() {
   }
 
   function continuePlayFlow(playerIdx, card, newPlays, newHands) {
-    // (All set checks — R2/R3/R4, American Family, Golden Age, The Steal, Riot —
-    //  are handled exclusively by pre-play useEffects which gate on trickPlays.length === 0.
-    //  Sets must never be redeemed mid-trick.)
+
 
     // AUTO-CLAIM: if everyone but one player is out of cards, that player
     // automatically wins all their remaining cards as solo tricks.
@@ -7789,7 +7787,7 @@ function DiamondsGame() {
         {/* DESKTOP SETS CHEATSHEET — compact reference in the left margin of the hand area */}
         {isDesktop && (
           <div style={{
-            position:"absolute", left:10, top:-16, zIndex:4,
+            position:"absolute", left:10, top:-50, zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
             {/* Dimonds scoring key */}
@@ -8213,7 +8211,7 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (trickPlays.length === 0 && afAvail) {
+            if (afAvail) {
               setButtons.push(
                 <button key="af" onClick={()=>setPhase("americanfamily_offer")}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
@@ -8224,7 +8222,7 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (trickPlays.length === 0 && gaAvail) {
+            if (gaAvail) {
               setButtons.push(
                 <button key="ga" onClick={()=>{ setAcesLowState({playerIdx:0,hands:hands.map(h=>[...h]),continuation:null}); setPhase("aceslow_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
