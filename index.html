@@ -5049,21 +5049,32 @@ function DiamondsGame() {
       const openerCtrl = new AbortController();
       openerAbortRef.current = openerCtrl;
       llmIds.forEach(({ id, opt }) => {
-        // Fire substitute immediately — guaranteed chatter at round open
-        const subText = pickSub(id, 'trick1');
-        if (subText) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text: subText, color: opt.color }, ...prev].slice(0, 5)); }
-        if (llmSubstitutedRef.current[id]) return;
-        // Try live API — response prepends on top of the substitute if it arrives
+        if (llmSubstitutedRef.current[id]) {
+          const text = pickSub(id, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          return;
+        }
+        let done = false;
+        const fireSub = () => {
+          if (done) return; done = true;
+          llmSubstitutedRef.current[id] = true;
+          const text = pickSub(id, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        };
+        const timer = setTimeout(fireSub, 6000);
         fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ action: 'comment', provider: id, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
           signal: openerCtrl.signal,
         }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+          clearTimeout(timer);
           const text = data?.text?.trim();
-          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          else fireSub();
         }).catch(e => {
-          if (e?.name !== 'AbortError') llmSubstitutedRef.current[id] = true;
+          clearTimeout(timer);
+          if (e?.name !== 'AbortError') fireSub(); // AbortError = rapid restart, new game handles itself
         });
       });
     } else {
@@ -5164,21 +5175,32 @@ function DiamondsGame() {
         const openerCtrl = new AbortController();
         openerAbortRef.current = openerCtrl;
         llmIds.forEach(({ id, opt }) => {
-          // Fire substitute immediately — guaranteed chatter at game open
-          const subText = pickSub(id, 'trick1');
-          if (subText) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text: subText, color: opt.color }, ...prev].slice(0, 5)); }
-          if (llmSubstitutedRef.current[id]) return;
-          // Try live API — response prepends on top of the substitute if it arrives
+          if (llmSubstitutedRef.current[id]) {
+            const text = pickSub(id, 'trick1');
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            return;
+          }
+          let done = false;
+          const fireSub = () => {
+            if (done) return; done = true;
+            llmSubstitutedRef.current[id] = true;
+            const text = pickSub(id, 'trick1');
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          };
+          const timer = setTimeout(fireSub, 6000);
           fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: 'comment', provider: id, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
             signal: openerCtrl.signal,
           }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+            clearTimeout(timer);
             const text = data?.text?.trim();
-            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            else fireSub();
           }).catch(e => {
-            if (e?.name !== 'AbortError') llmSubstitutedRef.current[id] = true;
+            clearTimeout(timer);
+            if (e?.name !== 'AbortError') fireSub();
           });
         });
       } else {
@@ -6617,8 +6639,8 @@ function DiamondsGame() {
       }
     }
 
-    if (!instances.length && Math.random() >= 0.25) return;
-    const eventDesc = instances.length ? instances.join('; ') : 'general game state — no special events this turn';
+    if (!instances.length) return;  // only fire on significant events
+    const eventDesc = instances.join('; ');
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
@@ -6665,9 +6687,13 @@ function DiamondsGame() {
     if (!trickResult) return;
     const diamonds = trickResult.diamondsCaptured?.length ?? 0;
     const winner = allNames[trickResult.winnerIdx] ?? "Someone";
-    if (trickResult.americanFamily) flagTrickInstance(`${winner} scored the American Family bonus`);
-    else if (trickResult.jokerWin) flagTrickInstance(`${winner} played the Joker and stole a card`);
-    else if (diamonds > 0) flagTrickInstance(`${winner} won a trick scoring ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`);
+    if (trickResult.americanFamily) flagTrickInstance(`${winner} scored the American Family — turned in a set`);
+    if (trickResult.jokerWin) flagTrickInstance(`${winner} played the Joker and stole a card`);
+    if (trickResult.jackDiamondRob && trickResult.stolenCard) flagTrickInstance(`${winner} played the Jack of Diamonds and robbed a card`);
+    if (trickResult.queenClubsThieved) flagTrickInstance(`${winner} played the Queen of Clubs and stole a card`);
+    if (trickResult.queenClubsReallocated) flagTrickInstance(`${winner} used the Queen of Clubs to reallocate a card`);
+    if (trickResult.rule1Announced) flagTrickInstance(`Rule 1 triggered — a card was given away`);
+    if (diamonds > 0) flagTrickInstance(`${winner} won a trick scoring ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`);
     fireTrickComment();
   }, [trickResult]);
 
@@ -6743,11 +6769,19 @@ function DiamondsGame() {
       .filter(({ opt }) => opt);
     if (!llmSlots.length) return;
     llmSlots.forEach(({ id, opt }) => {
-      // Fire substitute immediately — guaranteed chatter when Dimonds break
-      const subText = pickSub(id, 'diamonds');
-      if (subText) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text: subText, color: opt.color }, ...prev].slice(0, 5)); }
-      if (llmSubstitutedRef.current[id]) return;
-      // Try live API — response prepends on top of the substitute if it arrives
+      if (llmSubstitutedRef.current[id]) {
+        const text = pickSub(id, 'diamonds');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        return;
+      }
+      let done = false;
+      const fireSub = () => {
+        if (done) return; done = true;
+        llmSubstitutedRef.current[id] = true;
+        const text = pickSub(id, 'diamonds');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+      };
+      const timer = setTimeout(fireSub, 6000);
       fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6757,9 +6791,11 @@ function DiamondsGame() {
           context: { scores: totalScores },
         }),
       }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
+        clearTimeout(timer);
         const text = data?.text?.trim();
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
-      }).catch(() => { llmSubstitutedRef.current[id] = true; });
+        if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        else fireSub();
+      }).catch(() => { clearTimeout(timer); fireSub(); });
     });
   }, [diamondsBroken]);
 
