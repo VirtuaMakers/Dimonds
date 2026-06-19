@@ -1990,57 +1990,14 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
 }
 
 function aiChooseKidnapTarget(hands, playerIdx) {
-  // PRIORITY 1: American Family completion.
-  // If we hold 3 of {J♦,Q♦,K♦,A♦} and an opponent holds the 4th, steal it.
-  // This intentionally makes the Joker→Kidnap→Family chain happen often
-  // during playtesting so players see the full event sequence.
-  const familyIds = ["J♦","Q♦","K♦","A♦"];
-  const myHand = hands[playerIdx] || [];
-  const myFamily = familyIds.filter(id => myHand.some(c => c.id === id));
-  if (myFamily.length === 3) {
-    const missingId = familyIds.find(id => !myFamily.includes(id));
-    for (let i=0; i<4; i++) {
-      if (i === playerIdx || hands[i].length === 0) continue;
-      const idx = hands[i].findIndex(c => c.id === missingId);
-      if (idx !== -1) {
-        return { fromPlayer: i, cardIdx: idx };
-      }
-    }
-    // 4th card not held by any opponent (shouldn't happen pre-AF-check, but safe)
+  const opponents = [];
+  for (let i = 0; i < hands.length; i++) {
+    if (i !== playerIdx && (hands[i]||[]).length > 0) opponents.push(i);
   }
-
-  // PRIORITY 2: If we hold 2 of the family, lean toward stealing a 3rd family card
-  // when one is available — sets up a future Family completion attempt.
-  if (myFamily.length === 2) {
-    const wantedIds = familyIds.filter(id => !myFamily.includes(id));
-    let bestFamily = null, bestFamilyPlayer = -1, bestFamilyIdx = -1, bestFamilyVal = -1;
-    for (let i=0; i<4; i++) {
-      if (i === playerIdx || hands[i].length === 0) continue;
-      hands[i].forEach((card, ci) => {
-        if (wantedIds.includes(card.id)) {
-          const val = diamondPoints(card) * 10 + cardScore(card);
-          if (val > bestFamilyVal) {
-            bestFamilyVal = val; bestFamily = card; bestFamilyPlayer = i; bestFamilyIdx = ci;
-          }
-        }
-      });
-    }
-    if (bestFamilyPlayer !== -1) {
-      return { fromPlayer: bestFamilyPlayer, cardIdx: bestFamilyIdx };
-    }
-  }
-
-  // PRIORITY 3 (fallback): pick the best card from any opponent's hand
-  let bestCard = null, bestPlayer = -1, bestIdx = -1, bestVal = -1;
-  for (let i=0; i<4; i++) {
-    if (i === playerIdx || hands[i].length === 0) continue;
-    hands[i].forEach((card, ci) => {
-      const val = isDiamond(card) ? diamondPoints(card) * 10 + cardScore(card) : cardScore(card);
-      if (val > bestVal) { bestVal = val; bestCard = card; bestPlayer = i; bestIdx = ci; }
-    });
-  }
-  if (bestPlayer === -1) return null;
-  return { fromPlayer: bestPlayer, cardIdx: bestIdx };
+  if (opponents.length === 0) return null;
+  const fromPlayer = opponents[Math.floor(Math.random() * opponents.length)];
+  const cardIdx = Math.floor(Math.random() * hands[fromPlayer].length);
+  return { fromPlayer, cardIdx };
 }
 
 // ============================================================
@@ -6300,41 +6257,15 @@ function DiamondsGame() {
     if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
 
-  // AI picks a card to rescue — prioritize American Family completion, else highest value
   function aiChooseRescueTarget(currentHands, playerIdx) {
-    const myHand = currentHands[playerIdx];
-    const familyIds = ["J♦","Q♦","K♦","A♦"];
-    const myFamily = myHand.filter(c => familyIds.includes(c.id));
-
-    // P1: AmFamily completion
-    if (myFamily.length === 3) {
-      const missing = familyIds.find(id => !myFamily.some(c => c.id === id));
-      for (let i=0; i<4; i++) {
-        if (i === playerIdx) continue;
-        const idx = currentHands[i].findIndex(c => c.id === missing);
-        if (idx >= 0) return { fromPlayer:i, cardIdx:idx };
-      }
+    const opponents = [];
+    for (let i = 0; i < currentHands.length; i++) {
+      if (i !== playerIdx && (currentHands[i]||[]).length > 0) opponents.push(i);
     }
-    if (myFamily.length === 2) {
-      const missing = familyIds.filter(id => !myFamily.some(c => c.id === id));
-      for (let i=0; i<4; i++) {
-        if (i === playerIdx) continue;
-        for (const m of missing) {
-          const idx = currentHands[i].findIndex(c => c.id === m);
-          if (idx >= 0) return { fromPlayer:i, cardIdx:idx };
-        }
-      }
-    }
-    // P2: highest-value card from any opponent
-    let best = null;
-    for (let i=0; i<4; i++) {
-      if (i === playerIdx) continue;
-      currentHands[i].forEach((c, ci) => {
-        const score = c.isJoker ? 999 : (isDiamond(c) ? 100 + diamondPoints(c)*5 : cardScore(c));
-        if (!best || score > best.score) best = { fromPlayer:i, cardIdx:ci, score };
-      });
-    }
-    return best ? { fromPlayer:best.fromPlayer, cardIdx:best.cardIdx } : null;
+    if (opponents.length === 0) return null;
+    const fromPlayer = opponents[Math.floor(Math.random() * opponents.length)];
+    const cardIdx = Math.floor(Math.random() * currentHands[fromPlayer].length);
+    return { fromPlayer, cardIdx };
   }
 
   function afterTrickResult() {
@@ -7058,27 +6989,22 @@ function DiamondsGame() {
         });
         const leader = sortedByScore[0];
         const nonLeaders = othersWithCards.filter(i => i !== leader); // source must have cards
-        let bestDiamond = null, takFrom = -1, takFromIdx = -1, bestVal = -1;
-        for (const p of nonLeaders) {
-          (currentHands[p]||[]).forEach((card, ci) => {
-            if (isDiamond(card)) {
-              const val = diamondPoints(card)*10 + cardScore(card);
-              if (val > bestVal) { bestVal = val; bestDiamond = card; takFrom = p; takFromIdx = ci; }
-            }
-          });
-        }
-        if (bestDiamond && takFrom !== -1) {
+        if (nonLeaders.length > 0) {
+          const takFrom = nonLeaders[Math.floor(Math.random() * nonLeaders.length)];
+          const sourceHand = currentHands[takFrom] || [];
+          const takFromIdx = Math.floor(Math.random() * sourceHand.length);
+          const movedCard = sourceHand[takFromIdx];
           const newHandsRealloc = currentHands.map((h, i) => {
             if (i === takFrom) return h.filter((_, ci) => ci !== takFromIdx);
-            if (i === leader) return [...h, bestDiamond];
+            if (i === leader) return [...h, movedCard];
             return h;
           });
-          addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${bestDiamond.rank}${bestDiamond.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
+          addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${movedCard.rank}${movedCard.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
           soundQueenClubsReallocates();
-          flyCardBetweenPlayers(bestDiamond, takFrom, leader);
+          flyCardBetweenPlayers(movedCard, takFrom, leader);
           setHands(newHandsRealloc);
           if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-          setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: bestDiamond, queenClubsFrom: takFrom, queenClubsTo: leader, queenClubsPlayerIdx: playerIdx });
+          setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: takFrom, queenClubsTo: leader, queenClubsPlayerIdx: playerIdx });
           setQueenClubsState(null);
           setPhase("trickresult");
           return;
@@ -7086,19 +7012,6 @@ function DiamondsGame() {
       }
 
       let target = aiChooseKidnapTarget(currentHands, playerIdx);
-
-      // Fallback: if algorithm returned null but other players DO have cards, pick best directly
-      if (!target) {
-        let bestVal = -1, bestPlayer = -1, bestIdx = -1;
-        for (let i = 0; i < 4; i++) {
-          if (i === playerIdx) continue;
-          (currentHands[i] || []).forEach((card, ci) => {
-            const val = isDiamond(card) ? diamondPoints(card) * 10 + cardScore(card) : cardScore(card);
-            if (val > bestVal) { bestVal = val; bestPlayer = i; bestIdx = ci; }
-          });
-        }
-        if (bestPlayer !== -1) target = { fromPlayer: bestPlayer, cardIdx: bestIdx };
-      }
 
       if (target) {
         const stolenCard = currentHands[target.fromPlayer]?.[target.cardIdx];
