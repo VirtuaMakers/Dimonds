@@ -108,11 +108,25 @@ function tauntPrompt({ placement, allNames, scores, winnerName, thisScore, topSc
     `Write ONE short post-game taunt or reaction (max 15 words). Be playful. No quotes.${ban}`;
 }
 
-function cardPlayPrompt(hand, trick, gameState) {
-  return `You are playing a trick-taking card game called Dimonds. ` +
-    `Your hand: ${JSON.stringify(hand)}. Current trick: ${JSON.stringify(trick)}. ` +
-    `Game state: ${JSON.stringify(gameState)}. ` +
-    `Reply with ONLY the cardId of the card you want to play from your hand. No explanation.`;
+function cardPlayPrompt(hand, trick, gs) {
+  const { trumpBroken, role, scores, tricksPlayed, roundNum, myPlayerIdx,
+          ledSuit, goldenAgeActive, otherHandSizes, cardsPlayedThisRound } = gs ?? {};
+  const parts = [
+    `You are playing a trick-taking card game called Dimonds where diamonds (♦) are trump.`,
+    `Your hand (pick one card from this list): ${JSON.stringify(hand)}.`,
+  ];
+  if (trick?.length) parts.push(`Current trick so far: ${JSON.stringify(trick)}.`);
+  if (ledSuit) parts.push(`The led suit is ${ledSuit} — you MUST follow suit if you have any ${ledSuit} cards.`);
+  if (trumpBroken != null) parts.push(`Diamonds broken: ${trumpBroken ? "yes — diamonds can be led and played" : "no — do not lead diamonds unless you have no other suit"}.`);
+  if (goldenAgeActive) parts.push(`Golden Age is active: all diamond point values are doubled this round.`);
+  if (cardsPlayedThisRound?.length) parts.push(`Cards played in previous tricks this round (use this to count cards and track who has what): ${JSON.stringify(cardsPlayedThisRound)}.`);
+  if (scores?.length) parts.push(`Current scores — ${scores.map(s => `${s.name}: ${s.total} total, ${s.round} this round`).join("; ")}.`);
+  if (tricksPlayed != null) parts.push(`Tricks completed: ${tricksPlayed} of 13.`);
+  if (roundNum != null) parts.push(`Round: ${roundNum}.`);
+  if (otherHandSizes) parts.push(`Other players' remaining hand sizes: ${JSON.stringify(otherHandSizes.map((n, i) => i === myPlayerIdx ? null : { player: i, cards: n }))}.`);
+  if (role) parts.push(`Your strategic role this round: ${role}.`);
+  parts.push(`Reply with ONLY the cardId of the card you want to play. No explanation.`);
+  return parts.join(" ");
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────

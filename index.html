@@ -4611,6 +4611,7 @@ function DiamondsGame() {
   const [swingingParadoxOffered, setSwingingParadoxOffered] = useState([null,null,null,null]); // null = never offered; string = "rank1,rank2" last offered
   const [goldenAgeActive, setGoldenAgeActive] = useState(false);
   const goldenAgeRef = useRef(false);
+  const playedCardsRef = useRef([]); // cards from completed tricks this round
   const roundEventLogRef = useRef([]); // accumulates events during the round
   const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
   const [roundEventLog, setRoundEventLog] = useState([]);
@@ -5069,7 +5070,7 @@ function DiamondsGame() {
           const text = pickSub(id, 'trick1');
           if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         };
-        const timer = setTimeout(fireSub, 10000);
+        const timer = setTimeout(fireSub, 20000);
         fetch(WORKER_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -5131,6 +5132,7 @@ function DiamondsGame() {
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
+    playedCardsRef.current = [];
     setDiamondsBroken(false);
     setDealRevealIdx(-1);
     setDealing(true);
@@ -5199,7 +5201,7 @@ function DiamondsGame() {
             const text = pickSub(id, 'trick1');
             if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
           };
-          const timer = setTimeout(fireSub, 10000);
+          const timer = setTimeout(fireSub, 20000);
           fetch(WORKER_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -5262,6 +5264,7 @@ function DiamondsGame() {
     setRoundScores([0,0,0,0]);
     setTricksPlayed(0);
     setIsFirstTrick(true);
+    playedCardsRef.current = [];
     setDiamondsBroken(false);
     setDealRevealIdx(-1);
     setDealing(true);
@@ -5422,6 +5425,7 @@ function DiamondsGame() {
   }
 
   function resolveTrickComplete(plays, currentHands) {
+    playedCardsRef.current = [...playedCardsRef.current, ...plays.map(p => ({ playerIdx: p.playerIdx, card: { id: p.card.id, rank: p.card.rank, suit: p.card.suit } }))];
     const result = resolveTrick(plays, diamondsBroken);
     const winner = result.winnerIdx;
     const trickCards = plays.map(p=>p.card);
@@ -6675,7 +6679,7 @@ function DiamondsGame() {
 
   async function askLLMForCard(provider, hand, trickPlays, gameState) {
     const ctrl = new AbortController();
-    const timeout = setTimeout(() => ctrl.abort(), 8000);
+    const timeout = setTimeout(() => ctrl.abort(), 12000);
     try {
       const res = await fetch(WORKER_URL, {
         method: "POST",
@@ -6794,7 +6798,7 @@ function DiamondsGame() {
         const text = pickSub(id, 'diamonds');
         if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
       };
-      const timer = setTimeout(fireSub, 10000);
+      const timer = setTimeout(fireSub, 20000);
       fetch(WORKER_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -6893,7 +6897,18 @@ function DiamondsGame() {
       const slotId = opponentSlotsRef.current[currentPlayer - 1];
       const isLLM = ['gemini','llama','mistral'].includes(slotId);
       if (isLLM) {
-        askLLMForCard(slotId, hand, trickPlaysRef.current, { trumpBroken: diamondsBroken, role }).then(llmCard => {
+        askLLMForCard(slotId, hand, trickPlaysRef.current, {
+          trumpBroken: diamondsBroken,
+          role,
+          scores: totalScores.map((s, i) => ({ name: allNames[i], total: s, round: roundScores[i] })),
+          tricksPlayed,
+          roundNum,
+          myPlayerIdx: currentPlayer,
+          ledSuit,
+          goldenAgeActive,
+          otherHandSizes: hands.map((h, i) => i === currentPlayer ? null : h.length),
+          cardsPlayedThisRound: playedCardsRef.current,
+        }).then(llmCard => {
           const card = llmCard || aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
           if (card) submitPlay(currentPlayer, card);
           else setCurrentTurn(t => t + 1);
