@@ -3182,6 +3182,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   const btnLabel = isGameOver ? "END"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
+    : result.pendingAceLockUp ? "PROCEED"
     : isHandOver ? "PROCEED"
     : "NEXT TRICK";
 
@@ -5632,8 +5633,10 @@ function DiamondsGame() {
         setPhase("rescue");
       }, 600);
     } else if (aceBlocked && !jackDPendingRobChoice) {
+      const hasLockUpTargets = currentHands.some((h, i) => i !== acePlay.playerIdx && h.length > 0);
+      const lockUpPayload = hasLockUpTargets ? { pendingAceLockUp: { acePlayerIdx: acePlay.playerIdx, hands: currentHands } } : {};
       setTimeout(() => {
-        setTrickResult(resultObj);
+        setTrickResult({ ...resultObj, ...lockUpPayload });
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         setPhase("trickresult");
       }, 600);
@@ -5835,7 +5838,9 @@ function DiamondsGame() {
       setPhase("trickresult");
       return;
     }
-    setTrickResult(finalResult);
+    const hasLockUpTargets = currentHands?.some((h, i) => i !== aceWinnerIdx && h.length > 0);
+    const lockUpPayload = (currentHands && hasLockUpTargets) ? { pendingAceLockUp: { acePlayerIdx: aceWinnerIdx, hands: currentHands } } : {};
+    setTrickResult({ ...finalResult, ...lockUpPayload });
     setAceRobChoiceState(null);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setPhase("trickresult");
@@ -6377,6 +6382,25 @@ function DiamondsGame() {
       }
       addLog(`♣ ${allNames[qcIdx]} (Queen of Clubs) — no cards to thieve`);
       // No targets — fall through to normal next-trick logic
+    }
+
+    // A♠ blocked AND locks up — fire rescue phase after block modal dismissed
+    if (trickResult?.pendingAceLockUp) {
+      const { acePlayerIdx, hands: lockUpHands } = trickResult.pendingAceLockUp;
+      const resultWithoutLockUp = { ...trickResult, pendingAceLockUp: undefined };
+      const hasTargets = lockUpHands?.some((h, i) => i !== acePlayerIdx && h.length > 0);
+      if (hasTargets) {
+        soundAceSuccess();
+        setRescueState({ acePlayerIdx, hands: lockUpHands, resultObj: resultWithoutLockUp, jokerLockedUp: false });
+        setPhase("rescue");
+        setTrickResult(null);
+        return;
+      }
+      addLog(`♠ ${allNames[acePlayerIdx]} (Ace of Spades) — no cards to lock up`);
+      soundAceNoTargets();
+      setTrickResult({ ...resultWithoutLockUp, aceRescueAttempted: true });
+      setPhase("trickresult");
+      return;
     }
 
     // Rule of 1 announcement (AI only) — resume turn after modal dismissed
