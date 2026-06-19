@@ -154,6 +154,7 @@ export default {
       if (action === "comment") {
         const prompt = commentPrompt(body.event ?? "", body.context ?? "", provider);
         const text = await callProvider(provider, prompt, env);
+        if (!text) return json({ error: "no response" }, 503);
         return json({ text });
       }
 
@@ -161,6 +162,7 @@ export default {
       if (action === "taunt") {
         const prompt = tauntPrompt(body, provider);
         const text = await callProvider(provider, prompt, env);
+        if (!text) return json({ error: "no response" }, 503);
         return json({ text });
       }
 
