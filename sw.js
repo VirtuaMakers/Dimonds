@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v11';
+const CACHE_NAME = 'dimonds-v12';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
