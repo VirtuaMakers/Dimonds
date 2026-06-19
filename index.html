@@ -1989,12 +1989,28 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
   return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
 }
 
-function aiChooseKidnapTarget(hands, playerIdx) {
+function aiChooseKidnapTarget(hands, playerIdx, knowledge) {
   const opponents = [];
   for (let i = 0; i < hands.length; i++) {
     if (i !== playerIdx && (hands[i]||[]).length > 0) opponents.push(i);
   }
   if (opponents.length === 0) return null;
+  // Use knowledge to target best known card
+  if (knowledge) {
+    let bestKnown = null, bestVal = -1;
+    for (const opp of opponents) {
+      const knownIds = knowledge[opp];
+      if (!knownIds) continue;
+      (hands[opp]||[]).forEach((card, ci) => {
+        if (knownIds.has(card.id)) {
+          const val = isDiamond(card) ? diamondPoints(card)*10 + cardScore(card) : cardScore(card);
+          if (val > bestVal) { bestVal = val; bestKnown = { fromPlayer: opp, cardIdx: ci }; }
+        }
+      });
+    }
+    if (bestKnown) return bestKnown;
+  }
+  // Blind random fallback
   const fromPlayer = opponents[Math.floor(Math.random() * opponents.length)];
   const cardIdx = Math.floor(Math.random() * hands[fromPlayer].length);
   return { fromPlayer, cardIdx };
@@ -4468,6 +4484,9 @@ function DiamondsGame() {
   const openerAbortRef       = useRef(null); // aborts stale opener fetch on rapid restart
   const llmSubstitutedRef    = useRef({});   // { gemini: true, ... } — per-LLM fallback flag for current game
   const roundTrickCountRef   = useRef(0);    // tricks played in current round
+  // AI card knowledge: populated on steal, degrades 5%/round for Gordy+Vicky, permanent for Guy/LLMs
+  // Structure: { [playerIdx]: { [opponentIdx]: Set<cardId> } }
+  const aiKnowledgeRef = useRef({});
   const subTrick10FiredRef   = useRef({});   // prevents double-firing trick-10 substitute
   const [tutorialEnabled, setTutorialEnabledState] = useState(() => typeof window !== 'undefined' ? localStorage.getItem('dimonds_skip_tutorial') !== '1' : true);
   function setTutorialEnabled(valOrFn) {
@@ -5048,6 +5067,7 @@ function DiamondsGame() {
     } else {
       setLlmComments([]);
     }
+    degradeKnowledge();
     setLlmTaunts({});
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
@@ -5180,6 +5200,7 @@ function DiamondsGame() {
         setLlmComments([]);
       }
     }
+    aiKnowledgeRef.current = {};
     setLlmTaunts({});
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
@@ -6249,6 +6270,45 @@ function DiamondsGame() {
     setPhase("playing");
     if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
+  // Snapshot all opponent hands into an AI player's knowledge bank after a steal
+  function snapshotKnowledge(stealerIdx, currentHands) {
+    if (stealerIdx === 0) return; // human doesn't use this bank
+    const bank = { ...(aiKnowledgeRef.current[stealerIdx] || {}) };
+    for (let i = 0; i < currentHands.length; i++) {
+      if (i === stealerIdx) continue;
+      const existing = bank[i] || new Set();
+      (currentHands[i] || []).forEach(c => existing.add(c.id));
+      bank[i] = existing;
+    }
+    aiKnowledgeRef.current = { ...aiKnowledgeRef.current, [stealerIdx]: bank };
+  }
+
+  // Apply per-round knowledge decay: Gordy and Vicky forget 5% (rounded up) each round;
+  // Guy and LLM players retain perfectly.
+  function degradeKnowledge() {
+    const DECAY_SLOTS = new Set(['gordy', 'vicky']);
+    const updated = { ...aiKnowledgeRef.current };
+    for (let pi = 1; pi <= 3; pi++) {
+      const slotId = opponentSlotsRef.current[pi - 1];
+      if (!DECAY_SLOTS.has(slotId)) continue;
+      const bank = updated[pi];
+      if (!bank) continue;
+      // Collect all known entries as a flat list to sample from
+      const entries = [];
+      for (const opp in bank) {
+        bank[opp].forEach(cardId => entries.push({ opp: parseInt(opp), cardId }));
+      }
+      const toForget = Math.ceil(entries.length * 0.05);
+      for (let f = 0; f < toForget; f++) {
+        const ri = Math.floor(Math.random() * entries.length);
+        const { opp, cardId } = entries.splice(ri, 1)[0];
+        bank[opp]?.delete(cardId);
+      }
+      updated[pi] = bank;
+    }
+    aiKnowledgeRef.current = updated;
+  }
+
   function dismissRuleFourEvent() {
     if (!ruleFourState) return;
     const { continuation } = ruleFourState;
@@ -6257,12 +6317,28 @@ function DiamondsGame() {
     if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
 
-  function aiChooseRescueTarget(currentHands, playerIdx) {
+  function aiChooseRescueTarget(currentHands, playerIdx, knowledge) {
     const opponents = [];
     for (let i = 0; i < currentHands.length; i++) {
       if (i !== playerIdx && (currentHands[i]||[]).length > 0) opponents.push(i);
     }
     if (opponents.length === 0) return null;
+    // Use knowledge to target best known card
+    if (knowledge) {
+      let bestKnown = null, bestVal = -1;
+      for (const opp of opponents) {
+        const knownIds = knowledge[opp];
+        if (!knownIds) continue;
+        (currentHands[opp]||[]).forEach((card, ci) => {
+          if (knownIds.has(card.id)) {
+            const score = card.isJoker ? 999 : (isDiamond(card) ? 100 + diamondPoints(card)*5 : cardScore(card));
+            if (score > bestVal) { bestVal = score; bestKnown = { fromPlayer: opp, cardIdx: ci }; }
+          }
+        });
+      }
+      if (bestKnown) return bestKnown;
+    }
+    // Blind random fallback
     const fromPlayer = opponents[Math.floor(Math.random() * opponents.length)];
     const cardIdx = Math.floor(Math.random() * currentHands[fromPlayer].length);
     return { fromPlayer, cardIdx };
@@ -6945,15 +7021,18 @@ function DiamondsGame() {
       const currentHands = kidnapState.hands;
       const isRobbin = !!kidnapState.isRobbinJack;
 
+      snapshotKnowledge(jokerPlayer, currentHands);
+      const jokerKnowledge = aiKnowledgeRef.current[jokerPlayer];
+
       if (isRobbin) {
         // Always rob the best available card — even a non-diamond (the "silly mistake" is allowed)
-        const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
+        const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge);
         if (!target) { handleKidnapSkip(); return; }
         handleKidnap(target.fromPlayer, target.cardIdx);
         return;
       }
 
-      const target = aiChooseKidnapTarget(currentHands, jokerPlayer);
+      const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge);
       if (target) {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
@@ -6976,6 +7055,7 @@ function DiamondsGame() {
       const state = queenClubsStateRef.current;
       if (!state || state.playerIdx === 0) return;
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
+      snapshotKnowledge(playerIdx, currentHands);
 
       // 30% chance to reallocate: take best diamond from a player with cards, give to the lowest-score player
       // In a score tie, prefer AI over human (AI wins ties in this game)
@@ -7011,7 +7091,8 @@ function DiamondsGame() {
         }
       }
 
-      let target = aiChooseKidnapTarget(currentHands, playerIdx);
+      snapshotKnowledge(playerIdx, currentHands);
+      let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx]);
 
       if (target) {
         const stolenCard = currentHands[target.fromPlayer]?.[target.cardIdx];
@@ -7048,7 +7129,8 @@ function DiamondsGame() {
     if (acePlayer === 0) return; // human handles it via RescueModal
 
     const timer = setTimeout(() => {
-      const target = aiChooseRescueTarget(rescueState.hands, acePlayer);
+      snapshotKnowledge(acePlayer, rescueState.hands);
+      const target = aiChooseRescueTarget(rescueState.hands, acePlayer, aiKnowledgeRef.current[acePlayer]);
       if (target) {
         handleRescue(target.fromPlayer, target.cardIdx);
       } else {
