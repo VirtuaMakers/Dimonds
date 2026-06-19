@@ -8868,7 +8868,7 @@ function DiamondsGame() {
           allNames={allNames}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
-          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0)}
+          isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (autoCompleteTricks && hands.filter(h=>h.length>0).length===1 && !hands.some(h=>h.some(c=>isDiamond(c))))}
           isGoldenAge={goldenAgeActive}
           roundScores={roundScores}
           totalScores={totalScores}
