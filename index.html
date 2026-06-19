@@ -6692,7 +6692,7 @@ function DiamondsGame() {
     if (trickResult.jackDiamondRob && trickResult.stolenCard) flagTrickInstance(`${winner} played the Jack of Diamonds and robbed a card`);
     if (trickResult.queenClubsThieved) flagTrickInstance(`${winner} played the Queen of Clubs and stole a card`);
     if (trickResult.queenClubsReallocated) flagTrickInstance(`${winner} used the Queen of Clubs to reallocate a card`);
-    if (trickResult.rule1Announced) flagTrickInstance(`Rule 1 triggered — a card was given away`);
+    if (trickResult.rule1Announced) flagTrickInstance(`Rule 1 triggered — a set was turned in, a card given away`);
     if (diamonds > 0) flagTrickInstance(`${winner} won a trick scoring ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`);
     fireTrickComment();
   }, [trickResult]);
