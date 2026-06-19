@@ -5052,12 +5052,16 @@ function DiamondsGame() {
       if (openerAbortRef.current) openerAbortRef.current.abort();
       const openerCtrl = new AbortController();
       openerAbortRef.current = openerCtrl;
+      // Offline LLMs: fire substitute opener immediately
       llmIds.forEach(({ id, opt }) => {
-        if (llmSubstitutedRef.current[id]) {
-          const text = pickSub(id, 'trick1');
-          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
-          return;
-        }
+        if (!llmSubstitutedRef.current[id]) return;
+        const text = pickSub(id, 'trick1');
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+      });
+      // Online LLMs: only the first one fires a live opener
+      const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
+      if (onlineOpener) {
+        const { id, opt } = onlineOpener;
         let done = false;
         const fireSub = () => {
           if (done) return; done = true;
@@ -5078,9 +5082,9 @@ function DiamondsGame() {
           else fireSub();
         }).catch(e => {
           clearTimeout(timer);
-          if (e?.name !== 'AbortError') fireSub(); // AbortError = rapid restart, new game handles itself
+          if (e?.name !== 'AbortError') fireSub();
         });
-      });
+      }
     } else {
       setLlmComments([]);
     }
@@ -5178,12 +5182,16 @@ function DiamondsGame() {
         if (openerAbortRef.current) openerAbortRef.current.abort();
         const openerCtrl = new AbortController();
         openerAbortRef.current = openerCtrl;
+        // Offline LLMs: fire substitute opener immediately
         llmIds.forEach(({ id, opt }) => {
-          if (llmSubstitutedRef.current[id]) {
-            const text = pickSub(id, 'trick1');
-            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
-            return;
-          }
+          if (!llmSubstitutedRef.current[id]) return;
+          const text = pickSub(id, 'trick1');
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        });
+        // Online LLMs: only the first one fires a live opener
+        const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
+        if (onlineOpener) {
+          const { id, opt } = onlineOpener;
           let done = false;
           const fireSub = () => {
             if (done) return; done = true;
@@ -5206,7 +5214,7 @@ function DiamondsGame() {
             clearTimeout(timer);
             if (e?.name !== 'AbortError') fireSub();
           });
-        });
+        }
       } else {
         setLlmComments([]);
       }
@@ -7675,7 +7683,7 @@ function DiamondsGame() {
           return (
             <div style={{padding:"4px 10px",borderBottom:"1px solid #ffffff08",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
               {llmComments.slice(0,3).map((c,i)=>(
-                <span key={i} style={{marginRight:16,fontSize:11,fontFamily:FONT_UI,opacity:i===0?1:i===1?0.65:0.4}}>
+                <span key={i} style={{marginRight:16,fontSize:11,fontFamily:FONT_UI,opacity:1}}>
                   {c.name && <span style={{color:"#ffffff",fontWeight:700}}>{c.name}: </span>}
                   <span style={{color:c.color}}>{c.text}</span>
                 </span>
@@ -7789,8 +7797,8 @@ function DiamondsGame() {
             <div style={{display:"flex",gap:8,flexWrap:"nowrap",marginBottom:3}}>
               {[["K♦","+5"],["Q♦","+4"],["J♦","+3"],["A♦","+2"],["#s","+1"]].map(([card,pts]) => (
                 <div key={card} style={{display:"flex",alignItems:"center",gap:3}}>
-                  <span style={{color:VM.red,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
-                  <span style={{color:VM.tealLight,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+                  <span style={{color:VM.red,fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
+                  <span style={{color:VM.tealLight,fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
                 </div>
               ))}
             </div>
