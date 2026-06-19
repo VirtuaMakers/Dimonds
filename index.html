@@ -7644,8 +7644,8 @@ function DiamondsGame() {
           if (!llmComments.length) return null; // shouldn't happen — default is set at round start
           return (
             <div style={{padding:"4px 10px",borderBottom:"1px solid #ffffff08",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
-              {llmComments.slice(0,2).map((c,i)=>(
-                <span key={i} style={{marginRight:16,fontSize:11,fontFamily:FONT_UI,opacity:i===0?1:0.5}}>
+              {llmComments.slice(0,3).map((c,i)=>(
+                <span key={i} style={{marginRight:16,fontSize:11,fontFamily:FONT_UI,opacity:i===0?1:i===1?0.65:0.4}}>
                   {c.name && <span style={{color:"#ffffff",fontWeight:700}}>{c.name}: </span>}
                   <span style={{color:c.color}}>{c.text}</span>
                 </span>
