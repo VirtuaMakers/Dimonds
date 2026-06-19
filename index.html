@@ -5056,7 +5056,7 @@ function DiamondsGame() {
       llmIds.forEach(({ id, opt }) => {
         if (!llmSubstitutedRef.current[id]) return;
         const text = pickSub(id, 'trick1');
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
       });
       // Online LLMs: only the first one fires a live opener
       const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
@@ -5067,7 +5067,7 @@ function DiamondsGame() {
           if (done) return; done = true;
           llmSubstitutedRef.current[id] = true;
           const text = pickSub(id, 'trick1');
-          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         };
         const timer = setTimeout(fireSub, 10000);
         fetch(WORKER_URL, {
@@ -5078,7 +5078,7 @@ function DiamondsGame() {
         }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
           clearTimeout(timer);
           const text = data?.text?.trim();
-          if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
           else fireSub();
         }).catch(e => {
           clearTimeout(timer);
@@ -5186,7 +5186,7 @@ function DiamondsGame() {
         llmIds.forEach(({ id, opt }) => {
           if (!llmSubstitutedRef.current[id]) return;
           const text = pickSub(id, 'trick1');
-          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+          if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         });
         // Online LLMs: only the first one fires a live opener
         const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
@@ -5197,7 +5197,7 @@ function DiamondsGame() {
             if (done) return; done = true;
             llmSubstitutedRef.current[id] = true;
             const text = pickSub(id, 'trick1');
-            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
           };
           const timer = setTimeout(fireSub, 10000);
           fetch(WORKER_URL, {
@@ -5208,7 +5208,7 @@ function DiamondsGame() {
           }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
             clearTimeout(timer);
             const text = data?.text?.trim();
-            if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+            if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
             else fireSub();
           }).catch(e => {
             clearTimeout(timer);
@@ -6625,7 +6625,7 @@ function DiamondsGame() {
         subTrick10FiredRef.current[id] = true;
         const subOpt = OPPONENT_OPTIONS.find(o => o.id === id);
         const text = pickSub(id, 'trick10');
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: subOpt.label, text, color: subOpt.color }, ...prev].slice(0, 5)); silentTricksRef.current = 0; }
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: subOpt.label, text, color: subOpt.color }, ...prev].slice(0, 6)); silentTricksRef.current = 0; }
       });
     }
 
@@ -6646,7 +6646,7 @@ function DiamondsGame() {
       if (lines?.length) {
         const text = lines[Math.floor(Math.random() * lines.length)];
         soundLLMComment();
-        setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
+        setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
         return;
       }
     }
@@ -6664,7 +6664,7 @@ function DiamondsGame() {
       const text = data?.text?.trim();
       if (text) {
         soundLLMComment();
-        setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5));
+        setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
         silentTricksRef.current = 0;
       }
     } catch(e) {
@@ -6784,7 +6784,7 @@ function DiamondsGame() {
     llmSlots.forEach(({ id, opt }) => {
       if (llmSubstitutedRef.current[id]) {
         const text = pickSub(id, 'diamonds');
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         return;
       }
       let done = false;
@@ -6792,7 +6792,7 @@ function DiamondsGame() {
         if (done) return; done = true;
         llmSubstitutedRef.current[id] = true;
         const text = pickSub(id, 'diamonds');
-        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
       };
       const timer = setTimeout(fireSub, 10000);
       fetch(WORKER_URL, {
@@ -6806,7 +6806,7 @@ function DiamondsGame() {
       }).then(r => { if (!r.ok) throw new Error('not ok'); return r.json(); }).then(data => {
         clearTimeout(timer);
         const text = data?.text?.trim();
-        if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 5)); }
+        if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         else fireSub();
       }).catch(() => { clearTimeout(timer); fireSub(); });
     });
@@ -7679,8 +7679,14 @@ function DiamondsGame() {
         if (hasLLM) {
           if (!llmComments.length) return null; // shouldn't happen — default is set at round start
           return (
-            <div style={{padding:"4px 10px",borderBottom:"1px solid #ffffff08",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap"}}>
-              {llmComments.slice(0,3).map((c,i)=>(
+            <div
+              style={{padding:"4px 10px",borderBottom:"1px solid #ffffff08",flexShrink:0,overflowX:"auto",whiteSpace:"nowrap",cursor:"grab",userSelect:"none"}}
+              onMouseDown={e=>{const el=e.currentTarget;el._drag=true;el._sx=e.pageX;el._sl=el.scrollLeft;el.style.cursor='grabbing';}}
+              onMouseUp={e=>{e.currentTarget._drag=false;e.currentTarget.style.cursor='grab';}}
+              onMouseLeave={e=>{e.currentTarget._drag=false;e.currentTarget.style.cursor='grab';}}
+              onMouseMove={e=>{const el=e.currentTarget;if(!el._drag)return;e.preventDefault();el.scrollLeft=el._sl-(e.pageX-el._sx);}}
+            >
+              {llmComments.slice(0,6).map((c,i)=>(
                 <span key={i} style={{marginRight:16,fontSize:11,fontFamily:FONT_UI,opacity:1}}>
                   {c.name && <span style={{color:"#ffffff",fontWeight:700}}>{c.name}: </span>}
                   <span style={{color:c.color}}>{c.text}</span>
