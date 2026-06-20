@@ -46,18 +46,19 @@ async function callGemini(prompt, env) {
     });
   } catch(e) {
     clearTimeout(timer);
-    return `[Gemini fetch error: ${e?.name} ${e?.message?.slice(0,80)}]`;
+    throw new Error(`Gemini fetch: ${e?.name}`);
   }
   clearTimeout(timer);
   if (!res.ok) {
     const errBody = await res.text();
-    return `[Gemini ${res.status}: ${errBody.slice(0, 120)}]`;
+    console.error(`[Gemini] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Gemini ${res.status}`);
   }
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
   if (!text) {
     const reason = data?.candidates?.[0]?.finishReason ?? data?.promptFeedback?.blockReason ?? "unknown";
-    return `[Gemini empty: ${reason} / ${JSON.stringify(data).slice(0, 100)}]`;
+    console.error(`[Gemini] Empty text, reason: ${reason}`);
   }
   return text;
 }
