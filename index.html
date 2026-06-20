@@ -8144,11 +8144,11 @@ function DiamondsGame() {
       </div>
     ) : (
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
-        <GoldBtn onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
-        <GoldBtn onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn>
-        <GoldBtn secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
-        <GoldBtn secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
-        <GoldBtn secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
+        <div style={{height:44}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
+        <div style={{height:44}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
+        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
       </div>
     );
     return (
