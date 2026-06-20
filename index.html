@@ -4840,7 +4840,8 @@ function DiamondsGame() {
   const [llmComments, setLlmComments] = useState([]);
   const [llmTaunts, setLlmTaunts] = useState({});
   const trickInstancesRef = useRef([]);  // special instances accumulated during a trick
-  const commentSlotRef    = useRef(0);   // rotates 0→1→2→0 once per trick
+  const commentSlotRef      = useRef(0);        // rotates 0→1→2→0 once per trick
+  const commentSlotOrderRef = useRef([0, 1, 2]); // shuffled each game so no LLM always speaks first
   const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
   const openerAbortRef       = useRef(null); // aborts stale opener fetch on rapid restart
   const openerGenRef         = useRef(0);    // increments each round/game; guards stale .then() callbacks
@@ -5622,8 +5623,9 @@ function DiamondsGame() {
         const text = pickSub(id, 'trick1');
         if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
       });
-      // Online LLMs: only the first one fires a live opener
-      const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
+      // Online LLMs: pick one randomly to fire a live opener
+      const onlineLLMs = llmIds.filter(({ id }) => !llmSubstitutedRef.current[id]);
+      const onlineOpener = onlineLLMs.length ? onlineLLMs[Math.floor(Math.random() * onlineLLMs.length)] : null;
       if (onlineOpener) {
         const { id, opt } = onlineOpener;
         let done = false;
@@ -5658,6 +5660,7 @@ function DiamondsGame() {
     setLlmTaunts({});
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
+    { const s=[0,1,2]; for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[s[i],s[j]]=[s[j],s[i]];} commentSlotOrderRef.current=s; }
     silentTricksRef.current = 0;
     llmSubstitutedRef.current = {};
     llmFailCountRef.current = {};
@@ -5799,6 +5802,7 @@ function DiamondsGame() {
     setLlmTaunts({});
     trickInstancesRef.current = [];
     commentSlotRef.current = 0;
+    { const s=[0,1,2]; for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[s[i],s[j]]=[s[j],s[i]];} commentSlotOrderRef.current=s; }
     silentTricksRef.current = 0;
     llmSubstitutedRef.current = {};
     llmFailCountRef.current = {};
@@ -7375,7 +7379,7 @@ function DiamondsGame() {
   async function fireTrickComment() {
     roundTrickCountRef.current++;
     const trickNum = roundTrickCountRef.current;
-    const slot = commentSlotRef.current % 3;
+    const slot = commentSlotOrderRef.current[commentSlotRef.current % 3];
     commentSlotRef.current++;
     silentTricksRef.current++;
 
