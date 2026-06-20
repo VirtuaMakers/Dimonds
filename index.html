@@ -5249,7 +5249,8 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
     if (trickPlays.some(p => p.playerIdx === cp)) return;
     if (theStealOffered[cp]) return;
-    if (checkShowdown(hands[cp] || [])) return; // Showdown takes priority
+    if (checkShowdown(hands[cp] || [])) return;       // Showdown (+50) takes priority
+    if (checkAmericanFamily(hands[cp] || [])) return; // First Family (+40) takes priority
     if (!checkTheSteal(hands[cp] || [])) return;
     // Mark offered so it only fires once per round per player
     setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
@@ -5293,6 +5294,10 @@ function DiamondsGame() {
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (riotOffered[cp]) return;
+    // Higher-value sets take priority — yield so they can fire cleanly
+    if (checkShowdown(hands[cp] || [])) return;
+    if (checkAmericanFamily(hands[cp] || [])) return;
+    if (checkTheSteal(hands[cp] || [])) return;
     const riotCards = checkRiot(hands[cp] || [], diamondsBroken);
     if (!riotCards) return;
     setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
@@ -5598,6 +5603,7 @@ function DiamondsGame() {
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (americanFamilyOffered[cp]) return;
+    if (checkShowdown(hands[cp] || [])) return; // Showdown fires first and takes priority
     if (!checkAmericanFamily(hands[cp] || [])) return;
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
     if (cp === mySeatingIdxRef.current) {
@@ -5614,6 +5620,7 @@ function DiamondsGame() {
       soundAmericanFamily();
       const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
+      setHands(hands.map((h,i) => i===cp ? h.filter(c=>!famIds.has(c.id)) : h));
       setTimeout(() => {
         setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
         setPhase("trickresult");
@@ -6089,6 +6096,7 @@ function DiamondsGame() {
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
     const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
     const familyCards = (hands[playerIdx]||[]).filter(c=>famIds.has(c.id));
+    setHands(hands.map((h,i) => i===playerIdx ? h.filter(c=>!famIds.has(c.id)) : h));
     setTrickResult({ winnerIdx:playerIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
     setPhase("trickresult");
   }
