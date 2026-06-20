@@ -5930,6 +5930,7 @@ function DiamondsGame() {
       return h;
     });
     setHands(newHands);
+    if (targetIdx === 0) setDealRevealIdx(prev => prev + 1);
     setRule1State(null);
     setRule1UsedThisTurn(prev => { const n=[...prev]; n[giverIdx]=true; rule1UsedThisTurnRef.current=n; return n; });
     addLog(`💠 ${allNames[giverIdx]} gives ${card.rank}${card.suit} to ${allNames[targetIdx]} (Rule of 1 — Girl's Best Friend)`);
