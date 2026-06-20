@@ -5310,7 +5310,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setRiotState({ playerIdx: cp, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
+      setRiotState({ playerIdx: cp, cards: riotCards, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
       setPhase("riot_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx, diamondsBroken]);
@@ -9336,7 +9336,7 @@ function DiamondsGame() {
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Set</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>RIOT</h2>
             <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
-              You hold 8 {riotState.suit} cards!
+              You hold {riotState.cards?.length ?? 7} {riotState.suit} cards!
             </p>
             <p style={{color:VM.gold,fontSize:14,fontWeight:700,margin:"0 0 4px"}}>
               End the Round: +{RIOT_BONUS*(goldenAgeRef.current?2:1)} pts
@@ -9359,7 +9359,7 @@ function DiamondsGame() {
       {phase==="riot_event" && riotState && (
         <EventBox borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>8 {riotState.suit} cards redeemed — Round over!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{riotState.cards?.length ?? 7} {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{riotState.points} pts 🔥</span>
           </div>
