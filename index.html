@@ -5260,7 +5260,7 @@ function DiamondsGame() {
       setHands(newHands);
       const newRS = [...roundScores]; newRS[cp] += pts;
       setRoundScores(newRS);
-      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${pts} pts. Playing on…`);
+      addLog(`🌇 ${allNames[cp]} triggers THE STEAL! +${pts} pts. Round ends!`);
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌇", setName:"The Steal", cards:[] });
       soundTheSteal();
       flagTrickInstance(`${allNames[cp]} triggered The Steal combo and is playing on`);
@@ -5273,7 +5273,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setTheStealState({ playerIdx: cp, points: pts, aiEvent: true });
+      setTheStealState({ playerIdx: cp, points: pts, aiEvent: true, pendingRound: newRS, pendingTotal: newTotal });
       setPhase("thesteal_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
@@ -6659,8 +6659,14 @@ function DiamondsGame() {
     setPhase("playing");
   }
   function dismissTheStealEvent() {
+    if (!theStealState) return;
+    const { pendingRound, pendingTotal } = theStealState;
     setTheStealState(null);
-    setPhase("playing");
+    setRoundScores(pendingRound);
+    setTotalScores(pendingTotal);
+    soundRoundWin();
+    setPhase("roundover");
+    setRoundNum(r=>r+1);
   }
 
   function handleRiotEndRound() {
@@ -9291,7 +9297,7 @@ function DiamondsGame() {
       {phase==="thesteal_event" && theStealState && (
         <EventBox borderColor="#cc5500" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 of 4 steal cards — cashed in!</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 steal cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
           </div>
