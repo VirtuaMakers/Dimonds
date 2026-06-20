@@ -317,6 +317,26 @@ function soundSwingingParadox() {
   );
 }
 
+// Rule of 5 (Nuclear Family) — warm family chord, ascending harp-like
+function soundNuclearFamily() {
+  [261, 329, 392, 523, 659].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.16, attack:0.01, decay:0.5, delay:i*0.08 })
+  );
+  [523, 659, 784].forEach((f, i) =>
+    playTone({ freq:f, type:"triangle", volume:0.10, attack:0.008, decay:0.4, delay:0.35+i*0.09 })
+  );
+}
+
+// Rule of 6 (Blood Diamond) — dramatic descending power chord with shimmer
+function soundBloodDiamond() {
+  [392, 329, 261, 196].forEach((f, i) =>
+    playTone({ freq:f, type:"sawtooth", volume:0.14, attack:0.01, decay:0.48, delay:i*0.09 })
+  );
+  [1046, 1319, 1568].forEach((f, i) =>
+    playTone({ freq:f, type:"sine", volume:0.09, attack:0.005, decay:0.35, delay:0.10+i*0.07 })
+  );
+}
+
 // Ace of Spades blocks Joker (via Robbin Jack summon) — heroic rising shield, E minor
 function soundAceBlocks() {
   [164, 196, 246, 329].forEach((f, i) =>
@@ -1234,7 +1254,7 @@ function fbArr(x) { return Array.isArray(x) ? x : Object.values(x ?? {}); }
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WIN_SCORE = 80;
-const AMERICAN_FAMILY_BONUS = 30;
+const AMERICAN_FAMILY_BONUS = 40;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
 const AI_PERSONAS = [
   { name:"Gordy", emoji:"🚨", style:"Aggressive",  desc:"plays high, hunts Family" },
@@ -1697,20 +1717,20 @@ function checkAcesLow(hand) {
   const needed = ["A♠","A♥","A♣","A♦"];
   return needed.every(id => hand.find(c => c.id===id));
 }
-const ACES_LOW_BONUS = 35;
+const ACES_LOW_BONUS = 45;
 
 // THE STEAL — any 3 of the 4 special steal cards in one hand
 function checkTheSteal(hand) {
   const count = [hand.some(c=>c.isJoker), hand.some(c=>isQueenClubs(c)), hand.some(c=>isJackDiamond(c)), hand.some(c=>isAceSpades(c))].filter(Boolean).length;
   return count >= 3;
 }
-const THE_STEAL_BONUS = 25;
+const THE_STEAL_BONUS = 35;
 
 // SHOWDOWN — all four special steal cards in one hand
 function checkShowdown(hand) {
   return hand.some(c=>c.isJoker) && hand.some(c=>isQueenClubs(c)) && hand.some(c=>isJackDiamond(c)) && hand.some(c=>isAceSpades(c));
 }
-const SHOWDOWN_BONUS = 40;
+const SHOWDOWN_BONUS = 50;
 
 const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 13;
@@ -1743,7 +1763,9 @@ function checkRiot(hand, diamondsBroken = true) {
   }
   return null;
 }
-const RIOT_BONUS = 21;
+const RIOT_BONUS = 30;
+const NUCLEAR_FAMILY_BONUS = 21;
+const BLOOD_DIAMOND_BONUS = 25;
 
 // Rule of 3 (Democracy) — any three-of-a-kind
 function checkRuleOfThree(hand) {
@@ -1790,6 +1812,57 @@ function allRuleOfFourCombos(hand) {
     byRank[c.rank].push(c);
   }
   return Object.values(byRank).filter(cards => cards.length >= 4).map(cards => cards.slice(0, 4));
+}
+
+// Rule of 5 (Nuclear Family) — 3-card in-suit run + 2 additional diamonds
+function checkNuclearFamily(hand) {
+  const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const nonJokers = hand.filter(c => !c.isJoker);
+  const diamonds = nonJokers.filter(c => isDiamond(c));
+  const bySuit = {};
+  for (const c of nonJokers) {
+    if (!bySuit[c.suit]) bySuit[c.suit] = [];
+    bySuit[c.suit].push(c);
+  }
+  for (const cards of Object.values(bySuit)) {
+    const sorted = [...cards].sort((a,b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank));
+    for (let i = 0; i <= sorted.length - 3; i++) {
+      const ra = RANK_ORDER.indexOf(sorted[i].rank);
+      const rb = RANK_ORDER.indexOf(sorted[i+1].rank);
+      const rc = RANK_ORDER.indexOf(sorted[i+2].rank);
+      if (rb !== ra+1 || rc !== rb+1) continue;
+      const runIds = new Set([sorted[i].id, sorted[i+1].id, sorted[i+2].id]);
+      const extra = diamonds.filter(d => !runIds.has(d.id));
+      if (extra.length >= 2) return [sorted[i], sorted[i+1], sorted[i+2], extra[0], extra[1]];
+    }
+  }
+  return null;
+}
+
+// Rule of 6 (Blood Diamond) — 5-card cross-suit sequential run + 1 additional diamond
+function checkBloodDiamond(hand) {
+  const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const nonJokers = hand.filter(c => !c.isJoker);
+  const diamonds = nonJokers.filter(c => isDiamond(c));
+  // One representative card per rank (prefer non-diamond to leave more for the extra)
+  const byRankIdx = {};
+  for (const c of nonJokers) {
+    const ri = RANK_ORDER.indexOf(c.rank);
+    if (ri < 0) continue;
+    if (!byRankIdx[ri] || (isDiamond(byRankIdx[ri]) && !isDiamond(c))) byRankIdx[ri] = c;
+  }
+  const rankIdxs = Object.keys(byRankIdx).map(Number).sort((a,b)=>a-b);
+  for (let i = 0; i <= rankIdxs.length - 5; i++) {
+    if (rankIdxs[i+4] - rankIdxs[i] !== 4) continue;
+    let consecutive = true;
+    for (let j = 1; j < 5; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
+    if (!consecutive) continue;
+    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]]];
+    const runIds = new Set(runCards.map(c => c.id));
+    const extra = diamonds.find(d => !runIds.has(d.id));
+    if (extra) return [...runCards, extra];
+  }
+  return null;
 }
 
 // Rule of 2 (Swinging Paradox) — two pairs, each pair containing one dimond
@@ -3202,7 +3275,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
   // ===== AMERICAN FAMILY =====
   if (result.americanFamily) {
     return (
-      <EventBox borderColor="#ffffff" emoji="🏛️" title="The American Family Together!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
+      <EventBox borderColor="#ffffff" emoji="🏛️" title="The First Family Together!" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}
         </div>
@@ -4597,7 +4670,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"e.",title:"🔥 Riot",text:(<>Any eight cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (A, J, Q, K, Joker) — always available, even before Dimonds are broken.",color:"#7ae8ff99"},
                 {num:"f.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
-                {num:"g.",title:"🏛️ The American Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"g.",title:"🏛️ The First Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+40 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {num:"h.",title:"🤖 The Golden Age",text:(<>All four aces (A♦️, A♠️, A♥️, A♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> All points doubled for the rest of the round!</>),sub:true},
                 {num:"i.",title:"🌆 Showdown",text:(<><div>All four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+40 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
               ].map(({num,title,text,sub,divider,note,color})=>{
@@ -4627,7 +4700,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"6.",title:"🦷 Cutting Your Teeth!",text:(<>
                   <div>When the first Dimond card is played in any trick (or given via Rule of 1), the game pauses — <em>Cutting Your Teeth!</em> Dimonds are now "in play" for the rest of the round, becoming trump (they beat any other suit on any trick).</div>
                   <div style={{marginTop:5}}><strong style={{color:"#f07545",fontStyle:"normal"}}>Standard Sets Unlocked:</strong></div>
-                  <div style={{marginTop:2,paddingLeft:8}}>· Rule of 2<br/>· Rule of 3 (in some cases)<br/>· Rule of 4<br/>· (Dimond) Riot</div>
+                  <div style={{marginTop:2,paddingLeft:8}}>· Rule of 2<br/>· Rule of 3 (in some cases)<br/>· Rule of 4<br/>· Rule of 5 (Nuclear Family)<br/>· Rule of 6 (Blood Diamond)<br/>· (Dimond) Riot</div>
                   <div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Prestige Card Sets are always available for redemption, even before Dimonds are broken.</div>
                 </>),sub:false},
               ].map(({num,title,text,sub})=>(
@@ -4868,6 +4941,10 @@ function DiamondsGame() {
   const [ruleOfThreeOffered, setRuleOfThreeOffered] = useState([null,null,null,null]); // null = never offered; string = rank last offered
   const [ruleFourState, setRuleFourState] = useState(null);
   const [ruleFourOffered, setRuleFourOffered] = useState([null,null,null,null]);
+  const [nuclearFamilyState, setNuclearFamilyState] = useState(null);
+  const [nuclearFamilyOffered, setNuclearFamilyOffered] = useState([null,null,null,null]);
+  const [bloodDiamondState, setBloodDiamondState] = useState(null);
+  const [bloodDiamondOffered, setBloodDiamondOffered] = useState([null,null,null,null]);
   const [handSortMode, setHandSortMode] = useState('rank'); // 'rank' | 'suit'
   const [sortAnimating, setSortAnimating] = useState(false);
   const [swingingParadoxState, setSwingingParadoxState] = useState(null);
@@ -4963,6 +5040,8 @@ function DiamondsGame() {
       riotState, showdownState, acesLowState,
       ruleOfThreeState: ruleOfThreeState ? { ...ruleOfThreeState, cards:(ruleOfThreeState.cards||[]).map(toCardFB) } : null,
       ruleFourState: ruleFourState ? { ...ruleFourState, cards:(ruleFourState.cards||[]).map(toCardFB) } : null,
+      nuclearFamilyState: nuclearFamilyState ? { ...nuclearFamilyState, cards:(nuclearFamilyState.cards||[]).map(toCardFB) } : null,
+      bloodDiamondState: bloodDiamondState ? { ...bloodDiamondState, cards:(bloodDiamondState.cards||[]).map(toCardFB) } : null,
       swingingParadoxState: swingingParadoxState ? { ...swingingParadoxState, cards:(swingingParadoxState.cards||[]).map(toCardFB) } : null,
       rule1State, rule1UsedThisTurn,
     };
@@ -4972,6 +5051,7 @@ function DiamondsGame() {
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
       riotState, showdownState, acesLowState, ruleOfThreeState, ruleFourState, swingingParadoxState,
+      nuclearFamilyState, bloodDiamondState,
       rule1State, rule1UsedThisTurn]);
 
   // ── Firebase: guest reads full game state snapshot ───────────────────────────
@@ -5029,6 +5109,8 @@ function DiamondsGame() {
       setAcesLowState(st.acesLowState ?? null);
       if (st.ruleOfThreeState) { setRuleOfThreeState({...st.ruleOfThreeState, cards:fbArr(st.ruleOfThreeState.cards||[])}); } else { setRuleOfThreeState(null); }
       if (st.ruleFourState) { setRuleFourState({...st.ruleFourState, cards:fbArr(st.ruleFourState.cards||[])}); } else { setRuleFourState(null); }
+      if (st.nuclearFamilyState) { setNuclearFamilyState({...st.nuclearFamilyState, cards:fbArr(st.nuclearFamilyState.cards||[])}); } else { setNuclearFamilyState(null); }
+      if (st.bloodDiamondState) { setBloodDiamondState({...st.bloodDiamondState, cards:fbArr(st.bloodDiamondState.cards||[])}); } else { setBloodDiamondState(null); }
       if (st.swingingParadoxState) { setSwingingParadoxState({...st.swingingParadoxState, cards:fbArr(st.swingingParadoxState.cards||[])}); } else { setSwingingParadoxState(null); }
       setRule1State(st.rule1State ?? null);
       if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
@@ -5387,6 +5469,68 @@ function DiamondsGame() {
       }
     }
 
+    // Rule of 5 (Nuclear Family) — 3-card run + 2 diamonds (only when diamonds broken)
+    if (diamondsBroken) {
+      const nf5 = checkNuclearFamily(hands[cp] || []);
+      if (nf5) {
+        const nfKey = nf5.map(c=>c.id).sort().join(',');
+        if (nuclearFamilyOffered[cp] !== nfKey) {
+          setNuclearFamilyOffered(prev => { const n=[...prev]; n[cp]=nfKey; return n; });
+          const pts = NUCLEAR_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1);
+          const cardIds = new Set(nf5.map(c=>c.id));
+          const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
+          const newRS = [...roundScores]; newRS[cp] += pts;
+          setRoundScores(newRS);
+          setHands(newHands);
+          setNuclearFamilyOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
+          addLog(`🏠 ${allNames[cp]} cashes in Nuclear Family! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards:nf5 });
+          const newTotal = totalScores.map((s,k) => s + newRS[k]);
+          if (newTotal.some(s => s >= winScoreRef.current)) {
+            setTotalScores(newTotal);
+            setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+            setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+            setScreen("gameover"); return;
+          }
+          flagTrickInstance(`${allNames[cp]} cashed in a Nuclear Family set for ${pts} points`);
+          setNuclearFamilyState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts });
+          setPhase("nuclearfamily_event");
+          return;
+        }
+      }
+    }
+
+    // Rule of 6 (Blood Diamond) — 5-card cross-suit run + 1 diamond (only when diamonds broken)
+    if (diamondsBroken) {
+      const bd6 = checkBloodDiamond(hands[cp] || []);
+      if (bd6) {
+        const bdKey = bd6.map(c=>c.id).sort().join(',');
+        if (bloodDiamondOffered[cp] !== bdKey) {
+          setBloodDiamondOffered(prev => { const n=[...prev]; n[cp]=bdKey; return n; });
+          const pts = BLOOD_DIAMOND_BONUS * (goldenAgeRef.current ? 2 : 1);
+          const cardIds = new Set(bd6.map(c=>c.id));
+          const newHands = hands.map((h,j) => j===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
+          const newRS = [...roundScores]; newRS[cp] += pts;
+          setRoundScores(newRS);
+          setHands(newHands);
+          setBloodDiamondOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
+          addLog(`🩸 ${allNames[cp]} cashes in Blood Diamond! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🩸", setName:"Blood Diamond", cards:bd6 });
+          const newTotal = totalScores.map((s,k) => s + newRS[k]);
+          if (newTotal.some(s => s >= winScoreRef.current)) {
+            setTotalScores(newTotal);
+            setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+            setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+            setScreen("gameover"); return;
+          }
+          flagTrickInstance(`${allNames[cp]} cashed in a Blood Diamond set for ${pts} points`);
+          setBloodDiamondState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts });
+          setPhase("blooddiamond_event");
+          return;
+        }
+      }
+    }
+
     // Rule of 1 (Girl's Best Friend) — AI uses it to break dimonds; pointless once broken
     if (!rule1UsedThisTurn[cp] && !diamondsBroken) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
@@ -5426,8 +5570,8 @@ function DiamondsGame() {
       const newTotal = totalScores.map((s,i)=>s+newRS[i]);
       setRoundScores(newRS);
       setTotalScores(newTotal);
-      addLog(`🏛️ ${allNames[cp]} redeems The American Family! +${pts} pts`);
-      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The American Family", cards:[] });
+      addLog(`🏛️ ${allNames[cp]} redeems The First Family! +${pts} pts`);
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:[] });
       soundAmericanFamily();
       const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
@@ -5538,6 +5682,10 @@ function DiamondsGame() {
     setSwingingParadoxState(null);
     setRuleFourState(null);
     setRuleFourOffered([null,null,null,null]);
+    setNuclearFamilyState(null);
+    setNuclearFamilyOffered([null,null,null,null]);
+    setBloodDiamondState(null);
+    setBloodDiamondOffered([null,null,null,null]);
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
@@ -5673,6 +5821,10 @@ function DiamondsGame() {
     setSwingingParadoxState(null);
     setRuleFourState(null);
     setRuleFourOffered([null,null,null,null]);
+    setNuclearFamilyState(null);
+    setNuclearFamilyOffered([null,null,null,null]);
+    setBloodDiamondState(null);
+    setBloodDiamondOffered([null,null,null,null]);
     setRiotState(null);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
@@ -5888,8 +6040,8 @@ function DiamondsGame() {
     const newTotal = totalScores.map((s,i)=>s+newRoundScores[i]);
     setRoundScores(newRoundScores);
     setTotalScores(newTotal);
-    addLog(`🏛️ ${allNames[playerIdx]} redeems The American Family! +${pts} pts`);
-    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The American Family", cards:[] });
+    addLog(`🏛️ ${allNames[playerIdx]} redeems The First Family! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:[] });
     soundAmericanFamily();
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
     const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
@@ -5899,7 +6051,7 @@ function DiamondsGame() {
   }
 
   function declineAmericanFamily() {
-    addLog(`🏛️ ${allNames[mySeatingIdx]} holds The American Family — waiting for a better moment`);
+    addLog(`🏛️ ${allNames[mySeatingIdx]} holds The First Family — waiting for a better moment`);
     setPhase("playing");
   }
 
@@ -6818,6 +6970,72 @@ function DiamondsGame() {
     if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
   }
 
+  function declineNuclearFamily() {
+    setNuclearFamilyState(null);
+    setPhase("playing");
+  }
+  function acceptNuclearFamily() {
+    if (!nuclearFamilyState) return;
+    const { playerIdx, cards } = nuclearFamilyState;
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const pts = NUCLEAR_FAMILY_BONUS * GA;
+    const cardIds = new Set(cards.map(c=>c.id));
+    const newHands = hands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
+    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    setRoundScores(newRS);
+    setHands(newHands);
+    addLog(`🏠 ${allNames[playerIdx]} cashes in Nuclear Family! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards });
+    const newTotal = totalScores.map((s,k) => s + newRS[k]);
+    if (newTotal.some(s => s >= winScoreRef.current)) {
+      setTotalScores(newTotal);
+      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+      setNuclearFamilyState(null);
+      setScreen("gameover"); return;
+    }
+    flagTrickInstance(`${allNames[playerIdx]} cashed in a Nuclear Family set for ${pts} points`);
+    setNuclearFamilyState({ _id:Math.random(), playerIdx, cashed:true, points:pts });
+    setPhase("nuclearfamily_event");
+  }
+  function dismissNuclearFamilyEvent() {
+    setNuclearFamilyState(null);
+    setPhase("playing");
+  }
+
+  function declineBloodDiamond() {
+    setBloodDiamondState(null);
+    setPhase("playing");
+  }
+  function acceptBloodDiamond() {
+    if (!bloodDiamondState) return;
+    const { playerIdx, cards } = bloodDiamondState;
+    const GA = goldenAgeRef.current ? 2 : 1;
+    const pts = BLOOD_DIAMOND_BONUS * GA;
+    const cardIds = new Set(cards.map(c=>c.id));
+    const newHands = hands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
+    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    setRoundScores(newRS);
+    setHands(newHands);
+    addLog(`🩸 ${allNames[playerIdx]} cashes in Blood Diamond! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🩸", setName:"Blood Diamond", cards });
+    const newTotal = totalScores.map((s,k) => s + newRS[k]);
+    if (newTotal.some(s => s >= winScoreRef.current)) {
+      setTotalScores(newTotal);
+      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+      setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
+      setBloodDiamondState(null);
+      setScreen("gameover"); return;
+    }
+    flagTrickInstance(`${allNames[playerIdx]} cashed in a Blood Diamond set for ${pts} points`);
+    setBloodDiamondState({ _id:Math.random(), playerIdx, cashed:true, points:pts });
+    setPhase("blooddiamond_event");
+  }
+  function dismissBloodDiamondEvent() {
+    setBloodDiamondState(null);
+    setPhase("playing");
+  }
+
   function aiChooseRescueTarget(currentHands, playerIdx, knowledge) {
     const opponents = [];
     for (let i = 0; i < currentHands.length; i++) {
@@ -7053,6 +7271,8 @@ function DiamondsGame() {
     setRuleOfThreeOffered([null,null,null,null]);
     setSwingingParadoxOffered([null,null,null,null]);
     setRuleFourOffered([null,null,null,null]);
+    setNuclearFamilyOffered([null,null,null,null]);
+    setBloodDiamondOffered([null,null,null,null]);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
     setRiotOffered([false,false,false,false]);
@@ -7248,7 +7468,7 @@ function DiamondsGame() {
     if (!trickResult) return;
     const diamonds = trickResult.diamondsCaptured?.length ?? 0;
     const winner = allNames[trickResult.winnerIdx] ?? "Someone";
-    if (trickResult.americanFamily) flagTrickInstance(`${winner} scored the American Family — turned in a set`);
+    if (trickResult.americanFamily) flagTrickInstance(`${winner} scored the First Family — turned in a set`);
     if (trickResult.jokerWin) flagTrickInstance(`${winner} played the Joker and stole a card`);
     if (trickResult.jackDiamondRob && trickResult.stolenCard) flagTrickInstance(`${winner} played the Jack of Diamonds and robbed a card`);
     if (trickResult.queenClubsThieved) flagTrickInstance(`${winner} played the Queen of Clubs and stole a card`);
@@ -7686,6 +7906,8 @@ function DiamondsGame() {
     if (phase === "ruleofthree_event") soundRuleOfThree();
     else if (phase === "swingingparadox_event") soundSwingingParadox();
     else if (phase === "riot_event") soundRiot();
+    else if (phase === "nuclearfamily_event") soundNuclearFamily();
+    else if (phase === "blooddiamond_event") soundBloodDiamond();
   }, [phase]);
 
   // ============================================================
@@ -8387,15 +8609,17 @@ function DiamondsGame() {
             </div>
             <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
             {[
-              { emoji:"💠", name:"Rule of 1",    desc:"Any Dimond",          pts:"-1♦", ptsColor:"#ff7755" },
-              { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",      pts:"+13" },
-              { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",           pts:"+16" },
-              { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",           pts:"+18" },
-              { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",           pts:"+21" },
-              { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+25", descFont:10 },
-              { emoji:"🏛️", name:"Am. Family",   desc:"A♦ J♦ Q♦ K♦",         pts:"+30" },
-              { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",         pts:"+35" },
-              { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ J🃏",        pts:"+40" },
+              { emoji:"💠", name:"Rule of 1",    desc:"Any Dimond",            pts:"-1♦", ptsColor:"#ff7755" },
+              { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",       pts:"+13" },
+              { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",            pts:"+16" },
+              { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",            pts:"+18" },
+              { emoji:"🏠", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
+              { emoji:"🩸", name:"Rule of 6",    desc:"Run-5 + 1 Dimond",      pts:"+25" },
+              { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",            pts:"+30" },
+              { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:10 },
+              { emoji:"🏛️", name:"1st Family",   desc:"A♦ J♦ Q♦ K♦",          pts:"+40" },
+              { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",          pts:"+45" },
+              { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ J🃏",         pts:"+50" },
             ].map(({emoji,name,desc,pts,ptsColor,descFont}) => (
               <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
@@ -8685,6 +8909,8 @@ function DiamondsGame() {
             stealAvail = checkTheSteal(h0);
             afAvail = checkAmericanFamily(h0);
             gaAvail = checkAcesLow(h0);
+            const nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
+            const bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[mySeatingIdx];
             } // end if (showSets)
@@ -8787,7 +9013,7 @@ function DiamondsGame() {
                 <button key="af" onClick={()=>setPhase("americanfamily_offer")}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🏛️ Am. Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
+                    <span>🏛️ 1st Family</span><span style={{opacity:0.75}}>+{AMERICAN_FAMILY_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>J♦ / Q♦ / K♦ / A♦</span>
                 </button>
@@ -8801,6 +9027,30 @@ function DiamondsGame() {
                     <span>🤖 Golden Age</span><span style={{opacity:0.75}}>+{ACES_LOW_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>A♠ / A♥ / A♣ / A♦</span>
+                </button>
+              );
+            }
+            if (nfAvail) {
+              const nfLabel = nfAvail.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfAvail.slice(3).map(c=>c.rank+c.suit).join("/");
+              setButtons.push(
+                <button key="nf" onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:nfAvail}); setPhase("nuclearfamily_offer"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
+                    <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
+                  </span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
+                </button>
+              );
+            }
+            if (bdAvail) {
+              const bdLabel = bdAvail.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + bdAvail[5].rank+bdAvail[5].suit;
+              setButtons.push(
+                <button key="bd" onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:bdAvail}); setPhase("blooddiamond_offer"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
+                    <span>🩸 Blood Diamond</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
+                  </span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
                 </button>
               );
             }
@@ -9247,7 +9497,7 @@ function DiamondsGame() {
               letterSpacing:3, textTransform:"uppercase",
               fontFamily:FONT_DISPLAY, marginBottom:16,
               textShadow:`0 0 12px ${VM.gold}44`,
-            }}>The American Family</div>
+            }}>The First Family</div>
             <div style={{
               width:"100%",
               display:"flex", flexDirection:"column",
@@ -9398,6 +9648,68 @@ function DiamondsGame() {
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{ruleFourState.points} pts 💎</span>
+          </div>
+        </EventBox>
+      )}
+
+      {/* Nuclear Family — offer modal */}
+      {phase==="nuclearfamily_offer" && nuclearFamilyState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+        <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🏠</div>
+            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16,whiteSpace:"pre-line"}}>{"Rule of 5\n— Nuclear Family"}</div>
+            <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>In-Suit Run + 2 Dimonds!</div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
+              {(nuclearFamilyState.cards||[]).map(c=>c.id).join(", ")}
+            </div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5,marginBottom:20}}>
+              Redeem them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{NUCLEAR_FAMILY_BONUS*(goldenAgeRef.current?2:1)} pts</strong>, or keep playing.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={declineNuclearFamily} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
+              <button onClick={acceptNuclearFamily} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem +{NUCLEAR_FAMILY_BONUS*(goldenAgeRef.current?2:1)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Nuclear Family event box */}
+      {phase==="nuclearfamily_event" && nuclearFamilyState && (
+        <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{nuclearFamilyState.points} pts 🏠</span>
+          </div>
+        </EventBox>
+      )}
+
+      {/* Blood Diamond — offer modal */}
+      {phase==="blooddiamond_offer" && bloodDiamondState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+        <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
+          <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🩸</div>
+            <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16,whiteSpace:"pre-line"}}>{"Rule of 6\n— Blood Diamond"}</div>
+            <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>Rainbow Run + 1 Dimond!</div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
+              {(bloodDiamondState.cards||[]).map(c=>c.id).join(", ")}
+            </div>
+            <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.5,marginBottom:20}}>
+              Redeem them for <strong style={{color:VM.gold,fontStyle:"normal"}}>+{BLOOD_DIAMOND_BONUS*(goldenAgeRef.current?2:1)} pts</strong>, or keep playing.
+            </div>
+            <div style={{display:"flex",gap:10}}>
+              <button onClick={declineBloodDiamond} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
+              <button onClick={acceptBloodDiamond} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem +{BLOOD_DIAMOND_BONUS*(goldenAgeRef.current?2:1)}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Blood Diamond event box */}
+      {phase==="blooddiamond_event" && bloodDiamondState && (
+        <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel="PROCEED" onContinue={dismissBloodDiamondEvent}>
+          <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[bloodDiamondState.playerIdx]}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Rainbow run + 1 dimond redeemed!</div>
+          <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{bloodDiamondState.points} pts 🩸</span>
           </div>
         </EventBox>
       )}
