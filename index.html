@@ -1865,6 +1865,32 @@ function checkBloodDiamond(hand) {
   return null;
 }
 
+// Returns ALL valid Blood Diamond combos: each is [run5..., extraDiamond]
+function allBloodDiamondCombos(hand) {
+  const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const nonJokers = hand.filter(c => !c.isJoker);
+  const diamonds = nonJokers.filter(c => isDiamond(c));
+  const byRankIdx = {};
+  for (const c of nonJokers) {
+    const ri = RANK_ORDER.indexOf(c.rank);
+    if (ri < 0) continue;
+    if (!byRankIdx[ri] || (isDiamond(byRankIdx[ri]) && !isDiamond(c))) byRankIdx[ri] = c;
+  }
+  const rankIdxs = Object.keys(byRankIdx).map(Number).sort((a,b)=>a-b);
+  const results = [];
+  for (let i = 0; i <= rankIdxs.length - 5; i++) {
+    if (rankIdxs[i+4] - rankIdxs[i] !== 4) continue;
+    let consecutive = true;
+    for (let j = 1; j < 5; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
+    if (!consecutive) continue;
+    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]]];
+    const runIds = new Set(runCards.map(c => c.id));
+    const extras = [...diamonds, ...hand.filter(c => c.isJoker)].filter(d => !runIds.has(d.id));
+    for (const extra of extras) results.push([...runCards, extra]);
+  }
+  return results;
+}
+
 // Rule of 2 (Swinging Paradox) — two pairs, each pair containing one dimond
 function checkSwingingParadox(hand) {
   const byRank = {};
@@ -5765,8 +5791,9 @@ function DiamondsGame() {
           const text = pickSub(id, 'trick1');
           if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         });
-        // Online LLMs: only the first one fires a live opener
-        const onlineOpener = llmIds.find(({ id }) => !llmSubstitutedRef.current[id]);
+        // Online LLMs: pick one randomly to fire a live opener
+        const onlineLLMsGame = llmIds.filter(({ id }) => !llmSubstitutedRef.current[id]);
+        const onlineOpener = onlineLLMsGame.length ? onlineLLMsGame[Math.floor(Math.random() * onlineLLMsGame.length)] : null;
         if (onlineOpener) {
           const { id, opt } = onlineOpener;
           let done = false;
@@ -8893,7 +8920,7 @@ function DiamondsGame() {
           const setsPanel = (() => {
             const showSets = isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && !trickPlays.some(p => p.playerIdx === mySeatingIdx);
             if (!isDesktop && !showSets) return null;
-            let h0 = [], GA = 1, nfAvail = null, bdAvail = null;
+            let h0 = [], GA = 1, nfAvail = null, bdAvail = null, bdCombos = [];
             let r3AvailCombos = [], r3LockedCombos = [], r3Locked = false;
             let r4AvailCombos = [], r4LockedCombos = [], r4Locked = false;
             let spCombos = [], spLockedCombos = [], spLocked = false;
@@ -8924,6 +8951,7 @@ function DiamondsGame() {
             gaAvail = checkAcesLow(h0);
             nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
             bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
+            bdCombos = diamondsBroken ? allBloodDiamondCombos(h0) : [];
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[mySeatingIdx];
             } // end if (showSets)
@@ -9055,10 +9083,10 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (bdAvail) {
-              const bdLabel = bdAvail.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + bdAvail[5].rank+bdAvail[5].suit;
+            bdCombos.forEach(combo => {
+              const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
               setButtons.push(
-                <button key="bd" onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:bdAvail}); setPhase("blooddiamond_offer"); }}
+                <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🩸 Blood Diamond</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
@@ -9066,7 +9094,7 @@ function DiamondsGame() {
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
                 </button>
               );
-            }
+            });
             } // end if (showSets) — setButtons
 
             // ── Shared sets content (grid + locked) ──
