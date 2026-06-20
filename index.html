@@ -1736,7 +1736,7 @@ const RULE_OF_THREE_BONUS = 16;
 const SWINGING_PARADOX_BONUS = 13;
 const RULE_OF_FOUR_BONUS = 18;
 
-// Riot — 8+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
+// Riot — 7+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
 function checkRiot(hand, diamondsBroken = true) {
   const bySuit = {};
   let joker = null;
@@ -1745,20 +1745,20 @@ function checkRiot(hand, diamondsBroken = true) {
     if (!bySuit[c.suit]) bySuit[c.suit] = [];
     bySuit[c.suit].push(c);
   }
-  // Priority 1: non-diamond suit with 8+ (no Joker needed)
+  // Priority 1: non-diamond suit with 7+ (no Joker needed)
   for (const [suit, cards] of Object.entries(bySuit)) {
-    if (suit !== "♦" && cards.length >= 8) return cards.slice(0, 8);
+    if (suit !== "♦" && cards.length >= 7) return cards.slice(0, 7);
   }
-  // Priority 2: diamond suit with 8+ (if diamonds broken)
-  if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 8) return bySuit["♦"].slice(0, 8);
+  // Priority 2: diamond suit with 7+ (if diamonds broken)
+  if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 7) return bySuit["♦"].slice(0, 7);
   if (joker) {
-    // Priority 3: non-diamond suit with 7 + Joker
+    // Priority 3: non-diamond suit with 6 + Joker
     for (const [suit, cards] of Object.entries(bySuit)) {
-      if (suit !== "♦" && cards.length >= 7) return [...cards.slice(0, 7), joker];
+      if (suit !== "♦" && cards.length >= 6) return [...cards.slice(0, 6), joker];
     }
-    // Priority 4: diamond suit with 7 + Joker (if diamonds broken)
-    if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 7) {
-      return [...(bySuit["♦"]?.slice(0, 7) ?? []), joker];
+    // Priority 4: diamond suit with 6 + Joker (if diamonds broken)
+    if (diamondsBroken && (bySuit["♦"]?.length ?? 0) >= 6) {
+      return [...(bySuit["♦"]?.slice(0, 6) ?? []), joker];
     }
   }
   return null;
@@ -4672,7 +4672,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"e.",title:"🏠 Rule of 5 (Nuclear Family)",text:(<>Any in-suit run of three consecutive cards (ex. A♣️, 2♣️, 3♣️) plus any two Dimond cards not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> The Joker counts as a Dimond for the two extra cards, but not as a member of the run.<div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Runs begin at Ace (low) and end at King without wrapping around.</div></>),sub:true},
                 {num:"f.",title:"🩸 Rule of 6 (Blood Diamond)",text:(<>Any five cards of sequential rank (need not be the same suit, ex. 4♣️, 5♣️, 6♥️, 7♠️, 8♠️) plus one additional Dimond card not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> The Joker counts as the extra Dimond, but not as a member of the run.</>),sub:true},
-                {num:"g.",title:"🔥 Riot",text:(<>Any eight cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
+                {num:"g.",title:"🔥 Riot",text:(<>Any seven cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (A, J, Q, K, Joker) — always available, even before Dimonds are broken.",color:"#7ae8ff99"},
                 {num:"h.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> This immediately ends the round (the current trick is not counted).</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
                 {num:"i.",title:"🏛️ The First Family",text:(<>All four Diamond face cards –A♦️, J♦️, Q♦️, K♦️ may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+40 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
@@ -8612,11 +8612,11 @@ function DiamondsGame() {
           }}>
             {/* Dimonds scoring key */}
             <div style={{color:VM.red+"cc",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
-            <div style={{display:"flex",gap:8,flexWrap:"nowrap",marginBottom:3}}>
+            <div style={{display:"flex",gap:10,flexWrap:"nowrap",marginBottom:3}}>
               {[["K♦","+5"],["Q♦","+4"],["J♦","+3"],["A♦","+2"],["#s","+1"]].map(([card,pts]) => (
                 <div key={card} style={{display:"flex",alignItems:"center",gap:3}}>
-                  <span style={{color:VM.red,fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
-                  <span style={{color:VM.tealLight,fontSize:15,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+                  <span style={{color:VM.red,fontSize:18,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
+                  <span style={{color:VM.tealLight,fontSize:18,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
                 </div>
               ))}
             </div>
@@ -8628,7 +8628,7 @@ function DiamondsGame() {
               { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",            pts:"+18" },
               { emoji:"🏠", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
               { emoji:"🩸", name:"Rule of 6",    desc:"Run-5 + 1 Dimond",      pts:"+25" },
-              { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",            pts:"+30" },
+              { emoji:"🔥", name:"Riot",         desc:"7 of a Kind",            pts:"+30" },
               { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:10 },
               { emoji:"🏛️", name:"1st Family",   desc:"A♦ J♦ Q♦ K♦",          pts:"+40" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",          pts:"+45" },
@@ -9108,7 +9108,7 @@ function DiamondsGame() {
                           <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                         </div>;
                       })}
-                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×8 {rs}</span></div>; })()}
+                      {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×7 {rs}</span></div>; })()}
                     </div>
                   </div>
                 )}
