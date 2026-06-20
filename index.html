@@ -9189,24 +9189,24 @@ function DiamondsGame() {
           // ── Desktop: buttons left, sets right ──
           if (isDesktop) {
             const buttonsPanel = (
-              <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",width:150}}>
-                {playBtn}
+              <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",width:165}}>
+                <GoldBtn onClick={handlePlayBtn} disabled={!btnEnabled}>{btnLabel}</GoldBtn>
                 <button onClick={toggleHandSort} style={{
                   display:"flex",flexDirection:"column",alignItems:"center",
-                  cursor:"pointer",border:"none",borderRadius:6,
-                  padding:"6px 14px",gap:1,touchAction:"manipulation",
+                  cursor:"pointer",border:"none",borderRadius:10,
+                  padding:"14px 32px",gap:2,touchAction:"manipulation",
                   background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
-                  boxShadow:`0 3px 10px ${VM.gold}44`,
-                  width:"100%",boxSizing:"border-box",
+                  boxShadow:`0 4px 14px ${VM.gold}33`,
+                  width:"100%",boxSizing:"border-box",minHeight:48,
                 }}>
-                  <span style={{color:"#0a2320",fontWeight:800,fontSize:12,fontFamily:FONT_DISPLAY,letterSpacing:0.5}}>Re-Sort</span>
-                  <span style={{color:"#0a232099",fontSize:9,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>{handSortMode==='rank'?'By Rank':'By Suit'}</span>
+                  <span style={{color:"#0a2320",fontWeight:800,fontSize:15,fontFamily:FONT_DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>Re-Sort</span>
+                  <span style={{color:"#0a232099",fontSize:10,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>{handSortMode==='rank'?'By Rank':'By Suit'}</span>
                 </button>
               </div>
             );
             return (
               <>
-                <div style={{position:"fixed",left:300,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
+                <div style={{position:"fixed",right:185,bottom:20,zIndex:50}}>
                   {buttonsPanel}
                 </div>
                 {setsPanel && (
