@@ -8661,16 +8661,16 @@ function DiamondsGame() {
             display:"flex", flexDirection:"column", gap:5,
           }}>
             {/* Dimonds scoring key */}
-            <div style={{color:VM.red+"cc",fontSize:9,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
+            <div style={{color:VM.red+"cc",fontSize:7,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
             <div style={{display:"flex",gap:10,flexWrap:"nowrap",marginBottom:3}}>
               {[["K♦","+5"],["Q♦","+4"],["J♦","+3"],["A♦","+2"],["#s","+1"]].map(([card,pts]) => (
                 <div key={card} style={{display:"flex",alignItems:"center",gap:3}}>
-                  <span style={{color:VM.red,fontSize:18,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
-                  <span style={{color:VM.tealLight,fontSize:18,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+                  <span style={{color:VM.red,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{card}</span>
+                  <span style={{color:VM.tealLight,fontSize:16,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
                 </div>
               ))}
             </div>
-            <div style={{color:VM.gold+"99",fontSize:11,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
+            <div style={{color:VM.gold+"99",fontSize:9,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:2}}>Sets</div>
             {[
               { emoji:"💠", name:"Rule of 1",    desc:"Any Dimond",            pts:"-1♦", ptsColor:"#ff7755" },
               { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",       pts:"+13" },
@@ -8679,16 +8679,16 @@ function DiamondsGame() {
               { emoji:"🏠", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
               { emoji:"🩸", name:"Rule of 6",    desc:"Run-5 + 1 Dimond",      pts:"+25" },
               { emoji:"🔥", name:"Riot",         desc:"7 of a Kind",            pts:"+30" },
-              { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:10 },
+              { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:8 },
               { emoji:"🏛️", name:"1st Family",   desc:"A♦ J♦ Q♦ K♦",          pts:"+40" },
               { emoji:"🤖", name:"Golden Age",   desc:"A♦ A♠ A♥ A♣",          pts:"+45" },
               { emoji:"🌆", name:"Showdown",     desc:"A♠ J♦ Q♣ J🃏",         pts:"+50" },
             ].map(({emoji,name,desc,pts,ptsColor,descFont}) => (
               <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:14,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
-                <span style={{color:"#ffffffcc",fontSize:12,fontFamily:FONT_UI,width:82,fontWeight:600}}>{name}</span>
-                <span style={{color:"#ffffff66",fontSize:descFont??12,fontFamily:FONT_UI,width:128}}>{desc}</span>
-                <span style={{color:ptsColor??VM.tealLight,fontSize:12,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
+                <span style={{fontSize:12,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
+                <span style={{color:"#ffffffcc",fontSize:10,fontFamily:FONT_UI,width:82,fontWeight:600}}>{name}</span>
+                <span style={{color:"#ffffff66",fontSize:descFont??10,fontFamily:FONT_UI,width:128}}>{desc}</span>
+                <span style={{color:ptsColor??VM.tealLight,fontSize:10,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
               </div>
             ))}
           </div>
