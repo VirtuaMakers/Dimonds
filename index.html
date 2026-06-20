@@ -4667,7 +4667,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"b.",title:'💍 Rule of 2 (Swinging Paradox)',text:(<>Any two "dimonded" pairs (ex. 5♦️+5♠️ &amp; 6♦️+6♣️) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+13 pts.</strong></>),sub:true},
                 {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
-                {num:"e.",title:"☢️ Rule of 5 (Nuclear Family)",text:(<>Any in-suit run of three consecutive cards (ex. A♣️, 2♣️, 3♣️) plus any two Dimond cards not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> The Joker counts as a Dimond for the two extra cards, but not as a member of the run.<div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Runs begin at Ace (low) and end at King without wrapping around.</div></>),sub:true},
+                {num:"e.",title:"🏠 Rule of 5 (Nuclear Family)",text:(<>Any in-suit run of three consecutive cards (ex. A♣️, 2♣️, 3♣️) plus any two Dimond cards not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> The Joker counts as a Dimond for the two extra cards, but not as a member of the run.<div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Runs begin at Ace (low) and end at King without wrapping around.</div></>),sub:true},
                 {num:"f.",title:"🩸 Rule of 6 (Blood Diamond)",text:(<>Any five cards of sequential rank (need not be the same suit, ex. 4♣️, 5♣️, 6♥️, 7♠️, 8♠️) plus one additional Dimond card not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> The Joker counts as the extra Dimond, but not as a member of the run.</>),sub:true},
                 {num:"g.",title:"🔥 Riot",text:(<>Any eight cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round (the current trick is not counted).</>),sub:true},
                 {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (A, J, Q, K, Joker) — always available, even before Dimonds are broken.",color:"#7ae8ff99"},
@@ -5485,8 +5485,8 @@ function DiamondsGame() {
           setRoundScores(newRS);
           setHands(newHands);
           setNuclearFamilyOffered(prev => { const n=[...prev]; n[cp]=null; return n; });
-          addLog(`☢️ ${allNames[cp]} cashes in Nuclear Family! +${pts} pts`);
-          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"☢️", setName:"Nuclear Family", cards:nf5 });
+          addLog(`🏠 ${allNames[cp]} cashes in Nuclear Family! +${pts} pts`);
+          logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards:nf5 });
           const newTotal = totalScores.map((s,k) => s + newRS[k]);
           if (newTotal.some(s => s >= winScoreRef.current)) {
             setTotalScores(newTotal);
@@ -6986,8 +6986,8 @@ function DiamondsGame() {
     const newRS = [...roundScores]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     setHands(newHands);
-    addLog(`☢️ ${allNames[playerIdx]} cashes in Nuclear Family! +${pts} pts`);
-    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"☢️", setName:"Nuclear Family", cards });
+    addLog(`🏠 ${allNames[playerIdx]} cashes in Nuclear Family! +${pts} pts`);
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards });
     const newTotal = totalScores.map((s,k) => s + newRS[k]);
     if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
@@ -8345,6 +8345,8 @@ function DiamondsGame() {
     allRuleOfFourCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     if (diamondsBroken) allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
     const riot = checkRiot(h0, diamondsBroken); if (riot) riot.forEach(c => ids.add(c.id));
+    if (diamondsBroken) { const nf = checkNuclearFamily(h0); if (nf) nf.forEach(c => ids.add(c.id)); }
+    if (diamondsBroken) { const bd = checkBloodDiamond(h0); if (bd) bd.forEach(c => ids.add(c.id)); }
     return ids;
   })();
 
@@ -8369,6 +8371,8 @@ function DiamondsGame() {
     allRuleOfFourCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
     // SP combos are always diamond-locked and the locked button already communicates them — no card glow needed
     const lockedRiot = checkRiot(h0, true); if (lockedRiot) lockedRiot.forEach(c => { if (c.suit==="♦") ids.add(c.id); });
+    const lockedNF = checkNuclearFamily(h0); if (lockedNF) lockedNF.forEach(c => ids.add(c.id));
+    const lockedBD = checkBloodDiamond(h0); if (lockedBD) lockedBD.forEach(c => ids.add(c.id));
     return ids;
   })();
 
@@ -8615,7 +8619,7 @@ function DiamondsGame() {
               { emoji:"💍", name:"Rule of 2",    desc:"2 Dimonded Pairs",       pts:"+13" },
               { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",            pts:"+16" },
               { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",            pts:"+18" },
-              { emoji:"☢️", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
+              { emoji:"🏠", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
               { emoji:"🩸", name:"Rule of 6",    desc:"Run-5 + 1 Dimond",      pts:"+25" },
               { emoji:"🔥", name:"Riot",         desc:"8 of a Kind",            pts:"+30" },
               { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:10 },
@@ -9038,7 +9042,7 @@ function DiamondsGame() {
                 <button key="nf" onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:nfAvail}); setPhase("nuclearfamily_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>☢️ Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
+                    <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
                 </button>
@@ -9658,7 +9662,7 @@ function DiamondsGame() {
       {phase==="nuclearfamily_offer" && nuclearFamilyState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
-            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>☢️</div>
+            <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🏠</div>
             <div style={{color:VM.goldBright,fontSize:13,fontWeight:900,letterSpacing:3,textTransform:"uppercase",fontFamily:FONT_DISPLAY,marginBottom:16,whiteSpace:"pre-line"}}>{"Rule of 5\n— Nuclear Family"}</div>
             <div style={{color:"#fff",fontSize:18,fontWeight:800,fontFamily:FONT_DISPLAY,marginBottom:8}}>In-Suit Run + 2 Dimonds!</div>
             <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic",lineHeight:1.6,marginBottom:4}}>
@@ -9676,11 +9680,11 @@ function DiamondsGame() {
       )}
       {/* Nuclear Family event box */}
       {phase==="nuclearfamily_event" && nuclearFamilyState && (
-        <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="☢️" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
+        <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
-            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{nuclearFamilyState.points} pts ☢️</span>
+            <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{nuclearFamilyState.points} pts 🏠</span>
           </div>
         </EventBox>
       )}
