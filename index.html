@@ -2767,7 +2767,10 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary, fill }) 
       minHeight: fill ? undefined : tiny ? 22 : small ? 34 : 48,
       width: (tiny || fill) ? "100%" : undefined,
       height: fill ? "100%" : undefined,
-      textAlign: (tiny || fill) ? "center" : undefined,
+      display: fill ? "flex" : undefined,
+      alignItems: fill ? "center" : undefined,
+      justifyContent: fill ? "center" : undefined,
+      padding: fill ? "0 16px" : tiny ? "3px" : small ? "7px 14px" : "14px 32px",
       touchAction:"manipulation",
     }}>{children}</button>
   );
@@ -8122,20 +8125,20 @@ function DiamondsGame() {
       </div>
     );
     const buttons = isWide ? (
-      <div style={{display:"flex",flexDirection:"column",gap:5}}>
-        <div style={{height:50,display:"flex",flexDirection:"column"}}>
+      <div style={{flex:1,display:"flex",flexDirection:"column",gap:8,minHeight:0}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
         </div>
-        <div style={{height:32,display:"flex",flexDirection:"column"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn>
         </div>
-        <div style={{height:32,display:"flex",flexDirection:"column"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
         </div>
-        <div style={{height:32,display:"flex",flexDirection:"column"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
         </div>
-        <div style={{height:32,display:"flex",flexDirection:"column"}}>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
         </div>
       </div>
