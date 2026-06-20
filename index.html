@@ -3267,10 +3267,10 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, f
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round" }) {
+function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false }) {
   if (!result) return null;
 
-  const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (roundScores[i]||0));
+  const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (scoresCommitted ? 0 : (roundScores[i]||0)));
   const maxRunning = Math.max(...runningTotals);
   const scoreSummary = scoreTally === "trick" ? (
     <div style={{width:"100%", marginTop:8, borderTop:"1px solid rgba(75,195,175,0.2)", paddingTop:10, display:"flex", flexDirection:"column", gap:3}}>
@@ -6723,7 +6723,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(rescuedCard, fromPlayer, acePlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...rescueState.resultObj, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
+    const resultObj = { ...rescueState.resultObj, aceBlocked: false, aceBlockedJoker: false, aceBlockedQueenClubs: false, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
     setTrickResult(resultObj);
     setRescueState(null);
     setPeekingModal(null);
@@ -8474,7 +8474,7 @@ function DiamondsGame() {
       }}>
         {allNames.map((n,i)=>{
           const isLeading = i===turnOrder[currentTurn] && phase==="playing";
-          const total = (totalScores[i]||0) + (scoreTally === "point" ? (roundScores[i]||0) : 0);
+          const total = (totalScores[i]||0) + (scoreTally === "point" && !pendingFireworks ? (roundScores[i]||0) : 0);
           const pct = Math.min(100, Math.round(total/winScore*100));
           return (
             <div key={n} ref={el => scorePanelRefs.current[i] = el} style={{
@@ -9766,6 +9766,7 @@ function DiamondsGame() {
           roundScores={roundScores}
           totalScores={totalScores}
           scoreTally={scoreTally}
+          scoresCommitted={pendingFireworks}
         />
       )}
 
