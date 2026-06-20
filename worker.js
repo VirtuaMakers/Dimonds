@@ -31,14 +31,24 @@ function json(body, status = 200) {
 // ─── Gemini ──────────────────────────────────────────────────────────────────
 async function callGemini(prompt, env) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${env.GEMINI_API_KEY}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.95, maxOutputTokens: 120, thinkingConfig: { thinkingBudget: 0 } },
-    }),
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.95, maxOutputTokens: 120, thinkingConfig: { thinkingBudget: 0 } },
+      }),
+      signal: ctrl.signal,
+    });
+  } catch(e) {
+    clearTimeout(timer);
+    return `[Gemini fetch error: ${e?.name} ${e?.message?.slice(0,80)}]`;
+  }
+  clearTimeout(timer);
   if (!res.ok) {
     const errBody = await res.text();
     return `[Gemini ${res.status}: ${errBody.slice(0, 120)}]`;
