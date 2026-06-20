@@ -5234,7 +5234,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setShowdownState({ playerIdx: cp, points: pts, aiEvent: true });
+      setShowdownState({ playerIdx: cp, points: pts, aiEvent: true, pendingRound: newRS, pendingTotal: newTotal });
       setPhase("showdown_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
@@ -6595,8 +6595,14 @@ function DiamondsGame() {
     setPhase("playing");
   }
   function dismissShowdownEvent() {
+    if (!showdownState) return;
+    const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
-    setPhase("playing");
+    setRoundScores(pendingRound);
+    setTotalScores(pendingTotal);
+    soundRoundWin();
+    setPhase("roundover");
+    setRoundNum(r=>r+1);
   }
 
   function handleRule1Give(targetIdx, card, giverIdx = 0) {
