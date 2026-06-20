@@ -71,6 +71,8 @@
 <script crossorigin src="https://unpkg.com/react@18.3.1/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 </head>
 <body>
 <div id="root"><p id="cdn-err" style="display:none;color:#4bc3af;padding:24px;font-family:monospace;font-size:13px">⚠️ Dimonds couldn't load its scripts. This is usually caused by a browser content-blocker (e.g. Brave Shields) or a network issue blocking unpkg.com.<br><br>Try: disabling Shields for this site, then reload.</p></div>
@@ -1200,6 +1202,37 @@ function sortHandBySuit(hand) {
 }
 const APP_VERSION = "4.6";
 const WORKER_URL = "https://dimonds-ai.thirtytwobitrpg.workers.dev";
+
+// ── Firebase Realtime Database (multiplayer) ──────────────────────────────────
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB6C6ZXlWoHlPYrSGdjz-qPmKVuHgU4AHw",
+  authDomain: "dimonds-firebase.firebaseapp.com",
+  databaseURL: "https://dimonds-firebase-default-rtdb.firebaseio.com",
+  projectId: "dimonds-firebase",
+  storageBucket: "dimonds-firebase.firebasestorage.app",
+  messagingSenderId: "131522445570",
+  appId: "1:131522445570:web:16fecad94b44477e2d821b",
+};
+if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+const RTDB = firebase.database();
+
+function genRoomCode() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  return Array.from({length:4}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+function getPlayerId() {
+  let id = localStorage.getItem('dimonds_player_id');
+  if (!id) { id = crypto.randomUUID(); localStorage.setItem('dimonds_player_id', id); }
+  return id;
+}
+// Serialize a card to a plain Firebase-safe object
+function cardToFB(c) {
+  return { rank:c.rank, suit:c.suit, id:c.id, ...(c.isJoker?{isJoker:true}:{}) };
+}
+// Firebase arrays come back as objects if sparse — normalize to array
+function fbArr(x) { return Array.isArray(x) ? x : Object.values(x ?? {}); }
+// ─────────────────────────────────────────────────────────────────────────────
+
 const WIN_SCORE = 80;
 const AMERICAN_FAMILY_BONUS = 30;
 const AI_NAMES = ["Gordy","Vicky","Guy"];
@@ -4140,6 +4173,177 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
 }
 
 // ============================================================
+// ============================================================
+// MULTIPLAYER LOBBY
+// ============================================================
+function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJoinedAsGuest, onStartGame }) {
+  const [tab, setTab] = React.useState('host');
+  const [roomCode, setRoomCode] = React.useState('');
+  const [joinCode, setJoinCode] = React.useState('');
+  const [joinedPlayers, setJoinedPlayers] = React.useState([]); // [{playerId, name}]
+  const [status, setStatus] = React.useState('idle'); // idle | hosting | joining | waiting
+  const [error, setError] = React.useState('');
+  const roomRefLocal = React.useRef(null);
+  const listenersCleanedUp = React.useRef(false);
+
+  React.useEffect(() => {
+    listenersCleanedUp.current = false;
+    return () => {
+      listenersCleanedUp.current = true;
+      if (roomRefLocal.current && status === 'idle') {
+        roomRefLocal.current.child('players').off('value');
+        roomRefLocal.current.child('config').off('value');
+      }
+    };
+  }, []);
+
+  function handleCreateRoom() {
+    const code = genRoomCode();
+    const ref = RTDB.ref(`rooms/${code}`);
+    roomRefLocal.current = ref;
+    ref.child('config').set({ hostId: myPlayerId, hostName: nameInput||'Host', status:'waiting', createdAt: Date.now() });
+    ref.child('players').child(myPlayerId).set({ name: nameInput||'Host', joinedAt: Date.now() });
+    ref.child('players').on('value', snap => {
+      if (listenersCleanedUp.current) return;
+      const val = snap.val() || {};
+      setJoinedPlayers(Object.entries(val).map(([pid, d]) => ({playerId:pid, ...d})).filter(p => p.playerId !== myPlayerId));
+    });
+    setRoomCode(code);
+    setStatus('hosting');
+    onJoinedAsHost(ref);
+  }
+
+  function handleJoinRoom() {
+    const code = (joinCode||'').trim().toUpperCase();
+    if (code.length !== 4) { setError('Enter a 4-letter room code'); return; }
+    setError('');
+    const ref = RTDB.ref(`rooms/${code}`);
+    roomRefLocal.current = ref;
+    ref.child('config').once('value', snap => {
+      if (listenersCleanedUp.current) return;
+      const cfg = snap.val();
+      if (!cfg) { setError('Room not found. Check the code.'); return; }
+      if (cfg.status === 'playing') { setError('That game already started.'); return; }
+      ref.child('players').child(myPlayerId).set({ name: nameInput||'Guest', joinedAt: Date.now() });
+      setRoomCode(code);
+      setStatus('joining');
+      onJoinedAsGuest(ref);
+      // Watch config for game start
+      ref.child('config/status').on('value', st => {
+        if (listenersCleanedUp.current) return;
+        if (st.val() === 'playing') { setStatus('waiting'); }
+      });
+    });
+  }
+
+  const tabStyle = active => ({
+    flex:1, padding:'10px 0', fontWeight:700, fontSize:13, fontFamily:FONT_DISPLAY,
+    letterSpacing:1, textTransform:'uppercase', cursor:'pointer', border:'none',
+    background: active ? VM.tealLight+'22' : 'transparent',
+    color: active ? VM.tealLight : '#ffffff55',
+    borderBottom: active ? `2px solid ${VM.tealLight}` : '2px solid transparent',
+  });
+
+  const innerContent = () => {
+    if (status === 'hosting') return (
+      <div style={{textAlign:'center'}}>
+        <div style={{color:VM.tealLight+'88',fontSize:11,letterSpacing:2,textTransform:'uppercase',marginBottom:6,fontFamily:FONT_UI}}>Room Code</div>
+        <div style={{fontSize:44,fontWeight:900,letterSpacing:10,color:VM.goldBright,fontFamily:FONT_DISPLAY,marginBottom:4,textShadow:`0 0 20px ${VM.gold}66`}}>{roomCode}</div>
+        <div style={{color:'#ffffff55',fontSize:11,fontFamily:FONT_UI,marginBottom:18}}>Share this code with friends</div>
+        <div style={{borderTop:`1px solid ${VM.tealLight}22`,paddingTop:14,marginBottom:14}}>
+          <div style={{fontSize:11,color:VM.tealLight+'88',letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontFamily:FONT_UI}}>Joined ({joinedPlayers.length})</div>
+          {joinedPlayers.length === 0
+            ? <div style={{color:'#ffffff44',fontSize:12,fontFamily:FONT_UI,fontStyle:'italic'}}>Waiting for players…</div>
+            : joinedPlayers.map(p => (
+                <div key={p.playerId} style={{color:'#fff',fontSize:13,fontFamily:FONT_UI,padding:'4px 0',display:'flex',alignItems:'center',gap:8}}>
+                  <span style={{fontSize:16}}>👤</span>{p.name||'Guest'}
+                </div>
+              ))
+          }
+        </div>
+        <GoldBtn onClick={() => onStartGame(joinedPlayers, nameInput||'Host')}>
+          Start Game ◆
+        </GoldBtn>
+        <div style={{marginTop:8,fontSize:10,color:'#ffffff33',fontFamily:FONT_UI}}>
+          Empty seats filled with random AI
+        </div>
+      </div>
+    );
+    if (status === 'joining') return (
+      <div style={{textAlign:'center',padding:'8px 0'}}>
+        <div style={{fontSize:32,marginBottom:8}}>✅</div>
+        <div style={{color:'#fff',fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Joined Room {roomCode}</div>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:18}}>Waiting for the host to start…</div>
+        <div style={{fontSize:28,animation:'none',opacity:0.6}}>⏳</div>
+      </div>
+    );
+    if (status === 'waiting') return (
+      <div style={{textAlign:'center',padding:'8px 0'}}>
+        <div style={{fontSize:32,marginBottom:8}}>🎴</div>
+        <div style={{color:VM.goldBright,fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Game Starting!</div>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI}}>Host is dealing cards…</div>
+      </div>
+    );
+    // idle
+    if (tab === 'host') return (
+      <div style={{textAlign:'center'}}>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:18,lineHeight:1.6}}>
+          Create a room. Share the 4-letter code with up to 3 friends.<br/>
+          <span style={{color:VM.tealLight+'88'}}>Empty seats are filled with random AI.</span>
+        </div>
+        <GoldBtn onClick={handleCreateRoom}>Create Room ◆</GoldBtn>
+      </div>
+    );
+    return ( // join tab
+      <div>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:14,textAlign:'center',lineHeight:1.6}}>
+          Enter the 4-letter room code from the host.
+        </div>
+        <input
+          value={joinCode}
+          onChange={e=>setJoinCode(e.target.value.toUpperCase().slice(0,4))}
+          onKeyDown={e=>e.key==='Enter'&&handleJoinRoom()}
+          placeholder="ABCD"
+          maxLength={4}
+          autoFocus
+          style={{
+            width:'100%', boxSizing:'border-box',
+            background:'rgba(255,255,255,0.08)', border:`1px solid ${VM.tealLight}44`,
+            borderRadius:10, color:'#fff', padding:'14px 18px',
+            fontSize:28, fontWeight:900, letterSpacing:10,
+            fontFamily:FONT_DISPLAY, outline:'none', textAlign:'center',
+            caretColor:VM.tealLight, marginBottom:12,
+          }}
+        />
+        {error && <div style={{color:'#ff7070',fontSize:12,fontFamily:FONT_UI,marginBottom:10,textAlign:'center'}}>{error}</div>}
+        <GoldBtn onClick={handleJoinRoom}>Join Room ◆</GoldBtn>
+      </div>
+    );
+  };
+
+  return (
+    <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:300,background:'rgba(4,18,15,0.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:12,backdropFilter:'blur(4px)'}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(155deg,#0f3c38,#08231f)',border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:400,width:'100%',boxShadow:`0 24px 80px #000000cc`,fontFamily:FONT_UI,display:'flex',flexDirection:'column',overflow:'hidden',marginTop:20}}>
+        <div style={{padding:'18px 22px 0',borderBottom:`1px solid ${VM.tealLight}22`}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Multiplayer</h2>
+            <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
+          </div>
+          {status === 'idle' && (
+            <div style={{display:'flex',borderBottom:`1px solid ${VM.tealLight}11`}}>
+              <button style={tabStyle(tab==='host')} onClick={()=>{setTab('host');setError('');}}>Host</button>
+              <button style={tabStyle(tab==='join')} onClick={()=>{setTab('join');setError('');}}>Join</button>
+            </div>
+          )}
+        </div>
+        <div style={{padding:'20px 22px 24px'}}>
+          {innerContent()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // RULES PANEL
 // ============================================================
 function MultiplayerPanel({ onClose, onStart, opponentSlots, setOpponentSlots, playerName }) {
@@ -4629,22 +4833,173 @@ function DiamondsGame() {
   const [sessionGamesPlayed, setSessionGamesPlayed] = useState(0);
   const sessionWinRecordedGame = useRef(0);
   const effectivePersonas = opponentSlots.map(id => OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]);
-  const allNames = [playerName || "You", ...effectivePersonas.map(p => p.label)];
-  const playerEmojis = ["😎", ...effectivePersonas.map(p => p.emoji)];
+  const [remoteNames, setRemoteNames] = useState(null);
+  const [remoteEmojis, setRemoteEmojis] = useState(null);
+  const allNames = remoteNames || [playerName || "You", ...effectivePersonas.map(p => p.label)];
+  const playerEmojis = remoteEmojis || ["😎", ...effectivePersonas.map(p => p.emoji)];
 
-  const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===0;
+  // ── Multiplayer state ──
+  const [mySeatingIdx, setMySeatingIdx] = useState(0); // 0 = solo/host; 1-3 = guest
+  const mySeatingIdxRef = useRef(0);
+  useEffect(() => { mySeatingIdxRef.current = mySeatingIdx; }, [mySeatingIdx]);
+  const mpRoomRef = useRef(null);   // RTDB ref to current room, null = solo
+  const myPlayerIdRef = useRef(getPlayerId());
+  const [mpRole, setMpRole] = useState('none'); // 'none' | 'host' | 'guest'
+  const isMultiplayer = () => !!mpRoomRef.current;
+  const isHost = () => mpRole !== 'guest';
+  const [showMpLobby, setShowMpLobby] = useState(false);
+
+  function guestSubmitMove(type, payload) {
+    if (!mpRoomRef.current) return;
+    mpRoomRef.current.child('pendingMoves').push({
+      playerId: myPlayerIdRef.current,
+      seatIdx: mySeatingIdxRef.current,
+      type, payload: payload ?? {},
+      timestamp: Date.now(),
+    });
+  }
+
+  // ── Firebase: host writes full game state snapshot ──────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer() || !isHost()) return;
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const toCardFB = c => ({ rank:c.rank, suit:c.suit, id:c.id, ...(c.isJoker?{isJoker:true}:{}) });
+    const toPlay = p => ({ playerIdx:p.playerIdx, card:toCardFB(p.card) });
+    const snap = {
+      phase,
+      hands: hands.map(h => (h||[]).map(toCardFB)),
+      trickPlays: trickPlays.map(toPlay),
+      turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
+      diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
+      allNames, playerEmojis, opponentSlots,
+      trickResult: trickResult ? {
+        ...trickResult,
+        plays: (trickResult.plays||[]).map(toPlay),
+        diamondsCaptured: (trickResult.diamondsCaptured||[]).map(toCardFB),
+        familyCards: (trickResult.familyCards||[]).map(toCardFB),
+      } : null,
+      pendingPlayContinuation: pendingPlayContinuation ? {
+        playerIdx: pendingPlayContinuation.playerIdx,
+        card: toCardFB(pendingPlayContinuation.card),
+        newPlays: (pendingPlayContinuation.newPlays||[]).map(toPlay),
+        newHands: (pendingPlayContinuation.newHands||[]).map(h => (h||[]).map(toCardFB)),
+      } : null,
+      kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
+      showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
+      ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered,
+      riotState, showdownState, acesLowState,
+      ruleOfThreeState: ruleOfThreeState ? { ...ruleOfThreeState, cards:(ruleOfThreeState.cards||[]).map(toCardFB) } : null,
+      ruleFourState: ruleFourState ? { ...ruleFourState, cards:(ruleFourState.cards||[]).map(toCardFB) } : null,
+      swingingParadoxState: swingingParadoxState ? { ...swingingParadoxState, cards:(swingingParadoxState.cards||[]).map(toCardFB) } : null,
+      rule1State, rule1UsedThisTurn,
+    };
+    ref.child('state').set(snap).catch(e => console.error('[FB write]', e));
+  }, [phase, hands, trickPlays, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
+      diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
+      trickResult, pendingPlayContinuation,
+      kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
+      riotState, showdownState, acesLowState, ruleOfThreeState, ruleFourState, swingingParadoxState,
+      rule1State, rule1UsedThisTurn]);
+
+  // ── Firebase: guest reads full game state snapshot ───────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer() || isHost()) return;
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const toHand = h => fbArr(h).map(c => ({...c}));
+    const toPlay = p => p ? ({ playerIdx:p.playerIdx, card:{...p.card} }) : null;
+    const handler = snap => {
+      const st = snap.val();
+      if (!st) return;
+      setPhase(st.phase ?? "playing");
+      if (st.phase && st.phase !== "menu") setScreen(st.phase === "gameover" ? "gameover" : "game");
+      setHands(fbArr(st.hands).map(toHand));
+      setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
+      setTurnOrder(fbArr(st.turnOrder));
+      setCurrentTurn(st.currentTurn ?? 0);
+      setRoundScores(fbArr(st.roundScores));
+      setTotalScores(fbArr(st.totalScores));
+      setRoundNum(st.roundNum ?? 1);
+      setTricksPlayed(st.tricksPlayed ?? 0);
+      setDiamondsBroken(st.diamondsBroken ?? false);
+      goldenAgeRef.current = st.goldenAgeActive ?? false;
+      setGoldenAgeActive(st.goldenAgeActive ?? false);
+      setDealing(st.dealing ?? false);
+      setDealRevealIdx(st.dealRevealIdx ?? 13);
+      setDealerIdx(st.dealerIdx ?? 0);
+      if (st.allNames) setRemoteNames(fbArr(st.allNames));
+      if (st.playerEmojis) setRemoteEmojis(fbArr(st.playerEmojis));
+      if (st.opponentSlots) setOpponentSlots(fbArr(st.opponentSlots));
+      if (st.trickResult) {
+        const tr = st.trickResult;
+        setTrickResult({ ...tr, plays:fbArr(tr.plays).map(toPlay).filter(Boolean), diamondsCaptured:fbArr(tr.diamondsCaptured||[]), familyCards:fbArr(tr.familyCards||[]) });
+      } else { setTrickResult(null); }
+      if (st.pendingPlayContinuation) {
+        const pc = st.pendingPlayContinuation;
+        setPendingPlayContinuation({ playerIdx:pc.playerIdx, card:pc.card, newPlays:fbArr(pc.newPlays||[]).map(toPlay).filter(Boolean), newHands:fbArr(pc.newHands||[]).map(toHand) });
+      } else { setPendingPlayContinuation(null); }
+      setKidnapState(st.kidnapState ?? null);
+      setRescueState(st.rescueState ?? null);
+      setQueenClubsState(st.queenClubsState ?? null);
+      setRobbinSummonState(st.robbinSummonState ?? null);
+      setAceRobChoiceState(st.aceRobChoiceState ?? null);
+      if (st.showdownOffered) setShowdownOffered(fbArr(st.showdownOffered));
+      if (st.theStealOffered) setTheStealOffered(fbArr(st.theStealOffered));
+      if (st.riotOffered) setRiotOffered(fbArr(st.riotOffered));
+      if (st.acesLowOffered) setAcesLowOffered(fbArr(st.acesLowOffered));
+      if (st.americanFamilyOffered) setAmericanFamilyOffered(fbArr(st.americanFamilyOffered));
+      if (st.ruleOfThreeOffered) setRuleOfThreeOffered(fbArr(st.ruleOfThreeOffered));
+      if (st.ruleFourOffered) setRuleFourOffered(fbArr(st.ruleFourOffered));
+      if (st.swingingParadoxOffered) setSwingingParadoxOffered(fbArr(st.swingingParadoxOffered));
+      setRiotState(st.riotState ?? null);
+      setShowdownState(st.showdownState ?? null);
+      setAcesLowState(st.acesLowState ?? null);
+      if (st.ruleOfThreeState) { setRuleOfThreeState({...st.ruleOfThreeState, cards:fbArr(st.ruleOfThreeState.cards||[])}); } else { setRuleOfThreeState(null); }
+      if (st.ruleFourState) { setRuleFourState({...st.ruleFourState, cards:fbArr(st.ruleFourState.cards||[])}); } else { setRuleFourState(null); }
+      if (st.swingingParadoxState) { setSwingingParadoxState({...st.swingingParadoxState, cards:fbArr(st.swingingParadoxState.cards||[])}); } else { setSwingingParadoxState(null); }
+      setRule1State(st.rule1State ?? null);
+      if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
+    };
+    ref.child('state').on('value', handler);
+    return () => ref.child('state').off('value', handler);
+  }, [mpRole]);
+
+  // ── Firebase: host processes guest pendingMoves ───────────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer() || !isHost()) return;
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const pendingRef = ref.child('pendingMoves');
+    const handler = snap => {
+      const move = snap.val();
+      snap.ref.remove();
+      if (!move) return;
+      const { type, seatIdx, payload } = move;
+      if (type === 'playCard') {
+        const hand = handsRef.current[seatIdx] || [];
+        const card = hand.find(c => c.id === payload.cardId);
+        if (card) setTimeout(() => submitPlay(seatIdx, card), 0);
+      }
+    };
+    pendingRef.on('child_added', handler);
+    return () => pendingRef.off('child_added', handler);
+  }, [mpRole]);
+  // ────────────────────────────────────────────────────────────────────────────
+
+  const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===mySeatingIdx;
   const ledSuit = trickPlays.length > 0 && !trickPlays[0].card.isJoker ? trickPlays[0].card.suit : null;
   // "2c" = must play 2♣, "club" = must play any club (2♣ gone), null = free
   const openingConstraint = (() => {
     if (!isFirstTrick || trickPlays.length !== 0 || !isPlayerTurn) return null;
-    if (hands[0]?.some(c => c.rank==="2" && c.suit==="♣")) return "2c";
-    if (hands[0]?.some(c => c.suit==="♣" && !c.isJoker)) return "club";
+    if (hands[mySeatingIdx]?.some(c => c.rank==="2" && c.suit==="♣")) return "2c";
+    if (hands[mySeatingIdx]?.some(c => c.suit==="♣" && !c.isJoker)) return "club";
     return null;
   })();
 
   // Auto-skip human player if their hand is empty
   useEffect(() => {
-    if (!isPlayerTurn || hands[0]?.length > 0) return;
+    if (!isPlayerTurn || hands[mySeatingIdx]?.length > 0) return;
     const timer = setTimeout(() => {
       const currentHands = handsRef.current;
       const currentPlays = trickPlaysRef.current;
@@ -4663,13 +5018,14 @@ function DiamondsGame() {
   // SHOWDOWN: check at the start of any player's turn — must fire BEFORE The Steal (superset)
   useEffect(() => {
     if (phase !== "playing") return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (isMultiplayer() && !isHost()) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (trickPlays.some(p => p.playerIdx === cp)) return;
     if (showdownOffered[cp]) return;
     if (!checkShowdown(hands[cp] || [])) return;
     setShowdownOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
-    if (cp === 0) {
+    if (cp === mySeatingIdxRef.current) {
       return; // Human notified via buttons in action area
     } else {
       const pts = SHOWDOWN_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -4700,7 +5056,8 @@ function DiamondsGame() {
   // THE STEAL: check at the start of any player's turn (no cards played yet in the trick)
   useEffect(() => {
     if (phase !== "playing") return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (isMultiplayer() && !isHost()) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (trickPlays.some(p => p.playerIdx === cp)) return;
     if (theStealOffered[cp]) return;
@@ -4708,7 +5065,7 @@ function DiamondsGame() {
     if (!checkTheSteal(hands[cp] || [])) return;
     // Mark offered so it only fires once per round per player
     setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
-    if (cp === 0) {
+    if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
     } else {
       // AI player — cash in, then show event box so human sees it
@@ -4738,14 +5095,15 @@ function DiamondsGame() {
   // Riot detection: fires at the start of each trick before playing
   useEffect(() => {
     if (phase !== "playing") return;
+    if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (riotOffered[cp]) return;
     const riotCards = checkRiot(hands[cp] || [], diamondsBroken);
     if (!riotCards) return;
     setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
-    if (cp === 0) {
+    if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
     } else {
       const cardIds = new Set(riotCards.map(c=>c.id));
@@ -4774,13 +5132,14 @@ function DiamondsGame() {
   // Golden Age (Aces Low): fires at the start of each player's turn, before a card is played
   useEffect(() => {
     if (phase !== "playing") return;
+    if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (acesLowOffered[cp]) return;
     if (!checkAcesLow(hands[cp] || [])) return;
     setAcesLowOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
-    if (cp === 0) {
+    if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
     } else {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
@@ -4841,10 +5200,11 @@ function DiamondsGame() {
   // Pre-play set detection for AI players (Rule of 3/4/2). Human player is notified via buttons.
   useEffect(() => {
     if (phase !== "playing") return;
+    if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
-    if (cp === 0) return; // Human sees buttons in action area
+    if (cp === mySeatingIdxRef.current) return; // Human sees buttons in action area
     // Riot qualifies and fires via its own effect on this same render — let it win
     if (checkRiot(hands[cp] || [], diamondsBroken)) return;
 
@@ -4856,10 +5216,8 @@ function DiamondsGame() {
         const rank4 = quad4[0].rank;
         if (ruleFourOffered[cp] !== rank4) {
         setRuleFourOffered(prev => { const n=[...prev]; n[cp]=rank4; return n; });
-        if (cp === 0) {
-          setRuleFourState({ playerIdx:0, cards:quad4, continuation:null });
-          setPhase("rulefour_offer");
-          return;
+        if (false) {
+          // unreachable: host's turn already returned above
         } else {
           const pts = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
           const cardIds = new Set(quad4.map(c=>c.id));
@@ -4894,10 +5252,8 @@ function DiamondsGame() {
         const rank3 = trio[0].rank;
         if (ruleOfThreeOffered[cp] !== rank3) {
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[cp]=rank3; return n; });
-        if (cp === 0) {
-          setRuleOfThreeState({ playerIdx:0, cards:trio, continuation:null });
-          setPhase("ruleofthree_offer");
-          return;
+        if (false) {
+          // unreachable: host's turn already returned above
         } else {
           const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
           const cardIds = new Set(trio.map(c=>c.id));
@@ -4931,11 +5287,8 @@ function DiamondsGame() {
         const ranks4 = [...new Set(quad.map(c=>c.rank))].sort().join(',');
         if (swingingParadoxOffered[cp] !== ranks4) {
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[cp]=ranks4; return n; });
-        if (cp === 0) {
-          if (allSwingingParadoxCombos(hands[cp] || []).length > 1) return; // Buttons handle multi-combo selection
-          setSwingingParadoxState({ playerIdx:0, cards:quad, continuation:null });
-          setPhase("swingingparadox_offer");
-          return;
+        if (false) {
+          // unreachable: host's turn already returned above
         } else {
           const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
           const cardIds = new Set(quad.map(c=>c.id));
@@ -4985,13 +5338,14 @@ function DiamondsGame() {
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
     if (phase !== "playing") return;
+    if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
-    if (dealing || dealRevealIdx < (hands[0]?.length ?? 0)) return;
+    if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (americanFamilyOffered[cp]) return;
     if (!checkAmericanFamily(hands[cp] || [])) return;
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
-    if (cp === 0) {
+    if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
     } else {
       const GA = goldenAgeRef.current ? 2 : 1;
@@ -5276,6 +5630,50 @@ function DiamondsGame() {
     }, 1150);
   }
 
+  // ── Multiplayer: host starts the game, assigns seats, syncs to Firebase ──────
+  function startMultiplayerGame(guestPlayers, hostName) {
+    // guestPlayers: [{playerId, name}] — players who joined (excluding host)
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    // Seat 0 = host, seats 1-3 = guests then AI
+    const seats = [{ playerId: myPlayerIdRef.current, name: hostName||playerName||'Host', type:'human' }];
+    guestPlayers.forEach(p => {
+      if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||'Guest', type:'human' });
+    });
+    // Fill remaining with random AI
+    const aiPool = [...OPPONENT_OPTIONS].sort(() => Math.random()-0.5);
+    aiPool.forEach(opt => {
+      if (seats.length < 4) seats.push({ playerId: null, name: opt.label, type:'ai', aiId: opt.id });
+    });
+    // Write seat assignments so guests can discover their seat index
+    ref.child('seats').set(seats);
+    ref.child('config/status').set('playing');
+    // Build opponentSlots: seats 1,2,3 → slot id ('human' or ai id)
+    const slots = seats.slice(1).map(s => s.type === 'human' ? 'human' : s.aiId);
+    setOpponentSlots(slots);
+    // Guest names will show via Firebase state sync (allNames written in host write effect)
+    setShowMpLobby(false);
+    startGame(hostName || playerName || 'Host');
+  }
+
+  // ── Multiplayer: guest discovers their seat from Firebase seats ───────────────
+  useEffect(() => {
+    if (!isMultiplayer() || isHost()) return;
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const handler = snap => {
+      const seats = fbArr(snap.val() || []);
+      const myId = myPlayerIdRef.current;
+      const idx = seats.findIndex(s => s.playerId === myId);
+      if (idx >= 1) {
+        setMySeatingIdx(idx);
+      }
+    };
+    ref.child('seats').on('value', handler);
+    return () => ref.child('seats').off('value', handler);
+  }, [mpRole]);
+  // ────────────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (phase === "roundover" || phase === "gameover") {
       const log = [...roundEventLogRef.current];
@@ -5317,27 +5715,31 @@ function DiamondsGame() {
   function playCard(card) {
     if (!isPlayerTurn) return;
     // Guard against ghost plays: card must still be in hand
-    if (!card.isJoker && !hands[0].some(c => c.id === card.id)) return;
+    if (!card.isJoker && !hands[mySeatingIdx].some(c => c.id === card.id)) return;
     if (openingConstraint === "2c" && !(card.rank==="2" && card.suit==="♣")) return;
     if (openingConstraint === "club" && !card.isJoker && card.suit !== "♣") return;
     // Joker is ALWAYS playable — no other restrictions
-    if (card.isJoker) { submitPlay(0, card); return; }
+    if (card.isJoker) {
+      if (isMultiplayer() && !isHost()) { guestSubmitMove('playCard', { cardId: card.id }); return; }
+      submitPlay(mySeatingIdx, card); return;
+    }
     // Trump rule: can't lead with a diamond until diamonds are broken
     // Exception: round 1, player has no clubs — may lead diamond to break them
     if (!diamondsBroken && trickPlays.length === 0 && isDiamond(card)) {
       const isJackD = card.id === "J♦";
-      const noClubsRound1 = !isJackD && roundNum === 1 && !hands[0].some(c => c.suit === "♣" && !c.isJoker);
+      const noClubsRound1 = !isJackD && roundNum === 1 && !hands[mySeatingIdx].some(c => c.suit === "♣" && !c.isJoker);
       if (!noClubsRound1) {
-        const nonDiamonds = hands[0].filter(c => !isDiamond(c) && !c.isJoker);
+        const nonDiamonds = hands[mySeatingIdx].filter(c => !isDiamond(c) && !c.isJoker);
         if (nonDiamonds.length > 0) return;
       }
     }
     // Follow suit if possible
     if (ledSuit) {
-      const hasSuit = hands[0].some(c => !c.isJoker && c.suit === ledSuit);
+      const hasSuit = hands[mySeatingIdx].some(c => !c.isJoker && c.suit === ledSuit);
       if (hasSuit && card.suit !== ledSuit) return;
     }
-    submitPlay(0, card);
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('playCard', { cardId: card.id }); return; }
+    submitPlay(mySeatingIdx, card);
   }
 
   function submitPlay(playerIdx, card) {
@@ -5384,10 +5786,10 @@ function DiamondsGame() {
       return;
     }
 
-    // Advance currentTurn, skipping players with no cards — never skip human (player 0) if they have cards
+    // Advance currentTurn, skipping players with no cards — never skip human if they have cards
     let nextTurn = currentTurn + 1;
     while (nextTurn < 4 && newHands[turnOrder[nextTurn]]?.length === 0) {
-      if (turnOrder[nextTurn] === 0 && (newHands[0]?.length ?? 0) > 0) break; // guard: never skip human with cards
+      if (turnOrder[nextTurn] === mySeatingIdxRef.current && (newHands[mySeatingIdxRef.current]?.length ?? 0) > 0) break; // guard: never skip human with cards
       nextTurn++;
     }
     if (nextTurn >= 4) {
@@ -5417,7 +5819,7 @@ function DiamondsGame() {
   }
 
   function declineAmericanFamily() {
-    addLog(`🏛️ ${allNames[0]} holds The American Family — waiting for a better moment`);
+    addLog(`🏛️ ${allNames[mySeatingIdx]} holds The American Family — waiting for a better moment`);
     setPhase("playing");
   }
 
@@ -6517,8 +6919,8 @@ function DiamondsGame() {
     // AUTO-CLAIM: sole remaining player, pointless cards only → sweep.
     // If the solo player still holds diamonds, play those tricks out one by one (won unopposed).
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    const soloIsHuman = playersWithCards.length === 1 && playersWithCards[0] === 0;
-    const humanNoDiamonds = soloIsHuman && !hands[0].some(c => isDiamond(c));
+    const soloIsHuman = playersWithCards.length === 1 && playersWithCards[0] === mySeatingIdx;
+    const humanNoDiamonds = soloIsHuman && !hands[mySeatingIdx].some(c => isDiamond(c));
     const soloCards = playersWithCards.length === 1 ? hands[playersWithCards[0]] : [];
     const soloNoDiamonds = !soloCards.some(c => isDiamond(c));
     if (autoCompleteTricks && playersWithCards.length === 1 && soloNoDiamonds && (playersWithCards[0] !== 0 || humanNoDiamonds)) {
@@ -6889,7 +7291,10 @@ function DiamondsGame() {
     if (phase !== "playing") return;
     if (showWelcome) return; // don't play cards while the intro modal is open
     const currentPlayer = turnOrder[currentTurn];
-    if (currentPlayer === undefined || currentPlayer === 0) return; // human's turn or out of bounds
+    if (currentPlayer === undefined || currentPlayer === mySeatingIdx) return; // human's turn or out of bounds
+    if (isMultiplayer() && !isHost()) return; // guests don't run AI
+    const slotId = opponentSlotsRef.current[currentPlayer - 1];
+    if (slotId === 'human') return; // wait for pendingMoves from this guest
 
     const timer = setTimeout(() => {
       // Read from ref so we always see the latest hands even if Rule of 1 or another
@@ -6901,7 +7306,7 @@ function DiamondsGame() {
         // Find next player in turn order who has cards
         let nextTurn = currentTurn + 1;
         while (nextTurn < 4 && (handsRef.current[turnOrder[nextTurn]]?.length || 0) === 0) {
-          if (turnOrder[nextTurn] === 0 && (handsRef.current[0]?.length ?? 0) > 0) break; // never skip human with cards
+          if (turnOrder[nextTurn] === mySeatingIdxRef.current && (handsRef.current[mySeatingIdxRef.current]?.length ?? 0) > 0) break; // never skip human with cards
           nextTurn++;
         }
         if (nextTurn >= 4) {
@@ -7000,11 +7405,13 @@ function DiamondsGame() {
   // — no diamonds left  → sweep the useless cards automatically (original feel)
   useEffect(() => {
     if (phase !== "playing" || dealing) return;
-    if (turnOrder[currentTurn] !== 0) return;
+    if (isMultiplayer() && !isHost()) return;
+    if (turnOrder[currentTurn] !== mySeatingIdxRef.current) return;
     if (trickPlays.length > 0) return;
-    const h0 = hands[0] || [];
+    const msi = mySeatingIdxRef.current;
+    const h0 = hands[msi] || [];
     if (h0.length === 0) return;
-    if (!hands.slice(1).every(h => h.length === 0)) return;
+    if (!hands.filter((_,i) => i !== msi).every(h => h.length === 0)) return;
 
     // Let human resolve any scoring sets first
     const r3 = checkRuleOfThree(h0);
@@ -7027,15 +7434,15 @@ function DiamondsGame() {
       const GA = goldenAgeRef.current ? 2 : 1;
       const dimondPts = h0.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
       const newRoundScores = [...roundScores];
-      newRoundScores[0] += dimondPts;
-      if (h0.length > 0) addLog(`✨ ${allNames[0]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`);
+      newRoundScores[msi] += dimondPts;
+      if (h0.length > 0) addLog(`✨ ${allNames[msi]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`);
       setRoundScores(newRoundScores);
       setHands([[],[],[],[]]);
       const newTotal = totalScores.map((s,i) => s + newRoundScores[i]);
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
-        const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        const _place = 1 + newTotal.filter((s,i) => s > newTotal[msi] || (s === newTotal[msi] && i !== msi)).length;
         setFireworksPlace(Math.max(1, Math.min(4, _place)));
         setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
       } else {
@@ -7052,7 +7459,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "kidnap" || !kidnapState) return;
     const jokerPlayer = kidnapState.jokerPlayerIdx;
-    if (jokerPlayer === 0) return; // human handles it via KidnapModal
+    if (jokerPlayer === mySeatingIdx) return; // human handles it via KidnapModal
 
     const timer = setTimeout(() => {
       const currentHands = kidnapState.hands;
@@ -7166,7 +7573,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (phase !== "rescue" || !rescueState) return;
     const acePlayer = rescueState.acePlayerIdx;
-    if (acePlayer === 0) return; // human handles it via RescueModal
+    if (acePlayer === mySeatingIdx) return; // human handles it via RescueModal
 
     const timer = setTimeout(() => {
       snapshotKnowledge(acePlayer, rescueState.hands);
@@ -7186,7 +7593,7 @@ function DiamondsGame() {
   // AI J♦ rob/pass choice when A♠ is in the trick — AI always passes
   useEffect(() => {
     if (phase !== "acerobchoice" || !aceRobChoiceState) return;
-    if (aceRobChoiceState.jackDPlayerIdx === 0) return; // human handles via modal
+    if (aceRobChoiceState.jackDPlayerIdx === mySeatingIdx) return; // human handles via modal
     const timer = setTimeout(() => { handleAceRobChoiceNoRob(); }, 900);
     return () => clearTimeout(timer);
   }, [phase, aceRobChoiceState]);
@@ -7413,6 +7820,9 @@ function DiamondsGame() {
           <GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
         </div>
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
+          <GoldBtn fill secondary onClick={()=>setShowMpLobby(true)}>Multiplayer ◆</GoldBtn>
+        </div>
+        <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
         </div>
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
@@ -7425,6 +7835,7 @@ function DiamondsGame() {
     ) : (
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <GoldBtn onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
+        <GoldBtn secondary onClick={()=>setShowMpLobby(true)}>Multiplayer ◆</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
@@ -7488,6 +7899,16 @@ function DiamondsGame() {
         {showRules && <RulesPanel onClose={()=>setShowRules(false)}/>}
         {showCredits && <RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
         {showOptions && <OptionsPanel onClose={()=>setShowOptions(false)} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
+        {showMpLobby && (
+          <MultiplayerLobby
+            nameInput={nameInput}
+            myPlayerId={myPlayerIdRef.current}
+            onClose={()=>setShowMpLobby(false)}
+            onJoinedAsHost={ref => { mpRoomRef.current = ref; setMpRole('host'); setMySeatingIdx(0); }}
+            onJoinedAsGuest={ref => { mpRoomRef.current = ref; setMpRole('guest'); setMySeatingIdx(1); }}
+            onStartGame={(guests, hostName) => startMultiplayerGame(guests, hostName)}
+          />
+        )}
         {showOpponentModal && (
           <div onClick={()=>setShowOpponentModal(false)} style={{
             position:"fixed",inset:0,zIndex:200,
@@ -7532,7 +7953,7 @@ function DiamondsGame() {
   // ============================================================
   // RENDER: GAME TABLE
   // ============================================================
-  const playerHand = handSortMode === 'suit' ? sortHandBySuit(hands[0] || []) : sortHand(hands[0] || []);
+  const playerHand = handSortMode === 'suit' ? sortHandBySuit(hands[mySeatingIdx] || []) : sortHand(hands[mySeatingIdx] || []);
   const isDesktop = windowWidth > 768; // big cards + side button
   // Mouse-pointer check: double-click-to-play only when using a real mouse (not touch)
   const hasMouseInput = isDesktop && !(typeof window !== 'undefined' && window.matchMedia?.("(pointer: coarse)").matches);
@@ -7606,13 +8027,13 @@ function DiamondsGame() {
     : 0;
   // Honor card glow: AF cards pulse gold when the set is available and the trick hasn't started
   const afAvailForGlow = cardGlowHints && isPlayerTurn && phase === "playing" && !dealing &&
-    trickPlays.length === 0 && checkAmericanFamily(hands[0] || []);
+    trickPlays.length === 0 && checkAmericanFamily(hands[mySeatingIdx] || []);
 
   // Cards in any currently redeemable set (R2/3/4/Riot) — used for legality regardless of trick state
   const availableSetCardIds = (() => {
     const ids = new Set();
     if (!isPlayerTurn || phase !== "playing" || dealing) return ids;
-    const h0 = hands[0] || [];
+    const h0 = hands[mySeatingIdx] || [];
     allRuleOfThreeCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     allRuleOfFourCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     if (diamondsBroken) allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
@@ -7624,7 +8045,7 @@ function DiamondsGame() {
   const setGlowIds = (() => {
     const ids = new Set();
     if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
-    const h0 = hands[0] || [];
+    const h0 = hands[mySeatingIdx] || [];
     availableSetCardIds.forEach(id => ids.add(id));
     if (checkTheSteal(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
     if (checkShowdown(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
@@ -7636,7 +8057,7 @@ function DiamondsGame() {
   const lockedSetGlowIds = (() => {
     const ids = new Set();
     if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0 || diamondsBroken) return ids;
-    const h0 = hands[0] || [];
+    const h0 = hands[mySeatingIdx] || [];
     allRuleOfThreeCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
     allRuleOfFourCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
     // SP combos are always diamond-locked and the locked button already communicates them — no card glow needed
@@ -8150,7 +8571,7 @@ function DiamondsGame() {
 
           // ── Sets panel (desktop: always visible box; portrait: conditional) ──
           const setsPanel = (() => {
-            const showSets = isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[0]?.length ?? 0) && !trickPlays.some(p => p.playerIdx === 0);
+            const showSets = isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && !trickPlays.some(p => p.playerIdx === mySeatingIdx);
             if (!isDesktop && !showSets) return null;
             let h0 = [], GA = 1;
             let r3AvailCombos = [], r3LockedCombos = [], r3Locked = false;
@@ -8161,7 +8582,7 @@ function DiamondsGame() {
             let rule1Avail = false;
             const setButtons = [];
             if (showSets) {
-            h0 = hands[0] || [];
+            h0 = hands[mySeatingIdx] || [];
             GA = goldenAgeRef.current ? 2 : 1;
             const r3AllCombos = allRuleOfThreeCombos(h0);
             r3AvailCombos = r3AllCombos.filter(c => !c.some(card => card.suit==="♦") || diamondsBroken);
@@ -8182,7 +8603,7 @@ function DiamondsGame() {
             afAvail = checkAmericanFamily(h0);
             gaAvail = checkAcesLow(h0);
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
-            rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[0];
+            rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[mySeatingIdx];
             } // end if (showSets)
             const subLabelSize = isDesktop ? 13 : 7;
             const lockedSubSize = isDesktop ? 12 : 6;
@@ -8420,7 +8841,7 @@ function DiamondsGame() {
       {/* MODALS */}
       {phase==="rule1"&&rule1State&&peekingModal!=="rule1"&&(
         <Rule1Modal
-          hand={hands[0]||[]}
+          hand={hands[mySeatingIdx]||[]}
           allNames={allNames}
           playerEmojis={playerEmojis}
           hands={hands}
@@ -8440,7 +8861,7 @@ function DiamondsGame() {
         </div>
       )}
 
-      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&peekingModal!=="kidnap"&&(
+      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===mySeatingIdx&&peekingModal!=="kidnap"&&(
         <KidnapModal
           hands={hands}
           jokerPlayerIdx={0}
@@ -8453,7 +8874,7 @@ function DiamondsGame() {
           onPeek={()=>setPeekingModal("kidnap")}
         />
       )}
-      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===0&&peekingModal==="kidnap"&&(
+      {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===mySeatingIdx&&peekingModal==="kidnap"&&(
         <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:kidnapState.isRobbinJack?"#0d2018":"#1a1a2a",border:`1.5px solid ${kidnapState.isRobbinJack?"#1a6b30":"#8833cc"}`,borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
           <span style={{fontSize:16}}>{kidnapState.isRobbinJack?"🎴":"🃏"}</span>
           <span style={{color:kidnapState.isRobbinJack?"#7ec8a4":"#c084f5",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>{kidnapState.isRobbinJack?"Return to Robbin Jack":"Return to Joker Kidnap"}</span>
@@ -8571,7 +8992,7 @@ function DiamondsGame() {
         </EventBox>
       )}
 
-      {phase==="robbinsummon" && robbinSummonState && robbinSummonState.jackPlayerIdx === 0 && (
+      {phase==="robbinsummon" && robbinSummonState && robbinSummonState.jackPlayerIdx === mySeatingIdx && (
         <Modal>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:4}}>🎴</div>
@@ -8591,7 +9012,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {phase==="acerobchoice" && aceRobChoiceState && aceRobChoiceState.jackDPlayerIdx === 0 && (
+      {phase==="acerobchoice" && aceRobChoiceState && aceRobChoiceState.jackDPlayerIdx === mySeatingIdx && (
         <Modal>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:4}}>🎴♠</div>
@@ -8611,7 +9032,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&!queenClubsPeeking&&(
+      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===mySeatingIdx&&!queenClubsPeeking&&(
         <QueenClubsModal
           hands={queenClubsState.hands}
           playerIdx={0}
@@ -8625,7 +9046,7 @@ function DiamondsGame() {
           onPeek={()=>setQueenClubsPeeking(true)}
         />
       )}
-      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===0&&queenClubsPeeking&&(
+      {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===mySeatingIdx&&queenClubsPeeking&&(
         <div onClick={()=>setQueenClubsPeeking(false)} style={{
           position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",
           background:"#0d2230",border:"1.5px solid #4db8e8",borderRadius:24,
@@ -8637,7 +9058,7 @@ function DiamondsGame() {
         </div>
       )}
 
-      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&peekingModal!=="rescue"&&(
+      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===mySeatingIdx&&peekingModal!=="rescue"&&(
         <RescueModal
           hands={hands}
           acePlayerIdx={0}
@@ -8649,7 +9070,7 @@ function DiamondsGame() {
           onPeek={()=>setPeekingModal("rescue")}
         />
       )}
-      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===0&&peekingModal==="rescue"&&(
+      {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===mySeatingIdx&&peekingModal==="rescue"&&(
         <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#0d1020",border:"1.5px solid #1a3ab8",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
           <span style={{fontSize:16}}>🗡️</span>
           <span style={{color:"#8a9fe0",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Ace of Spades Rescue</span>
@@ -8657,7 +9078,7 @@ function DiamondsGame() {
       )}
 
       {/* Aces Low — offer modal (only when it's the human's choice) */}
-      {phase==="aceslow_offer" && acesLowState && acesLowState.playerIdx === 0 && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+      {phase==="aceslow_offer" && acesLowState && acesLowState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{
           position:"fixed", top:0, left:0, right:0, height:"58%",
           background:"rgba(4,18,15,0.72)",
@@ -8720,7 +9141,7 @@ function DiamondsGame() {
       )}
 
       {/* American Family — offer modal (only human player) */}
-      {phase==="americanfamily_offer" && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+      {phase==="americanfamily_offer" && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{
           position:"fixed", top:0, left:0, right:0, height:"58%",
           background:"rgba(4,18,15,0.72)",
@@ -8767,7 +9188,7 @@ function DiamondsGame() {
                 letterSpacing:2, textTransform:"uppercase",
                 fontFamily:FONT_DISPLAY,
               }}>Hold Cards</button>
-              <button onClick={()=>handleAmericanFamily(0)} style={{
+              <button onClick={()=>handleAmericanFamily(mySeatingIdx)} style={{
                 background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
                 color:"#0a2320", border:"none", borderRadius:10,
                 padding:"12px 28px", fontSize:13,
@@ -8806,7 +9227,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 3 (Democracy) — offer */}
-      {phase==="ruleofthree_offer" && ruleOfThreeState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+      {phase==="ruleofthree_offer" && ruleOfThreeState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🦅</div>
@@ -8837,7 +9258,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 2 (Swinging Paradox) — offer */}
-      {phase==="swingingparadox_offer" && swingingParadoxState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+      {phase==="swingingparadox_offer" && swingingParadoxState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💍</div>
@@ -8868,7 +9289,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 4 (Dimond in the Rough) — offer */}
-      {phase==="rulefour_offer" && ruleFourState && dealRevealIdx >= (hands[0]?.length ?? 0) && (
+      {phase==="rulefour_offer" && ruleFourState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💎</div>
