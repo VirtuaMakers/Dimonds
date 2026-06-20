@@ -5911,7 +5911,6 @@ function DiamondsGame() {
     if (!showdownState) return;
     const pi = showdownState.playerIdx;
     addLog(`🌆 SHOWDOWN — ${allNames[pi]} plays on. All four steal cards stay in hand.`);
-    soundTheSteal();
     setShowdownState(null);
     setPhase("playing");
   }
@@ -5969,7 +5968,6 @@ function DiamondsGame() {
     if (!theStealState) return;
     const pi = theStealState.playerIdx;
     addLog(`🌇 THE STEAL — ${allNames[pi]} plays on. The trio stays in hand.`);
-    soundTheSteal();
     setTheStealState(null);
     setPhase("playing");
   }
