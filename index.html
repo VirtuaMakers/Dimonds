@@ -5060,10 +5060,10 @@ function DiamondsGame() {
         }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
           if (openerGenRef.current !== openerGen) { clearTimeout(timer); return; } // stale round
           if (data == null) return; // error response — let timer fire at 21s
-          clearTimeout(timer);
           const text = data?.text?.trim();
-          if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
-          else fireSub();
+          if (!text) return; // empty response — let timer fire at 21s
+          done = true; clearTimeout(timer);
+          soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
         }).catch(e => {
           if (e?.name === 'AbortError') clearTimeout(timer);
           // Other failures: let the timer fire at 21s
@@ -5196,10 +5196,10 @@ function DiamondsGame() {
           }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
             if (openerGenRef.current !== openerGen) { clearTimeout(timer); return; } // stale round
             if (data == null) return; // error response — let timer fire at 21s
-            clearTimeout(timer);
             const text = data?.text?.trim();
-            if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
-            else fireSub();
+            if (!text) return; // empty response — let timer fire at 21s
+            done = true; clearTimeout(timer);
+            soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
           }).catch(e => {
             if (e?.name === 'AbortError') clearTimeout(timer);
             // Other failures: let the timer fire at 21s
@@ -6765,7 +6765,7 @@ function DiamondsGame() {
     if (trickResult.aceRescueAttempted) flagTrickInstance(`${winner} played the Ace of Spades — Rescue attempted`);
     if (trickResult.rule1Announced) flagTrickInstance(`Rule 1 triggered — a set was turned in, a card given away`);
     if (diamonds > 0) flagTrickInstance(`${winner} won a trick scoring ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`);
-    fireTrickComment();
+    if (!showWelcome) fireTrickComment();
   }, [trickResult]);
 
   // ---- End-of-game taunts ----
@@ -6863,10 +6863,10 @@ function DiamondsGame() {
         }),
       }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
         if (data == null) return; // error response — let timer fire at 21s
-        clearTimeout(timer);
         const text = data?.text?.trim();
-        if (text) { done = true; soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
-        else fireSub();
+        if (!text) return; // empty response — let timer fire at 21s
+        done = true; clearTimeout(timer);
+        soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6));
       }).catch(e => { if (e?.name !== 'AbortError') return; clearTimeout(timer); });
     });
   }, [diamondsBroken]);
@@ -6874,6 +6874,7 @@ function DiamondsGame() {
   // ---- AI turns ----
   useEffect(() => {
     if (phase !== "playing") return;
+    if (showWelcome) return; // don't play cards while the intro modal is open
     const currentPlayer = turnOrder[currentTurn];
     if (currentPlayer === undefined || currentPlayer === 0) return; // human's turn or out of bounds
 
@@ -6979,7 +6980,7 @@ function DiamondsGame() {
     }, 700 + Math.random()*400);
 
     return () => clearTimeout(timer);
-  }, [phase, currentTurn, turnOrder]);
+  }, [phase, currentTurn, turnOrder, showWelcome]);
 
   // When human is last player with cards:
   // — still has diamonds → let them play manually (they choose which to score)
