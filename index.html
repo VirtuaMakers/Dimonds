@@ -8603,7 +8603,7 @@ function DiamondsGame() {
         {/* DESKTOP SETS CHEATSHEET — compact reference in the left margin of the hand area */}
         {isDesktop && (
           <div style={{
-            position:"absolute", left:10, top:-90, zIndex:4,
+            position:"absolute", left:10, bottom:20, zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
             {/* Dimonds scoring key */}
@@ -8633,7 +8633,7 @@ function DiamondsGame() {
               <div key={name} style={{display:"flex",alignItems:"center",gap:6}}>
                 <span style={{fontSize:14,lineHeight:1,width:18,textAlign:"center"}}>{emoji}</span>
                 <span style={{color:"#ffffffcc",fontSize:12,fontFamily:FONT_UI,width:82,fontWeight:600}}>{name}</span>
-                <span style={{color:"#ffffff66",fontSize:descFont??12,fontFamily:FONT_UI,width:104}}>{desc}</span>
+                <span style={{color:"#ffffff66",fontSize:descFont??12,fontFamily:FONT_UI,width:128}}>{desc}</span>
                 <span style={{color:ptsColor??VM.tealLight,fontSize:12,fontWeight:700,fontFamily:FONT_UI}}>{pts}</span>
               </div>
             ))}
@@ -9151,7 +9151,7 @@ function DiamondsGame() {
             );
             return (
               <>
-                <div style={{position:"fixed",left:275,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
+                <div style={{position:"fixed",left:300,top:"calc(100dvh - 118px)",transform:"translateY(-50%)",zIndex:50}}>
                   {buttonsPanel}
                 </div>
                 {setsPanel && (
