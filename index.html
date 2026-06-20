@@ -93,6 +93,12 @@ function createAudioCtx() {
   try { return new (window.AudioContext || window.webkitAudioContext)(); } catch(e) { return null; }
 }
 let _audioCtx = null;
+let _voices = [];
+if (typeof window !== 'undefined' && window.speechSynthesis) {
+  const _loadVoices = () => { _voices = window.speechSynthesis.getVoices(); };
+  _loadVoices();
+  window.speechSynthesis.onvoiceschanged = _loadVoices;
+}
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = createAudioCtx();
   if (_audioCtx?.state === "suspended") _audioCtx.resume();
@@ -6773,22 +6779,21 @@ function DiamondsGame() {
     if (!window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
     if (provider === 'gemini') {
       utt.rate = 0.85; utt.pitch = 1.1;
-      const gbVoices = voices.filter(v => v.lang.startsWith('en-GB'));
+      const gbVoices = _voices.filter(v => v.lang.startsWith('en-GB'));
       const femalePat = /serena|kate|hazel|emma|google uk english female/i;
       const voice = gbVoices.find(v => femalePat.test(v.name)) || gbVoices[0] || null;
       if (voice) utt.voice = voice; else utt.lang = 'en-GB';
     } else if (provider === 'llama') {
       utt.rate = 1.0; utt.pitch = 0.9;
-      const usVoices = voices.filter(v => v.lang.startsWith('en-US'));
+      const usVoices = _voices.filter(v => v.lang.startsWith('en-US'));
       const malePat = /aaron|noel|reed|rock|fred|alex|tom|david|mark|junior|google us english male/i;
       const voice = usVoices.find(v => malePat.test(v.name)) || usVoices[0] || null;
       if (voice) utt.voice = voice; else utt.lang = 'en-US';
     } else if (provider === 'mistral') {
       utt.rate = 0.9; utt.pitch = 1.15;
-      const frVoices = voices.filter(v => v.lang.startsWith('fr'));
+      const frVoices = _voices.filter(v => v.lang.startsWith('fr'));
       const femalePat = /am[eé]lie|julie|hortense|marie|audrey|alice|camille|elsa|claire|sophie|c[eé]line|virginie|google fran/i;
       const voice = frVoices.find(v => femalePat.test(v.name)) || frVoices[0] || null;
       if (voice) utt.voice = voice; else utt.lang = 'fr-FR';
