@@ -8949,6 +8949,7 @@ function DiamondsGame() {
             let r4AvailCombos = [], r4LockedCombos = [], r4Locked = false;
             let spCombos = [], spLockedCombos = [], spLocked = false;
             let riotAvail = null, riotLocked = null;
+            let nfLocked = null, bdLockedCombos = [];
             let hasLocked = false, showdownAvail = null, stealAvail = null, afAvail = null, gaAvail = null;
             let rule1Avail = false;
             const setButtons = [];
@@ -8968,14 +8969,16 @@ function DiamondsGame() {
             spLocked = spLockedCombos.length > 0;
             riotAvail = checkRiot(h0, diamondsBroken);
             riotLocked = !diamondsBroken && !riotAvail && checkRiot(h0, true);
-            hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked);
+            nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
+            nfLocked = !diamondsBroken ? checkNuclearFamily(h0) : null;
+            bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
+            bdCombos = diamondsBroken ? allBloodDiamondCombos(h0) : [];
+            bdLockedCombos = !diamondsBroken ? allBloodDiamondCombos(h0) : [];
+            hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked || nfLocked || bdLockedCombos.length > 0);
             showdownAvail = checkShowdown(h0);
             stealAvail = checkTheSteal(h0);
             afAvail = checkAmericanFamily(h0);
             gaAvail = checkAcesLow(h0);
-            nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
-            bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
-            bdCombos = diamondsBroken ? allBloodDiamondCombos(h0) : [];
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[mySeatingIdx];
             } // end if (showSets)
@@ -9161,6 +9164,20 @@ function DiamondsGame() {
                         </div>;
                       })}
                       {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×7 {rs}</span></div>; })()}
+                      {nfLocked && (() => {
+                        const nfLabel = nfLocked.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfLocked.slice(3).map(c=>c.rank+c.suit).join(" & ");
+                        return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
+                          <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🏠 Nuclear Fam.</span><span style={{opacity:0.6}}>+{NUCLEAR_FAMILY_BONUS*GA}</span></span>
+                          <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{nfLabel}</span>
+                        </div>;
+                      })()}
+                      {bdLockedCombos.map((combo, i) => {
+                        const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
+                        return <div key={`bdl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
+                          <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🩸 Blood Diamond</span><span style={{opacity:0.6}}>+{BLOOD_DIAMOND_BONUS*GA}</span></span>
+                          <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{bdLabel}</span>
+                        </div>;
+                      })}
                     </div>
                   </div>
                 )}
