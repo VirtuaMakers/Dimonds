@@ -6044,6 +6044,7 @@ function DiamondsGame() {
               setPhase("trickresult");
               return;
             }
+            if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
             setKidnapState({ jokerPlayerIdx: jackDIdx, isRobbinJack: true, hands: currentHands, resultObj: jackFirstResultObj });
             setPhase("kidnap");
             return;
@@ -6057,6 +6058,7 @@ function DiamondsGame() {
           setPhase("robbinsummon");
           return;
         }
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
         setPhase("kidnap");
       }, 600);
@@ -6252,7 +6254,8 @@ function DiamondsGame() {
 
   function handleRobbinSummonNo() {
     if (!robbinSummonState) return;
-    const { jokerPlayerIdx, hands: currentHands, resultObj } = robbinSummonState;
+    const { jokerPlayerIdx, hands: currentHands, resultObj, gameWon, newTotal } = robbinSummonState;
+    if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setRobbinSummonState(null);
     setKidnapState({ jokerPlayerIdx, hands: currentHands, resultObj });
     setPhase("kidnap");
@@ -6302,7 +6305,7 @@ function DiamondsGame() {
         setAceRobChoiceState(null);
         soundAceSuccess();
         setRescueState({ acePlayerIdx: aceWinnerIdx, hands: currentHands, resultObj: finalResult, jokerLockedUp: autoBlockedJoker });
-        if (gameWon) setPendingFireworks(true);
+        if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         setPhase("rescue");
         return;
       }
