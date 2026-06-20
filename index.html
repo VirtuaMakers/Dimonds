@@ -9188,17 +9188,25 @@ function DiamondsGame() {
 
           // ── Desktop: buttons left, sets right ──
           if (isDesktop) {
+            const deskBtnBase = {
+              display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+              cursor:"pointer",border:"none",borderRadius:10,
+              padding:"0 18px",gap:2,touchAction:"manipulation",
+              background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
+              boxShadow:`0 4px 14px ${VM.gold}33`,
+              width:"100%",boxSizing:"border-box",height:50,
+            };
             const buttonsPanel = (
-              <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",width:165}}>
-                <GoldBtn onClick={handlePlayBtn} disabled={!btnEnabled}>{btnLabel}</GoldBtn>
-                <button onClick={toggleHandSort} style={{
-                  display:"flex",flexDirection:"column",alignItems:"center",
-                  cursor:"pointer",border:"none",borderRadius:10,
-                  padding:"14px 32px",gap:2,touchAction:"manipulation",
-                  background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
-                  boxShadow:`0 4px 14px ${VM.gold}33`,
-                  width:"100%",boxSizing:"border-box",minHeight:48,
+              <div style={{display:"flex",flexDirection:"column",gap:8,alignItems:"stretch",width:145}}>
+                <button onClick={handlePlayBtn} disabled={!btnEnabled} style={{
+                  ...deskBtnBase,
+                  background: btnEnabled ? `linear-gradient(135deg,${VM.gold},#c9a84c)` : "#ffffff11",
+                  boxShadow: btnEnabled ? `0 4px 14px ${VM.gold}33` : "none",
+                  cursor: btnEnabled ? "pointer" : "not-allowed",
                 }}>
+                  <span style={{color:btnEnabled?"#0a2320":"#ffffff33",fontWeight:800,fontSize:15,fontFamily:FONT_DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>{btnLabel}</span>
+                </button>
+                <button onClick={toggleHandSort} style={deskBtnBase}>
                   <span style={{color:"#0a2320",fontWeight:800,fontSize:15,fontFamily:FONT_DISPLAY,letterSpacing:1,textTransform:"uppercase"}}>Re-Sort</span>
                   <span style={{color:"#0a232099",fontSize:10,fontFamily:FONT_UI,textTransform:"uppercase",letterSpacing:0.5}}>{handSortMode==='rank'?'By Rank':'By Suit'}</span>
                 </button>
