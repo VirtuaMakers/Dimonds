@@ -40,9 +40,18 @@ async function callGemini(prompt, env) {
       generationConfig: { temperature: 0.95, maxOutputTokens: 120 },
     }),
   });
-  if (!res.ok) throw new Error(`Gemini ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Gemini] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Gemini ${res.status}: ${errBody.slice(0, 200)}`);
+  }
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  if (!text) {
+    const reason = data?.candidates?.[0]?.finishReason ?? data?.promptFeedback?.blockReason ?? "unknown";
+    console.error(`[Gemini] Empty text, finishReason/blockReason: ${reason}`, JSON.stringify(data).slice(0, 300));
+  }
+  return text;
 }
 
 // ─── Llama via Groq ───────────────────────────────────────────────────────────
@@ -54,13 +63,17 @@ async function callLlama(prompt, env) {
       Authorization: `Bearer ${env.GROQ_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "llama3-8b-8192",
+      model: "llama-3.1-8b-instant",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
     }),
   });
-  if (!res.ok) throw new Error(`Groq ${res.status}`);
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Groq] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Groq ${res.status}: ${errBody.slice(0, 200)}`);
+  }
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
@@ -180,6 +193,7 @@ export default {
 
       return json({ error: "Unknown action" }, 400);
     } catch (err) {
+      console.error(`[Worker] ${action ?? "cardplay"} / ${provider}: ${err.message}`);
       return json({ error: err.message ?? "Worker error" }, 500);
     }
   },
