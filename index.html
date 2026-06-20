@@ -2720,7 +2720,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal
                 const origIdx = getOriginalIdx(card);
                 const isSelected = chosenCardIdx === origIdx;
                 return (
-                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{
+                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} onDoubleClick={()=>onSteal(chosenPlayer,origIdx)} style={{
                     cursor:"pointer",
                     transform:"scale(1.4)",
                     transformOrigin:"center",
@@ -2832,7 +2832,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve
                   const origIdx = getOrigIdx(thieveHand, hands, thieveFrom, card);
                   const isSel = thieveCardIdx === origIdx;
                   return (
-                    <div key={card.id} onClick={()=>setThieveCardIdx(origIdx)} style={{cursor:"pointer",transform:`scale(${isSel?1.45:1.35})`,transformOrigin:"center",margin:"8px 5px"}}>
+                    <div key={card.id} onClick={()=>setThieveCardIdx(origIdx)} onDoubleClick={()=>onThieve(thieveFrom,origIdx)} style={{cursor:"pointer",transform:`scale(${isSel?1.45:1.35})`,transformOrigin:"center",margin:"8px 5px"}}>
                       <CardComp card={card} selected={isSel} tiny deckTheme={deckTheme}/>
                     </div>
                   );
@@ -3032,7 +3032,7 @@ function RescueModal({ hands, acePlayerIdx, allNames, playerEmojis=[], onRescue,
                 const origIdx = getOriginalIdx(card);
                 const isSelected = chosenCardIdx === origIdx;
                 return (
-                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} style={{
+                  <div key={card.id} onClick={()=>setChosenCardIdx(origIdx)} onDoubleClick={()=>onRescue(chosenPlayer,origIdx)} style={{
                     cursor:"pointer",
                     transform:"scale(1.4)",
                     transformOrigin:"center",
