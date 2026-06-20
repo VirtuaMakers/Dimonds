@@ -8889,7 +8889,7 @@ function DiamondsGame() {
           const setsPanel = (() => {
             const showSets = isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && !trickPlays.some(p => p.playerIdx === mySeatingIdx);
             if (!isDesktop && !showSets) return null;
-            let h0 = [], GA = 1;
+            let h0 = [], GA = 1, nfAvail = null, bdAvail = null;
             let r3AvailCombos = [], r3LockedCombos = [], r3Locked = false;
             let r4AvailCombos = [], r4LockedCombos = [], r4Locked = false;
             let spCombos = [], spLockedCombos = [], spLocked = false;
@@ -8918,8 +8918,8 @@ function DiamondsGame() {
             stealAvail = checkTheSteal(h0);
             afAvail = checkAmericanFamily(h0);
             gaAvail = checkAcesLow(h0);
-            const nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
-            const bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
+            nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
+            bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
             const rule1Dimonds = h0.filter(c => isDiamond(c) && !c.isJoker);
             rule1Avail = rule1Dimonds.length > 0 && !rule1UsedThisTurn[mySeatingIdx];
             } // end if (showSets)
