@@ -4176,26 +4176,42 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
 // ============================================================
 // MULTIPLAYER LOBBY
 // ============================================================
+const MP_TIMER_SECONDS = 300; // 5 minutes
+
 function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJoinedAsGuest, onStartGame }) {
   const [tab, setTab] = React.useState('host');
   const [roomCode, setRoomCode] = React.useState('');
   const [joinCode, setJoinCode] = React.useState('');
-  const [joinedPlayers, setJoinedPlayers] = React.useState([]); // [{playerId, name}]
+  const [joinedPlayers, setJoinedPlayers] = React.useState([]);
+  const [selectedAIs, setSelectedAIs] = React.useState([]); // ids of AIs host has picked
   const [status, setStatus] = React.useState('idle'); // idle | hosting | joining | waiting
+  const [timeLeft, setTimeLeft] = React.useState(MP_TIMER_SECONDS);
   const [error, setError] = React.useState('');
   const roomRefLocal = React.useRef(null);
-  const listenersCleanedUp = React.useRef(false);
+  const dead = React.useRef(false);
+  const joinedRef = React.useRef([]);
+  const selectedAIsRef = React.useRef([]);
+  React.useEffect(() => { joinedRef.current = joinedPlayers; }, [joinedPlayers]);
+  React.useEffect(() => { selectedAIsRef.current = selectedAIs; }, [selectedAIs]);
 
+  React.useEffect(() => { return () => { dead.current = true; }; }, []);
+
+  // 5-minute countdown while hosting
   React.useEffect(() => {
-    listenersCleanedUp.current = false;
-    return () => {
-      listenersCleanedUp.current = true;
-      if (roomRefLocal.current && status === 'idle') {
-        roomRefLocal.current.child('players').off('value');
-        roomRefLocal.current.child('config').off('value');
-      }
-    };
-  }, []);
+    if (status !== 'hosting') return;
+    setTimeLeft(MP_TIMER_SECONDS);
+    const iv = setInterval(() => {
+      setTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(iv);
+          onStartGame(joinedRef.current, nameInput||'Host', selectedAIsRef.current);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [status]);
 
   function handleCreateRoom() {
     const code = genRoomCode();
@@ -4204,9 +4220,9 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     ref.child('config').set({ hostId: myPlayerId, hostName: nameInput||'Host', status:'waiting', createdAt: Date.now() });
     ref.child('players').child(myPlayerId).set({ name: nameInput||'Host', joinedAt: Date.now() });
     ref.child('players').on('value', snap => {
-      if (listenersCleanedUp.current) return;
+      if (dead.current) return;
       const val = snap.val() || {};
-      setJoinedPlayers(Object.entries(val).map(([pid, d]) => ({playerId:pid, ...d})).filter(p => p.playerId !== myPlayerId));
+      setJoinedPlayers(Object.entries(val).map(([pid,d])=>({playerId:pid,...d})).filter(p=>p.playerId!==myPlayerId));
     });
     setRoomCode(code);
     setStatus('hosting');
@@ -4220,7 +4236,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     const ref = RTDB.ref(`rooms/${code}`);
     roomRefLocal.current = ref;
     ref.child('config').once('value', snap => {
-      if (listenersCleanedUp.current) return;
+      if (dead.current) return;
       const cfg = snap.val();
       if (!cfg) { setError('Room not found. Check the code.'); return; }
       if (cfg.status === 'playing') { setError('That game already started.'); return; }
@@ -4228,11 +4244,18 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       setRoomCode(code);
       setStatus('joining');
       onJoinedAsGuest(ref);
-      // Watch config for game start
       ref.child('config/status').on('value', st => {
-        if (listenersCleanedUp.current) return;
-        if (st.val() === 'playing') { setStatus('waiting'); }
+        if (dead.current) return;
+        if (st.val() === 'playing') setStatus('waiting');
       });
+    });
+  }
+
+  function toggleAI(id) {
+    setSelectedAIs(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id);
+      if (prev.length >= 3) return prev; // max 3 (all non-host seats)
+      return [...prev, id];
     });
   }
 
@@ -4244,57 +4267,106 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     borderBottom: active ? `2px solid ${VM.tealLight}` : '2px solid transparent',
   });
 
+  function fmtTime(s) {
+    const m = Math.floor(s/60), sec = s%60;
+    return `${m}:${String(sec).padStart(2,'0')}`;
+  }
+
+  function AIPicker() {
+    return (
+      <div style={{marginBottom:16}}>
+        <div style={{fontSize:10,color:VM.tealLight+'88',letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontFamily:FONT_UI,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <span>AI Opponents ({selectedAIs.length}/3 selected)</span>
+          {selectedAIs.length > 0 && <span style={{color:'#ffffff44',cursor:'pointer'}} onClick={()=>setSelectedAIs([])}>Clear</span>}
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
+          {OPPONENT_OPTIONS.map(opt => {
+            const sel = selectedAIs.includes(opt.id);
+            const maxed = !sel && selectedAIs.length >= 3;
+            return (
+              <div key={opt.id} onClick={maxed ? undefined : ()=>toggleAI(opt.id)} style={{
+                borderRadius:10, cursor:maxed?'default':'pointer',
+                border:`2px solid ${sel?(opt.color||VM.tealLight):'rgba(255,255,255,0.13)'}`,
+                background: sel?(opt.color?opt.color+'18':VM.tealLight+'18'):'rgba(255,255,255,0.04)',
+                opacity: maxed ? 0.4 : 1,
+                padding:'6px 4px 7px',
+                display:'flex',flexDirection:'column',alignItems:'center',gap:3,
+                transition:'all 0.12s',
+                boxShadow: sel?`0 0 8px ${opt.color||VM.tealLight}44`:'none',
+                touchAction:'manipulation',
+              }}>
+                <div style={{height:36,width:'100%',background:'#fff',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
+                  {opt.logo
+                    ? <img src={opt.logo} alt={opt.label} style={{maxWidth:32,maxHeight:28,objectFit:'contain'}}/>
+                    : <span style={{fontSize:22}}>{opt.emoji}</span>
+                  }
+                </div>
+                <div style={{color:sel?(opt.color||VM.tealLight):'#ffffffcc',fontSize:10,fontWeight:800,fontFamily:FONT_DISPLAY,textAlign:'center',letterSpacing:0.3}}>{opt.label}</div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{marginTop:6,fontSize:10,color:'#ffffff33',fontFamily:FONT_UI,textAlign:'center'}}>
+          Unselected seats → random AI from remaining options
+        </div>
+      </div>
+    );
+  }
+
   const innerContent = () => {
     if (status === 'hosting') return (
-      <div style={{textAlign:'center'}}>
-        <div style={{color:VM.tealLight+'88',fontSize:11,letterSpacing:2,textTransform:'uppercase',marginBottom:6,fontFamily:FONT_UI}}>Room Code</div>
-        <div style={{fontSize:44,fontWeight:900,letterSpacing:10,color:VM.goldBright,fontFamily:FONT_DISPLAY,marginBottom:4,textShadow:`0 0 20px ${VM.gold}66`}}>{roomCode}</div>
-        <div style={{color:'#ffffff55',fontSize:11,fontFamily:FONT_UI,marginBottom:18}}>Share this code with friends</div>
-        <div style={{borderTop:`1px solid ${VM.tealLight}22`,paddingTop:14,marginBottom:14}}>
-          <div style={{fontSize:11,color:VM.tealLight+'88',letterSpacing:2,textTransform:'uppercase',marginBottom:8,fontFamily:FONT_UI}}>Joined ({joinedPlayers.length})</div>
+      <div style={{overflowY:'auto',maxHeight:'70vh'}}>
+        {/* Room code + timer row */}
+        <div style={{textAlign:'center',marginBottom:16}}>
+          <div style={{color:VM.tealLight+'88',fontSize:10,letterSpacing:2,textTransform:'uppercase',marginBottom:4,fontFamily:FONT_UI}}>Room Code</div>
+          <div style={{fontSize:42,fontWeight:900,letterSpacing:10,color:VM.goldBright,fontFamily:FONT_DISPLAY,lineHeight:1,textShadow:`0 0 20px ${VM.gold}66`}}>{roomCode}</div>
+          <div style={{color:'#ffffff44',fontSize:10,fontFamily:FONT_UI,marginTop:4}}>Share with friends · Auto-starts in <span style={{color:timeLeft<=60?'#ff9966':VM.tealLight,fontWeight:700}}>{fmtTime(timeLeft)}</span></div>
+        </div>
+        {/* Joined humans */}
+        <div style={{borderTop:`1px solid ${VM.tealLight}22`,paddingTop:12,marginBottom:14}}>
+          <div style={{fontSize:10,color:VM.tealLight+'88',letterSpacing:2,textTransform:'uppercase',marginBottom:6,fontFamily:FONT_UI}}>Joined ({joinedPlayers.length}/3)</div>
           {joinedPlayers.length === 0
-            ? <div style={{color:'#ffffff44',fontSize:12,fontFamily:FONT_UI,fontStyle:'italic'}}>Waiting for players…</div>
-            : joinedPlayers.map(p => (
-                <div key={p.playerId} style={{color:'#fff',fontSize:13,fontFamily:FONT_UI,padding:'4px 0',display:'flex',alignItems:'center',gap:8}}>
-                  <span style={{fontSize:16}}>👤</span>{p.name||'Guest'}
+            ? <div style={{color:'#ffffff33',fontSize:11,fontFamily:FONT_UI,fontStyle:'italic',marginBottom:4}}>No guests yet — they'll appear here.</div>
+            : joinedPlayers.map(p=>(
+                <div key={p.playerId} style={{color:'#fff',fontSize:12,fontFamily:FONT_UI,padding:'3px 0',display:'flex',alignItems:'center',gap:6}}>
+                  <span>👤</span>{p.name||'Guest'}
                 </div>
               ))
           }
         </div>
-        <GoldBtn onClick={() => onStartGame(joinedPlayers, nameInput||'Host')}>
+        {/* AI picker */}
+        <AIPicker/>
+        <GoldBtn onClick={()=>onStartGame(joinedPlayers, nameInput||'Host', selectedAIs)}>
           Start Game ◆
         </GoldBtn>
-        <div style={{marginTop:8,fontSize:10,color:'#ffffff33',fontFamily:FONT_UI}}>
-          Empty seats filled with random AI
-        </div>
       </div>
     );
     if (status === 'joining') return (
       <div style={{textAlign:'center',padding:'8px 0'}}>
-        <div style={{fontSize:32,marginBottom:8}}>✅</div>
+        <div style={{fontSize:32,marginBottom:10}}>✅</div>
         <div style={{color:'#fff',fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Joined Room {roomCode}</div>
-        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:18}}>Waiting for the host to start…</div>
-        <div style={{fontSize:28,animation:'none',opacity:0.6}}>⏳</div>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI}}>Waiting for the host to start…</div>
       </div>
     );
     if (status === 'waiting') return (
       <div style={{textAlign:'center',padding:'8px 0'}}>
-        <div style={{fontSize:32,marginBottom:8}}>🎴</div>
+        <div style={{fontSize:32,marginBottom:10}}>🎴</div>
         <div style={{color:VM.goldBright,fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Game Starting!</div>
         <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI}}>Host is dealing cards…</div>
       </div>
     );
-    // idle
+    // idle — host or join tab
     if (tab === 'host') return (
-      <div style={{textAlign:'center'}}>
-        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:18,lineHeight:1.6}}>
-          Create a room. Share the 4-letter code with up to 3 friends.<br/>
-          <span style={{color:VM.tealLight+'88'}}>Empty seats are filled with random AI.</span>
+      <div>
+        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:16,lineHeight:1.6,textAlign:'center'}}>
+          Create a room and share the 4-letter code.<br/>
+          <span style={{color:VM.tealLight+'88'}}>Up to 3 friends can join. You have 5 minutes.</span>
         </div>
+        <AIPicker/>
         <GoldBtn onClick={handleCreateRoom}>Create Room ◆</GoldBtn>
       </div>
     );
-    return ( // join tab
+    return (
       <div>
         <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:14,textAlign:'center',lineHeight:1.6}}>
           Enter the 4-letter room code from the host.
@@ -4307,12 +4379,12 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
           maxLength={4}
           autoFocus
           style={{
-            width:'100%', boxSizing:'border-box',
-            background:'rgba(255,255,255,0.08)', border:`1px solid ${VM.tealLight}44`,
-            borderRadius:10, color:'#fff', padding:'14px 18px',
-            fontSize:28, fontWeight:900, letterSpacing:10,
-            fontFamily:FONT_DISPLAY, outline:'none', textAlign:'center',
-            caretColor:VM.tealLight, marginBottom:12,
+            width:'100%',boxSizing:'border-box',
+            background:'rgba(255,255,255,0.08)',border:`1px solid ${VM.tealLight}44`,
+            borderRadius:10,color:'#fff',padding:'14px 18px',
+            fontSize:28,fontWeight:900,letterSpacing:10,
+            fontFamily:FONT_DISPLAY,outline:'none',textAlign:'center',
+            caretColor:VM.tealLight,marginBottom:12,
           }}
         />
         {error && <div style={{color:'#ff7070',fontSize:12,fontFamily:FONT_UI,marginBottom:10,textAlign:'center'}}>{error}</div>}
@@ -4323,10 +4395,10 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:300,background:'rgba(4,18,15,0.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:12,backdropFilter:'blur(4px)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(155deg,#0f3c38,#08231f)',border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:400,width:'100%',boxShadow:`0 24px 80px #000000cc`,fontFamily:FONT_UI,display:'flex',flexDirection:'column',overflow:'hidden',marginTop:20}}>
-        <div style={{padding:'18px 22px 0',borderBottom:`1px solid ${VM.tealLight}22`}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(155deg,#0f3c38,#08231f)',border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:'100%',boxShadow:`0 24px 80px #000000cc`,fontFamily:FONT_UI,display:'flex',flexDirection:'column',overflow:'hidden',marginTop:16}}>
+        <div style={{padding:'18px 22px 0',borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Multiplayer</h2>
+            <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Human Multiplayer</h2>
             <GoldBtn onClick={onClose} small secondary>Close</GoldBtn>
           </div>
           {status === 'idle' && (
@@ -4336,7 +4408,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
             </div>
           )}
         </div>
-        <div style={{padding:'20px 22px 24px'}}>
+        <div style={{padding:'20px 22px 24px',overflowY:'auto',maxHeight:'calc(100dvh - 120px)'}}>
           {innerContent()}
         </div>
       </div>
@@ -5631,20 +5703,28 @@ function DiamondsGame() {
   }
 
   // ── Multiplayer: host starts the game, assigns seats, syncs to Firebase ──────
-  function startMultiplayerGame(guestPlayers, hostName) {
+  function startMultiplayerGame(guestPlayers, hostName, preSelectedAIs = []) {
     // guestPlayers: [{playerId, name}] — players who joined (excluding host)
     const ref = mpRoomRef.current;
     if (!ref) return;
-    // Seat 0 = host, seats 1-3 = guests then AI
+    // Seat 0 = host, seats 1-3 = joined guests, remaining = AI
     const seats = [{ playerId: myPlayerIdRef.current, name: hostName||playerName||'Host', type:'human' }];
     guestPlayers.forEach(p => {
       if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||'Guest', type:'human' });
     });
-    // Fill remaining with random AI
-    const aiPool = [...OPPONENT_OPTIONS].sort(() => Math.random()-0.5);
-    aiPool.forEach(opt => {
-      if (seats.length < 4) seats.push({ playerId: null, name: opt.label, type:'ai', aiId: opt.id });
-    });
+    // Fill remaining seats: pre-selected AIs first, then random from unselected
+    const selectedQueue = [...preSelectedAIs];
+    const unselectedPool = OPPONENT_OPTIONS
+      .filter(o => !preSelectedAIs.includes(o.id))
+      .sort(() => Math.random() - 0.5)
+      .map(o => o.id);
+    while (seats.length < 4) {
+      const aiId = selectedQueue.length > 0 ? selectedQueue.shift()
+                 : unselectedPool.length > 0 ? unselectedPool.shift()
+                 : OPPONENT_OPTIONS[0].id;
+      const opt = OPPONENT_OPTIONS.find(o => o.id === aiId);
+      seats.push({ playerId: null, name: opt?.label || aiId, type:'ai', aiId });
+    }
     // Write seat assignments so guests can discover their seat index
     ref.child('seats').set(seats);
     ref.child('config/status').set('playing');
@@ -7820,7 +7900,7 @@ function DiamondsGame() {
           <GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
         </div>
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
-          <GoldBtn fill secondary onClick={()=>setShowMpLobby(true)}>Multiplayer ◆</GoldBtn>
+          <GoldBtn fill secondary onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn>
         </div>
         <div style={{flex:1,display:"flex",flexDirection:"column"}}>
           <GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
@@ -7835,7 +7915,7 @@ function DiamondsGame() {
     ) : (
       <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
         <GoldBtn onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn>
-        <GoldBtn secondary onClick={()=>setShowMpLobby(true)}>Multiplayer ◆</GoldBtn>
+        <GoldBtn secondary onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
         <GoldBtn secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
@@ -7906,7 +7986,7 @@ function DiamondsGame() {
             onClose={()=>setShowMpLobby(false)}
             onJoinedAsHost={ref => { mpRoomRef.current = ref; setMpRole('host'); setMySeatingIdx(0); }}
             onJoinedAsGuest={ref => { mpRoomRef.current = ref; setMpRole('guest'); setMySeatingIdx(1); }}
-            onStartGame={(guests, hostName) => startMultiplayerGame(guests, hostName)}
+            onStartGame={(guests, hostName, ais) => startMultiplayerGame(guests, hostName, ais)}
           />
         )}
         {showOpponentModal && (
