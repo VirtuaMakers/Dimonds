@@ -40,6 +40,7 @@ async function callGemini(prompt, env) {
       generationConfig: { temperature: 0.95, maxOutputTokens: 120 },
     }),
   });
+  if (!res.ok) throw new Error(`Gemini ${res.status}`);
   const data = await res.json();
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
 }
@@ -59,6 +60,7 @@ async function callLlama(prompt, env) {
       temperature: 0.95,
     }),
   });
+  if (!res.ok) throw new Error(`Groq ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
@@ -78,6 +80,7 @@ async function callMistral(prompt, env) {
       temperature: 0.95,
     }),
   });
+  if (!res.ok) throw new Error(`Mistral ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }

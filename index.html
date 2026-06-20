@@ -4482,6 +4482,7 @@ function DiamondsGame() {
   const commentSlotRef    = useRef(0);   // rotates 0→1→2→0 once per trick
   const silentTricksRef   = useRef(0);   // tricks since last visible LLM comment
   const openerAbortRef       = useRef(null); // aborts stale opener fetch on rapid restart
+  const openerGenRef         = useRef(0);    // increments each round/game; guards stale .then() callbacks
   const llmSubstitutedRef    = useRef({});   // { gemini: true, ... } — per-LLM fallback flag for current game
   const llmFailCountRef      = useRef({});   // consecutive per-trick failures before substitution
   const roundTrickCountRef   = useRef(0);    // tricks played in current round
@@ -5032,6 +5033,7 @@ function DiamondsGame() {
       if (openerAbortRef.current) openerAbortRef.current.abort();
       const openerCtrl = new AbortController();
       openerAbortRef.current = openerCtrl;
+      const openerGen = ++openerGenRef.current;
       // Offline LLMs: fire substitute opener immediately
       llmIds.forEach(({ id, opt }) => {
         if (!llmSubstitutedRef.current[id]) return;
@@ -5056,6 +5058,7 @@ function DiamondsGame() {
           body: JSON.stringify({ action: 'comment', provider: id, event: 'new round starting — the 2 of Clubs leads', context: { scores: existingScores } }),
           signal: openerCtrl.signal,
         }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+          if (openerGenRef.current !== openerGen) { clearTimeout(timer); return; } // stale round
           if (data == null) return; // error response — let timer fire at 21s
           clearTimeout(timer);
           const text = data?.text?.trim();
@@ -5166,6 +5169,7 @@ function DiamondsGame() {
         if (openerAbortRef.current) openerAbortRef.current.abort();
         const openerCtrl = new AbortController();
         openerAbortRef.current = openerCtrl;
+        const openerGen = ++openerGenRef.current;
         // Offline LLMs: fire substitute opener immediately
         llmIds.forEach(({ id, opt }) => {
           if (!llmSubstitutedRef.current[id]) return;
@@ -5190,6 +5194,7 @@ function DiamondsGame() {
             body: JSON.stringify({ action: 'comment', provider: id, event: 'game start — the 2 of Clubs has just been led to open the game', context: { scores: [0,0,0,0] } }),
             signal: openerCtrl.signal,
           }).then(r => { if (!r.ok) return null; return r.json(); }).then(data => {
+            if (openerGenRef.current !== openerGen) { clearTimeout(timer); return; } // stale round
             if (data == null) return; // error response — let timer fire at 21s
             clearTimeout(timer);
             const text = data?.text?.trim();
@@ -6719,7 +6724,8 @@ function DiamondsGame() {
       }
     } catch(e) {
       clearTimeout(trickTimeout);
-      if (e?.name !== 'AbortError') console.warn('[comment]', e?.message||e);
+      if (e?.name === 'AbortError') return; // self-timeout is not a server failure
+      console.warn('[comment]', e?.message||e);
       llmFailCountRef.current[slotId] = (llmFailCountRef.current[slotId] || 0) + 1;
       if (llmFailCountRef.current[slotId] >= 3) llmSubstitutedRef.current[slotId] = true;
     }
@@ -7088,23 +7094,26 @@ function DiamondsGame() {
         const nonLeaders = othersWithCards.filter(i => i !== leader); // source must have cards
         if (nonLeaders.length > 0) {
           const takFrom = nonLeaders[Math.floor(Math.random() * nonLeaders.length)];
-          const sourceHand = currentHands[takFrom] || [];
-          const takFromIdx = Math.floor(Math.random() * sourceHand.length);
-          const movedCard = sourceHand[takFromIdx];
-          const newHandsRealloc = currentHands.map((h, i) => {
-            if (i === takFrom) return h.filter((_, ci) => ci !== takFromIdx);
-            if (i === leader) return [...h, movedCard];
-            return h;
-          });
-          addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${movedCard.rank}${movedCard.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
-          soundQueenClubsReallocates();
-          flyCardBetweenPlayers(movedCard, takFrom, leader);
-          setHands(newHandsRealloc);
-          if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-          setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: takFrom, queenClubsTo: leader, queenClubsPlayerIdx: playerIdx });
-          setQueenClubsState(null);
-          setPhase("trickresult");
-          return;
+          // Exclude special cards — their mechanics only trigger when played in a trick, not via silent transfer
+          const eligible = (currentHands[takFrom] || []).filter(c => !c.isJoker && c.id !== 'A♠');
+          if (eligible.length > 0) {
+            const movedCard = eligible[Math.floor(Math.random() * eligible.length)];
+            const realIdx = (currentHands[takFrom] || []).indexOf(movedCard);
+            const newHandsRealloc = currentHands.map((h, i) => {
+              if (i === takFrom) return h.filter((_, ci) => ci !== realIdx);
+              if (i === leader) return [...h, movedCard];
+              return h;
+            });
+            addLog(`♣ ${allNames[playerIdx]} (Queen of Clubs) reallocates ${movedCard.rank}${movedCard.suit}: ${allNames[takFrom]} → ${allNames[leader]}!`);
+            soundQueenClubsReallocates();
+            flyCardBetweenPlayers(movedCard, takFrom, leader);
+            setHands(newHandsRealloc);
+            if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
+            setTrickResult({ ...resultObj, queenClubsReallocated: true, queenClubsCard: movedCard, queenClubsFrom: takFrom, queenClubsTo: leader, queenClubsPlayerIdx: playerIdx });
+            setQueenClubsState(null);
+            setPhase("trickresult");
+            return;
+          }
         }
       }
 
