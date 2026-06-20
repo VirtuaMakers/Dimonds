@@ -9047,6 +9047,30 @@ function DiamondsGame() {
                 </button>
               );
             });
+            if (nfAvail) {
+              const nfLabel = nfAvail.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfAvail.slice(3).map(c=>c.rank+c.suit).join("/");
+              setButtons.push(
+                <button key="nf" onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:nfAvail}); setPhase("nuclearfamily_offer"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
+                    <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
+                  </span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
+                </button>
+              );
+            }
+            bdCombos.forEach(combo => {
+              const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
+              setButtons.push(
+                <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
+                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
+                    <span>🩸 Blood Diamond</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
+                  </span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
+                </button>
+              );
+            });
             if (riotAvail) {
               const riotSuit = riotAvail.find(c=>!c.isJoker)?.suit ?? "?";
               setButtons.push(
@@ -9056,19 +9080,6 @@ function DiamondsGame() {
                     <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>×{riotAvail.length} {riotSuit}</span>
-                </button>
-              );
-            }
-            if (showdownAvail) {
-              const sdCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
-              const sdLabel = sdCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
-              setButtons.push(
-                <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}
-                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
-                  </span>
-                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{sdLabel}</span>
                 </button>
               );
             }
@@ -9107,30 +9118,19 @@ function DiamondsGame() {
                 </button>
               );
             }
-            if (nfAvail) {
-              const nfLabel = nfAvail.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfAvail.slice(3).map(c=>c.rank+c.suit).join("/");
+            if (showdownAvail) {
+              const sdCards = h0.filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c));
+              const sdLabel = sdCards.map(c=>c.isJoker?"🃏":c.rank+c.suit).join(" / ");
               setButtons.push(
-                <button key="nf" onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:nfAvail}); setPhase("nuclearfamily_offer"); }}
+                <button key="sd" onClick={()=>{ setShowdownState({playerIdx:0}); setPhase("showdown"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
+                    <span>🌆 Showdown</span><span style={{opacity:0.75}}>+{SHOWDOWN_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{sdLabel}</span>
                 </button>
               );
             }
-            bdCombos.forEach(combo => {
-              const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
-              setButtons.push(
-                <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
-                  style={{...setBtnStyle, flexDirection:"column", gap:1}}>
-                  <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🩸 Blood Diamond</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
-                  </span>
-                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
-                </button>
-              );
-            });
             } // end if (showSets) — setButtons
 
             // ── Shared sets content (grid + locked) ──
@@ -9178,7 +9178,6 @@ function DiamondsGame() {
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                             </div>;
                           })}
-                          {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×7 {rs}</span></div>; })()}
                           {nfLocked && (() => {
                             const nfLabel = nfLocked.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfLocked.slice(3).map(c=>c.rank+c.suit).join(" & ");
                             return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
@@ -9193,6 +9192,7 @@ function DiamondsGame() {
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{bdLabel}</span>
                             </div>;
                           })}
+                          {riotLocked && (() => { const rs = checkRiot(h0,true)?.find(c=>!c.isJoker)?.suit ?? "♦"; return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}><span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🔥 Riot</span><span style={{opacity:0.6}}>+{RIOT_BONUS*GA}</span></span><span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>×7 {rs}</span></div>; })()}
                         </div>
                       </div>
                     )}
