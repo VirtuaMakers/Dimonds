@@ -36,7 +36,7 @@ async function callGemini(prompt, env) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.95, maxOutputTokens: 120 },
+      generationConfig: { temperature: 0.95, maxOutputTokens: 120, thinkingConfig: { thinkingBudget: 0 } },
     }),
   });
   if (!res.ok) {
