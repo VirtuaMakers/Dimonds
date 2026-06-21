@@ -168,7 +168,7 @@ async function callNemotron(prompt, env) {
       Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "nvidia/llama-3.1-nemotron-70b-instruct",
+      model: "nvidia-nemotron-nano-9b-v2",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
