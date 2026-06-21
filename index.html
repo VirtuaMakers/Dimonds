@@ -7571,11 +7571,13 @@ function DiamondsGame() {
     if (showdownState._id) { dismissedEventIdsRef.current.add(showdownState._id); delete guestActiveEventIdsRef.current.showdown; }
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
-    setRoundScores(pendingRound);
-    setTotalScores(pendingTotal);
-    soundRoundWin();
-    setPhase("roundover");
-    setRoundNum(r=>r+1);
+    if (!isMultiplayer() || isHost()) {
+      setRoundScores(pendingRound);
+      setTotalScores(pendingTotal);
+      soundRoundWin();
+      setPhase("roundover");
+      setRoundNum(r=>r+1);
+    }
   }
 
   function handleRule1Give(targetIdx, card, giverIdx = 0) {
@@ -7688,11 +7690,13 @@ function DiamondsGame() {
     if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
     setRiotState(null);
-    setRoundScores(pendingRound);
-    setTotalScores(pendingTotal);
-    soundRoundWin();
-    setPhase("roundover");
-    setRoundNum(r=>r+1);
+    if (!isMultiplayer() || isHost()) {
+      setRoundScores(pendingRound);
+      setTotalScores(pendingTotal);
+      soundRoundWin();
+      setPhase("roundover");
+      setRoundNum(r=>r+1);
+    }
   }
 
   // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
@@ -7824,9 +7828,9 @@ function DiamondsGame() {
     if (acesLowState._id) { dismissedEventIdsRef.current.add(acesLowState._id); delete guestActiveEventIdsRef.current.acesLow; }
     const { continuation } = acesLowState;
     setAcesLowState(null);
-    setPhase("playing");
-    if (continuation) {
-      continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    if (!isMultiplayer() || isHost()) {
+      setPhase("playing");
+      if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
     }
   }
 
@@ -7870,8 +7874,10 @@ function DiamondsGame() {
     if (ruleOfThreeState._id) { dismissedEventIdsRef.current.add(ruleOfThreeState._id); delete guestActiveEventIdsRef.current.ruleOfThree; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
-    setPhase("playing");
-    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    if (!isMultiplayer() || isHost()) {
+      setPhase("playing");
+      if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    }
   }
 
   // ---- Rule of 4 (Swinging Paradox): human accepts ----
@@ -7914,8 +7920,10 @@ function DiamondsGame() {
     if (swingingParadoxState._id) { dismissedEventIdsRef.current.add(swingingParadoxState._id); delete guestActiveEventIdsRef.current.swingingParadox; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
-    setPhase("playing");
-    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    if (!isMultiplayer() || isHost()) {
+      setPhase("playing");
+      if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    }
   }
 
   // ---- Rule of 4 (Dimond in the Rough): human accepts ----
@@ -7997,8 +8005,10 @@ function DiamondsGame() {
     if (ruleFourState._id) { dismissedEventIdsRef.current.add(ruleFourState._id); delete guestActiveEventIdsRef.current.ruleFour; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
-    setPhase("playing");
-    if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    if (!isMultiplayer() || isHost()) {
+      setPhase("playing");
+      if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
+    }
   }
 
   function declineNuclearFamily() {
@@ -8032,7 +8042,7 @@ function DiamondsGame() {
   function dismissNuclearFamilyEvent() {
     if (nuclearFamilyState?._id) { dismissedEventIdsRef.current.add(nuclearFamilyState._id); delete guestActiveEventIdsRef.current.nuclearFamily; }
     setNuclearFamilyState(null);
-    setPhase("playing");
+    if (!isMultiplayer() || isHost()) setPhase("playing");
   }
 
   function declineBloodDiamond() {
@@ -8066,7 +8076,7 @@ function DiamondsGame() {
   function dismissBloodDiamondEvent() {
     if (bloodDiamondState?._id) { dismissedEventIdsRef.current.add(bloodDiamondState._id); delete guestActiveEventIdsRef.current.bloodDiamond; }
     setBloodDiamondState(null);
-    setPhase("playing");
+    if (!isMultiplayer() || isHost()) setPhase("playing");
   }
 
   function aiChooseRescueTarget(currentHands, playerIdx, knowledge) {
@@ -9720,6 +9730,16 @@ function DiamondsGame() {
           flexShrink:0,
           position:"relative",
         }}>
+          {/* PLAYER IDENTITY — persistent name/emoji label in multiplayer so guests know who they are */}
+          {isMultiplayer() && (
+            <div style={{
+              position:"absolute", top: isDesktop ? 22 : 10, left:10, zIndex:5,
+              pointerEvents:"none", color:VM.tealLight+"99",
+              fontSize:9, letterSpacing:1, fontFamily:FONT_UI, lineHeight:"14px",
+            }}>
+              {playerEmojis[mySeatingIdx]} {allNames[mySeatingIdx]}
+            </div>
+          )}
           {/* YOUR TURN — sits above the lifted selected card */}
           <div style={{
             position:"absolute", top: isDesktop ? 22 : 10, left:0, right:0, zIndex:5,
@@ -10405,7 +10425,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {phase==="showdown_event" && showdownState && (
+      {showdownState && phase !== "showdown" && (
         <EventBox key={showdownState._id} borderColor="#55cc77" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[showdownState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>All 4 steal cards — cashed in!</div>
@@ -10442,7 +10462,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {phase==="riot_event" && riotState && (
+      {riotState && (
         <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{riotState.cards?.length ?? 7} {riotState.suit} cards redeemed — Round over!</div>
@@ -10663,7 +10683,7 @@ function DiamondsGame() {
       )}
 
       {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
-      {phase==="aceslow_event" && acesLowState && (
+      {acesLowState && (
         <EventBox
           key={acesLowState._id}
           borderColor="#a8a8a8"
@@ -10708,7 +10728,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 3 event box */}
-      {phase==="ruleofthree_event" && ruleOfThreeState && (
+      {ruleOfThreeState && (
         <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
@@ -10739,7 +10759,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 2 event box */}
-      {phase==="swingingparadox_event" && swingingParadoxState && (
+      {swingingParadoxState && (
         <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
@@ -10770,7 +10790,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 4 event box */}
-      {phase==="rulefour_event" && ruleFourState && (
+      {ruleFourState && (
         <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
@@ -10801,7 +10821,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Nuclear Family event box */}
-      {phase==="nuclearfamily_event" && nuclearFamilyState && (
+      {nuclearFamilyState && (
         <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
@@ -10832,7 +10852,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Blood Diamond event box */}
-      {phase==="blooddiamond_event" && bloodDiamondState && (
+      {bloodDiamondState && (
         <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel="PROCEED" onContinue={dismissBloodDiamondEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[bloodDiamondState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Rainbow run + 1 dimond redeemed!</div>
@@ -10864,7 +10884,8 @@ function DiamondsGame() {
           allNames={allNames}
           playerEmojis={playerEmojis}
           roundScores={roundScores}
-          onContinue={startNextRound}
+          onContinue={isMultiplayer()&&!isHost() ? ()=>{} : startNextRound}
+          continueLabel={isMultiplayer()&&!isHost() ? "Waiting for host…" : "Deal Next Round"}
           eventLog={roundEventLog}
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
