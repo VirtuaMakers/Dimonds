@@ -1,6 +1,6 @@
 // Dimonds AI Worker — Cloudflare Workers
 // Deploy: wrangler deploy
-// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY
+// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, QWEN_API_KEY, KIMI_API_KEY, GLM_API_KEY
 //
 // Actions:
 //   { action:'comment', provider, event, context }  → { text }
@@ -87,6 +87,30 @@ async function callLlama(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
+// ─── Qwen via DashScope ───────────────────────────────────────────────────────
+async function callQwen(prompt, env) {
+  const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.QWEN_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "qwen-plus",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Qwen] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Qwen ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 // ─── Mistral ──────────────────────────────────────────────────────────────────
 async function callMistral(prompt, env) {
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -108,13 +132,14 @@ async function callMistral(prompt, env) {
 }
 
 function callProvider(provider, prompt, env) {
-  if (provider === "gemini") return callGemini(prompt, env);
-  if (provider === "llama")  return callLlama(prompt, env);
+  if (provider === "gemini")  return callGemini(prompt, env);
+  if (provider === "llama")   return callLlama(prompt, env);
   if (provider === "mistral") return callMistral(prompt, env);
+  if (provider === "qwen")    return callQwen(prompt, env);
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 function commentPrompt(event, context, provider) {
