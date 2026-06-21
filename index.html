@@ -9035,18 +9035,22 @@ function DiamondsGame() {
     const riot = checkRiot(h0, diamondsBroken); if (riot) riot.forEach(c => ids.add(c.id));
     if (diamondsBroken) { const nf = checkNuclearFamily(h0); if (nf) nf.forEach(c => ids.add(c.id)); }
     if (diamondsBroken) { const bd = checkBloodDiamond(h0); if (bd) bd.forEach(c => ids.add(c.id)); }
+    // Golden Age aces stay undimmed even when following suit (set can be activated before playing)
+    if (checkAcesLow(h0)) ["A♠","A♥","A♣","A♦"].forEach(id => ids.add(id));
     return ids;
   })();
 
   // Set card glow: cards belonging to any available playable set pulse gold (R1 excluded)
   const setGlowIds = (() => {
     const ids = new Set();
-    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing || trickPlays.length !== 0) return ids;
+    if (!cardGlowHints || !isPlayerTurn || phase !== "playing" || dealing) return ids;
     const h0 = hands[mySeatingIdx] || [];
+    // Golden Age aces glow even mid-trick — the set button is visible before the player plays
+    if (checkAcesLow(h0)) h0.forEach(c => { if (c.rank==="A") ids.add(c.id); });
+    if (trickPlays.length !== 0) return ids;
     availableSetCardIds.forEach(id => ids.add(id));
     if (checkTheSteal(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
     if (checkShowdown(h0))  h0.forEach(c => { if (c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)) ids.add(c.id); });
-    if (checkAcesLow(h0))   h0.forEach(c => { if (c.rank==="A") ids.add(c.id); });
     return ids;
   })();
 
