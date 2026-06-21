@@ -6413,8 +6413,8 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 1 (Girl's Best Friend) — AI uses it to break dimonds; pointless once broken
-    if (!rule1UsedThisTurn[cp] && !diamondsBroken) {
+    // Rule of 1 (Girl's Best Friend) — give a diamond to another player at any time
+    if (!rule1UsedThisTurn[cp]) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
       if (aiDimonds.length > 0 && (cpIsSimp || Math.random() < 0.25)) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
