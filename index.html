@@ -5020,7 +5020,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
               }}>
                 <div style={{height:36,width:'100%',background:'#fff',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
                   {opt.logo
-                    ? <img src={opt.logo} alt={opt.label} style={{maxWidth:32,maxHeight:28,objectFit:'contain'}}/>
+                    ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'88%',maxHeight:28,objectFit:'contain'}}/>
                     : <span style={{fontSize:22}}>{opt.emoji}</span>
                   }
                 </div>
@@ -8768,14 +8768,14 @@ function DiamondsGame() {
         marginBottom:6,
       }}>
         {opt.logo
-          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:40,maxHeight:36,objectFit:"contain"}}/>
+          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'85%',maxHeight:36,objectFit:"contain"}}/>
           : <div style={{fontSize:26,lineHeight:1}}>{opt.emoji}</div>
         }
       </div>
       <div style={{color:"#fff",fontSize:12,fontWeight:700,fontFamily:FONT_UI,marginBottom:1,textAlign:"center"}}>
         {opt.label} {opt.emoji}
       </div>
-      <div style={{color:VM.tealLight+"88",fontSize:10,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
+      <div style={{color:VM.tealLight+"88",fontSize:10,fontWeight:700,fontFamily:FONT_UI,lineHeight:1.3,textAlign:"center"}}>
         {opt.subtitle}
       </div>
     </>);
