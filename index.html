@@ -1278,9 +1278,9 @@ const AI_PERSONAS = [
   { name:"Guy",   emoji:"🌴", style:"Chaotic",      desc:"unpredictable wildcard" },
 ];
 const OPPONENT_OPTIONS = [
-  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'plays high, hunts Family', logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
-  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Conservative', desc:'safe, hoards diamonds',    logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
-  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Chaotic',      desc:'unpredictable wildcard',   logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'gordy',   type:'computer', label:'Gordy',   emoji:'🚨', style:'Aggressive',  desc:'hunts Family & Showdown, guards steal cards', logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'vicky',   type:'computer', label:'Vicky',   emoji:'📰', style:'Grand Larceny', desc:'chain-kidnapper, cashes every set she can',   logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
+  { id:'guy',     type:'computer', label:'Guy',     emoji:'🌴', style:'Set Builder',  desc:'hunts Rule of 4/6, Riot & The Steal',         logo:'assets/logo-claude.png', subtitle:'by Claude (Anthropic)' },
   { id:'gemini',  type:'llm', label:'Gemini',  emoji:'✨', style:'Gemini AI',  desc:'powered by Google Gemini',       logo:'assets/logo-gemini.png',  color:'#C4B5FD', subtitle:'(Alphabet)' },
   { id:'llama',   type:'llm', label:'Llama',   emoji:'🦙', style:'Llama AI',   desc:'powered by Meta Llama via Groq', logo:'assets/logo-llama.png',   color:'#FF7A4A', subtitle:'(Meta)' },
   { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6', subtitle:'(Mistral AI)' },
@@ -2657,9 +2657,12 @@ function resolveNormal(plays, ledSuit, trumpBroken=true) {
 // ============================================================
 
 // AI role rotation per round — cycles 1→2→3→1→2→3...
-// Role A: Family hunter, Role B: Ace hunter, Role C: Pure strong play
-function aiRoleForRound(playerIdx, roundNum) {
-  // Each round, roles shift: round 1: [A,B,C], round 2: [C,A,B], round 3: [B,C,A]
+// Each character has a fixed role; LLMs/GPT fall back to rotating strong/ace/family
+function aiRoleForSlot(slotId, playerIdx, roundNum) {
+  if (slotId === 'gordy') return 'family';   // always hunts Family & steal cards
+  if (slotId === 'vicky') return 'larceny';  // chain-kidnapper, opportunist
+  if (slotId === 'guy')   return 'strong';   // smart set-builder baseline
+  // LLMs and GPT rotate as before
   const roles = ["family","ace","strong"];
   return roles[(playerIdx - 1 + (roundNum - 1)) % 3];
 }
@@ -2714,16 +2717,48 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
     if (safe.length > 0) return safe.sort((a,b) => cardScore(a)-cardScore(b))[0];
   }
 
-  // ---- FAMILY HUNTER: protect J♦ Q♦ K♦ A♦, use Joker to steal them ----
-  if (role === "family" && familyInHand.length >= 2) {
-    const trickHasFamilyCard = trickPlays.some(p => familyIds.includes(p.card.id));
-    if (joker && trickHasFamilyCard && !trickHasAce) return joker;
+  // ---- FAMILY HUNTER (Gordy): protect J♦ Q♦ K♦ A♦ + steal cards for Showdown path ----
+  const stealCardIds = new Set(["Q♣","J♦","A♠"]);
+  if (role === "family") {
+    const stealInHand = hand.filter(c => stealCardIds.has(c.id) || c.isJoker);
+    // Activate when holding 2+ family cards OR 2+ steal cards (building towards Family or Showdown)
+    if (familyInHand.length >= 2 || stealInHand.length >= 2) {
+      const valuableIds = new Set([...familyIds, "Q♣", "A♠"]); // protect — don't discard these
+      // Use Joker to steal a family card or steal card out of a trick
+      const trickHasValuable = trickPlays.some(p => familyIds.includes(p.card.id) || stealCardIds.has(p.card.id));
+      if (joker && trickHasValuable && !trickHasAce) return joker;
+      const mustFollow = ledSuit ? hand.filter(c => !c.isJoker && c.suit === ledSuit) : [];
+      const mustFollowNonValuable = mustFollow.filter(c => !valuableIds.has(c.id));
+      if (mustFollowNonValuable.length > 0) return mustFollowNonValuable.sort((a,b) => cardScore(a)-cardScore(b))[0];
+      if (mustFollow.length > 0) return mustFollow.sort((a,b) => cardScore(a)-cardScore(b))[0];
+      const nonValuable = hand.filter(c => !valuableIds.has(c.id) && !c.isJoker);
+      if (nonValuable.length > 0) return nonValuable.sort((a,b) => cardScore(a)-cardScore(b))[0];
+    }
+  }
+
+  // ---- LARCENY (Vicky): chain-kidnapper and opportunist — take diamonds, protect steal cards ----
+  if (role === "larceny") {
+    // Use Joker aggressively for diamonds OR to trigger another kidnap chain
+    if (joker && trickPlays.length > 0 && trickDiamondPoints >= 2 && !trickHasAce) return joker;
+    // Use A♠ to block opponents' steal mechanics
+    if (ace && (trickHasJoker || trickHasJackD || trickHasQueenClubs) && !trickHasAce && canPlayAceLegally) return ace;
     const mustFollow = ledSuit ? hand.filter(c => !c.isJoker && c.suit === ledSuit) : [];
-    const mustFollowNonFamily = mustFollow.filter(c => !familyIds.includes(c.id));
-    if (mustFollowNonFamily.length > 0) return mustFollowNonFamily.sort((a,b) => cardScore(a)-cardScore(b))[0];
-    if (mustFollow.length > 0) return mustFollow.sort((a,b) => cardScore(a)-cardScore(b))[0];
-    const nonFamily = hand.filter(c => !familyIds.includes(c.id) && !c.isJoker);
-    if (nonFamily.length > 0) return nonFamily.sort((a,b) => cardScore(a)-cardScore(b))[0];
+    const canFollow = mustFollow.length > 0;
+    if (canFollow) {
+      // Trick has diamonds: take it with the strongest following card (opportunist)
+      if (trickDiamondPoints > 0) return mustFollow.sort((a,b) => cardScore(b)-cardScore(a))[0];
+      // No diamonds: fold cheaply (save steal cards for better moments)
+      const nonSteal = mustFollow.filter(c => !stealCardIds.has(c.id) && !isAceSpades(c));
+      return nonSteal.length ? nonSteal.sort((a,b) => cardScore(a)-cardScore(b))[0] : mustFollow.sort((a,b) => cardScore(a)-cardScore(b))[0];
+    }
+    // Off-suit: trump in with a low diamond if there are points in the trick
+    const dims = hand.filter(c => isDiamond(c) && !c.isJoker);
+    if (dims.length > 0 && trickDiamondPoints > 0) return dims.sort((a,b) => diamondPoints(a)-diamondPoints(b))[0];
+    // Discard the cheapest non-steal, non-diamond card
+    const disposable = hand.filter(c => !stealCardIds.has(c.id) && !isDiamond(c) && !c.isJoker && !isAceSpades(c));
+    if (disposable.length > 0) return disposable.sort((a,b) => cardScore(a)-cardScore(b))[0];
+    // Last resort: lowest of what's left
+    return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
   }
 
   // ---- STRONG PLAY (all roles fall through here) ----
@@ -2927,13 +2962,34 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
   return legalCards[0];
 }
 
-function aiChooseKidnapTarget(hands, playerIdx, knowledge, preferWorst = false) {
+function aiChooseKidnapTarget(hands, playerIdx, knowledge, preferWorst = false, preferSteal = false) {
   const opponents = [];
   for (let i = 0; i < hands.length; i++) {
     if (i !== playerIdx && (hands[i]||[]).length > 0) opponents.push(i);
   }
   if (opponents.length === 0) return null;
   const cardVal = card => isDiamond(card) ? diamondPoints(card)*10 + cardScore(card) : cardScore(card);
+  const stealPref = new Set(["Q♣","J♦","A♠"]); // Vicky hunts these
+
+  // Vicky: steal a steal card if we know where one is
+  if (preferSteal) {
+    if (knowledge) {
+      for (const opp of opponents) {
+        const knownIds = knowledge[opp];
+        if (!knownIds) continue;
+        const idx = (hands[opp]||[]).findIndex((c, ci) => knownIds.has(c.id) && stealPref.has(c.id));
+        if (idx !== -1) return { fromPlayer: opp, cardIdx: idx };
+      }
+    }
+    // Blind scan: look for steal cards in any opponent hand
+    const shuffled = [...opponents].sort(() => Math.random() - 0.5);
+    for (const opp of shuffled) {
+      const idx = (hands[opp]||[]).findIndex(c => stealPref.has(c.id));
+      if (idx !== -1) return { fromPlayer: opp, cardIdx: idx };
+    }
+    // Fall through to best-card logic if no steal cards found
+  }
+
   // Use knowledge to target best/worst known card
   if (knowledge) {
     let bestKnown = null, bestVal = preferWorst ? Infinity : -1;
@@ -5595,11 +5651,11 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 <div style={{marginBottom:12}}>
                   <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4}}>The "Computer" Players, by Claude</div>
                   <div style={{lineHeight:1.7}}>
-                    Gordy, Vicky, and Guy are each coded by Claude (Anthropic) with a distinct play style:
+                    Gordy, Vicky, and Guy are each coded by Claude (Anthropic) with a distinct play style. They share card knowledge (with Gordy &amp; Vicky forgetting 5% per round):
                     <div style={{marginTop:6,paddingLeft:8,borderLeft:`2px solid #c9a84c33`}}>
-                      <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Plays high cards and hunts the Family.</div>
-                      <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Conservative. Plays it safe and hoards diamonds.</div>
-                      <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Chaotic. An unpredictable wildcard.</div>
+                      <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Hunts the American Family &amp; Showdown; guards steal cards.</div>
+                      <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Grand Larceny. Chain-kidnapper; cashes every set she touches.</div>
+                      <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Set Builder. Hunts Rule of 4, Blood Diamond, Riot, and The Steal — and inexplicably uses 4 Aces as Rule of 4.</div>
                     </div>
                   </div>
                 </div>
@@ -6175,6 +6231,8 @@ function DiamondsGame() {
       return; // Human player notified via buttons in action area
     } else if (_gaRel !== 0 && opponents[_gaRel - 1]?.id === 'simp') {
       return; // Simp never cashes sets
+    } else if (_gaRel !== 0 && opponents[_gaRel - 1]?.id === 'guy') {
+      return; // Guy inexplicably prefers Rule of 4 with 4 aces over Golden Age — let it fall through
     } else {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
       const familyCount = (hands[cp] || []).filter(c => familyIds.includes(c.id)).length;
@@ -8584,8 +8642,8 @@ function DiamondsGame() {
         }
         // No clubs — fall through to normal AI card selection
       }
-      const role = aiRoleForRound(currentPlayer, roundNum);
       const slotId = opponentSlotsRef.current[currentPlayer - 1];
+      const role = aiRoleForSlot(slotId, currentPlayer, roundNum);
       const isLLM = LLM_IDS.has(slotId);
       if (isLLM) {
         askLLMForCard(slotId, hand, trickPlaysRef.current, {
@@ -8701,7 +8759,9 @@ function DiamondsGame() {
       snapshotKnowledge(jokerPlayer, currentHands);
       const jokerKnowledge = aiKnowledgeRef.current[jokerPlayer];
       const _kidnapRel = (jokerPlayer - mySeatingIdx + 4) % 4;
-      const kidnapIsSimp = _kidnapRel !== 0 && opponents[_kidnapRel - 1]?.id === 'simp';
+      const kidnapSlotId = _kidnapRel !== 0 ? (opponents[_kidnapRel - 1]?.id ?? '') : '';
+      const kidnapIsSimp  = kidnapSlotId === 'simp';
+      const kidnapIsVicky = kidnapSlotId === 'vicky';
 
       if (isRobbin) {
         // Always rob the best available card — even a non-diamond (the "silly mistake" is allowed)
@@ -8711,7 +8771,7 @@ function DiamondsGame() {
         return;
       }
 
-      const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge, kidnapIsSimp);
+      const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge, kidnapIsSimp, kidnapIsVicky);
       if (target) {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
@@ -8789,7 +8849,8 @@ function DiamondsGame() {
       }
 
       snapshotKnowledge(playerIdx, currentHands);
-      let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx], qcIsSimp);
+      const qcIsVicky = !qcIsSimp && opponents[_qcRel - 1]?.id === 'vicky';
+      let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx], qcIsSimp, qcIsVicky);
 
       if (target) {
         const stolenCard = currentHands[target.fromPlayer]?.[target.cardIdx];
