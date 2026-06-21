@@ -2795,35 +2795,102 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
     return losers.length ? lowest(losers) : lowest(legalCards);
   }
 
-  // ── PERFECT: card-counting EV model ──────────────────────────────────────
+  // ── PERFECT: full card-counting EV model ─────────────────────────────────
   if (style === "perfect") {
-    const played   = cardsPlayedThisRound.map(p => p.card?.id ?? p.id).filter(Boolean);
-    const scoreArr = scores.map(s => (typeof s === 'object' ? s.total : s));
-    const myScore  = scoreArr[myPlayerIdx] ?? 0;
-    const topScore = Math.max(...scoreArr, 0);
-    const behindBy = topScore - myScore;
+    const played    = cardsPlayedThisRound.map(p => p.card?.id ?? p.id).filter(Boolean);
+    const playedSet = new Set([...played, ...trickPlays.map(p => p.card.id)]);
+    const scoreArr  = scores.map(s => (typeof s === 'object' ? s.total : s));
+    const myScore   = scoreArr[myPlayerIdx] ?? 0;
+    const topScore  = Math.max(...scoreArr, 0);
+    const othersTop = Math.max(...scoreArr.filter((_, i) => i !== myPlayerIdx), 0);
+    const behindBy  = topScore - myScore;
+    const aheadBy   = myScore - othersTop; // positive = I'm winning
+
+    // Threat-card accounting (fully card-counted)
+    const iHaveJoker = hand.some(c => c.isJoker);
+    const iHaveAceS  = hand.some(c => isAceSpades(c));
+    const jokerThreat   = !playedSet.has("JOKER")  && !iHaveJoker;  // Joker is live in an opponent's hand
+    const aceSpadeThreat= !playedSet.has("A♠")     && !iHaveAceS;   // A♠ is live in an opponent's hand
+    const jackDThreat   = !playedSet.has("J♦");
+    const queenClThreat = !playedSet.has("Q♣");
+
+    // Trick context
+    const trickPts      = trickPlays.reduce((s, p) => s + diamondPoints(p.card), 0);
+    const trickHasJoker = trickPlays.some(p => p.card.isJoker);
+    const trickHasAceS  = trickPlays.some(p => isAceSpades(p.card));
+    const trickHasJackD = trickPlays.some(p => isJackDiamond(p.card));
+    const trickHasQueenCl = trickPlays.some(p => isQueenClubs(p.card));
+    const isLeading     = trickPlays.length === 0;
+
+    // Remaining high-diamond value still unaccounted-for (useful for threat modelling)
+    const HIGH_D = { "K♦":5,"Q♦":4,"J♦":3,"A♦":2 };
+    const remainingDPts = Object.entries(HIGH_D)
+      .filter(([id]) => !playedSet.has(id) && !hand.some(c => c.id === id))
+      .reduce((s,[,v]) => s+v, 0);
 
     function moveEV(card) {
-      const wins    = wouldWin(card);
-      const trickPts = trickPlays.reduce((s, p) => s + diamondPoints(p.card), 0);
-      const cardPts  = diamondPoints(card);
+      const wins   = wouldWin(card);
+      const cardPts = diamondPoints(card);
       let ev = 0;
 
-      // Core value: winning points that are already in the trick
-      if (wins) ev += trickPts * 10;
-      // Bonus/penalty for diamond card we're playing
-      ev += cardPts * (wins ? 4 : -6);
-      // Avoid wasting high cards on empty tricks
-      ev -= cardScore(card) * (trickPts === 0 ? 0.15 : 0.05);
-      // Endgame: every card counts
-      if (hand.length <= 5 && wins) ev += 18;
-      // Deficit: take risks to catch up
-      if (behindBy > 20 && wins) ev += 14;
-      // Lead: protect the margin
-      if (behindBy < 0 && !wins) ev += 8;
-      // Card counting: more unknown cards = more uncertainty, slight caution
-      const unseen = Math.max(0, 53 - played.length - hand.length);
-      ev += unseen * 0.02;
+      // ── Primary: capture points already in the trick
+      if (wins) ev += trickPts * 12;
+
+      // ── Diamond card we're contributing
+      if (cardPts > 0) ev += cardPts * (wins ? 5 : -9);
+
+      // ── Joker deployment logic
+      if (card.isJoker) {
+        ev += trickPts * 6;                      // extra multiplier for winning with Joker
+        if (!aceSpadeThreat) ev += 25;           // A♠ is gone / in my hand — safe to deploy
+        else ev -= 20;                           // A♠ still lurking — risky spend
+        if (trickPts === 0 && !isLeading) ev -= 40; // never burn Joker on empty following trick
+      }
+
+      // ── A♠ deployment logic
+      if (isAceSpades(card)) {
+        if (trickHasJoker || trickHasJackD || trickHasQueenCl) ev += 35; // perfect timing
+        else ev -= 25;                           // wasteful — A♠ saved for steal cards only
+      }
+
+      // ── J♦ / Q♣ in trick — risk playing a scoring card
+      if (isDiamond(card) && cardPts > 0 && !wins) {
+        if (trickHasJoker && !trickHasAceS) ev -= 20; // Joker takes our diamond
+      }
+
+      // ── Leading strategy
+      if (isLeading) {
+        // Lead high diamonds when Joker threat is neutralised
+        if (isDiamond(card) && trumpBroken && !jokerThreat) {
+          ev += cardPts * 8;
+        }
+        // Don't lead a valuable card into unknown waters when way ahead
+        if (aheadBy > 15 && cardPts >= 3) ev -= 12;
+        // Lead with a card we know can win (nothing higher of same suit unplayed)
+        const higherOfSuitExists = !playedSet.has(card.id) && ['A','K','Q','J','10','9','8','7','6','5','4','3','2']
+          .slice(0, ['A','K','Q','J','10','9','8','7','6','5','4','3','2'].indexOf(card.rank))
+          .some(r => {
+            const id = r + card.suit;
+            return !playedSet.has(id) && !hand.some(c => c.id === id);
+          });
+        if (!higherOfSuitExists && !card.isJoker) ev += 10; // I hold the top card of this suit
+      }
+
+      // ── Card conservation: don't waste power on worthless tricks
+      ev -= cardScore(card) * (trickPts === 0 && !isLeading ? 0.25 : 0.06);
+
+      // ── Endgame crunch: every card highly leveraged
+      if (hand.length <= 5) {
+        if (wins && trickPts > 0) ev += 28;
+        if (!wins && cardPts > 0) ev -= 20;
+      }
+
+      // ── Score-position adaptation
+      if (behindBy > 20 && wins && trickPts > 0) ev += 20;  // must catch up — take points
+      if (aheadBy > 15 && !wins && trickPts === 0) ev += 12; // protect lead — fold cheaply
+
+      // ── Residual card-counting uncertainty bonus
+      ev += Math.max(0, 53 - played.length - hand.length) * 0.02;
 
       return ev;
     }
