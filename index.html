@@ -2795,7 +2795,12 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
 
   // ── SIMP: throw tricks, burn value ────────────────────────────────────────
   if (style === "simp") {
-    if (trickPlays.length === 0) return highest(legalCards); // lead high to shed value fast
+    if (trickPlays.length === 0) {
+      // Lead lowest non-diamond to avoid accidentally running trump and winning valuable tricks
+      const nonD = legalCards.filter(c => !isDiamond(c) && !c.isJoker);
+      return lowest(nonD.length ? nonD : legalCards);
+    }
+    // When following: play highest losing card (burns value into the trick winner's pile)
     const losingPlay = highestLosing(legalCards);
     if (losingPlay) return losingPlay;
     return cheapestWinning(legalCards) ?? lowest(legalCards);
@@ -2806,7 +2811,11 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
     const trickPts = trickPlays.reduce((s, p) => s + diamondPoints(p.card), 0);
     const winner = cheapestWinning(legalCards);
     if (winner && trickPts > 0) return winner;                // points on table → take them
-    if (trickPlays.length === 0) return desc(legalCards)[0]; // lead strong
+    if (trickPlays.length === 0) {
+      // Lead highest non-diamond — sets up tricks worth winning without burning trump
+      const nonD = legalCards.filter(c => !isDiamond(c) && !c.isJoker);
+      return highest(nonD.length ? nonD : legalCards);
+    }
     const losers = legalCards.filter(c => !wouldWin(c));
     return losers.length ? lowest(losers) : lowest(legalCards);
   }
