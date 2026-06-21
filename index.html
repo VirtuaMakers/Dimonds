@@ -5729,6 +5729,7 @@ function DiamondsGame() {
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [mpPendingTutorials, setMpPendingTutorials] = useState(0); // # of human players yet to dismiss tutorial
   const [showOpponentModal, setShowOpponentModal] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState([]);
   const opponentSlotsRef = useRef(opponentSlots);
@@ -6033,13 +6034,17 @@ function DiamondsGame() {
     return () => ref.child('state').off('value', handler);
   }, [mpRole]);
 
-  // Show welcome tutorial for multiplayer guests when they first reach the game screen
+  // Show welcome tutorial for multiplayer guests; signal host when ready
   useEffect(() => {
     if (mpRole !== 'guest') return;
     if (screen !== 'game') return;
-    if (!tutorialEnabled || hasSeenWelcomeRef.current) return;
+    if (!tutorialEnabled || hasSeenWelcomeRef.current) {
+      guestSubmitMove('tutorialDone', {}); // no tutorial needed — signal host immediately
+      return;
+    }
     setShowWelcome(true);
     hasSeenWelcomeRef.current = true;
+    // tutorialDone is sent when guest clicks dismiss (see WelcomeModal onClose below)
   }, [screen, mpRole, tutorialEnabled]);
 
   // ── Firebase: host processes guest pendingMoves ───────────────────────────────
@@ -6057,6 +6062,8 @@ function DiamondsGame() {
         const hand = handsRef.current[seatIdx] || [];
         const card = hand.find(c => c.id === payload.cardId);
         if (card) setTimeout(() => submitPlay(seatIdx, card), 0);
+      } else if (type === 'tutorialDone') {
+        setMpPendingTutorials(n => Math.max(0, n - 1));
       }
     };
     pendingRef.on('child_added', handler);
@@ -6848,6 +6855,10 @@ function DiamondsGame() {
     setOpponentSlots(slots);
     // Guest names will show via Firebase state sync (allNames written in host write effect)
     setShowMpLobby(false);
+    // Track how many human players still need to dismiss the tutorial before AI starts
+    const humanCount = seats.filter(s => s.type === 'human').length;
+    const hostNeedsTutorial = tutorialEnabled && !hasSeenWelcomeRef.current;
+    setMpPendingTutorials(hostNeedsTutorial ? humanCount : humanCount - 1);
     startGame(hostName || playerName || 'Host');
   }
 
@@ -8573,7 +8584,8 @@ function DiamondsGame() {
   // ---- AI turns ----
   useEffect(() => {
     if (phase !== "playing") return;
-    if (showWelcome) return; // don't play cards while the intro modal is open
+    if (showWelcome) return; // don't play cards while own intro modal is open
+    if (isMultiplayer() && isHost() && mpPendingTutorials > 0) return; // wait for all players to dismiss tutorial
     const currentPlayer = turnOrder[currentTurn];
     if (currentPlayer === undefined || currentPlayer === mySeatingIdx) return; // human's turn or out of bounds
     if (isMultiplayer() && !isHost()) return; // guests don't run AI
@@ -8698,7 +8710,7 @@ function DiamondsGame() {
     }, 700 + Math.random()*400);
 
     return () => clearTimeout(timer);
-  }, [phase, currentTurn, turnOrder, showWelcome]);
+  }, [phase, currentTurn, turnOrder, showWelcome, mpPendingTutorials]);
 
   // When human is last player with cards:
   // — still has diamonds → let them play manually (they choose which to score)
@@ -10826,7 +10838,13 @@ function DiamondsGame() {
         />
       )}
 
-      {showWelcome&&<WelcomeModal onClose={()=>setShowWelcome(false)} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
+      {showWelcome&&<WelcomeModal onClose={()=>{
+          setShowWelcome(false);
+          if (isMultiplayer()) {
+            if (isHost()) setMpPendingTutorials(n => Math.max(0, n-1));
+            else guestSubmitMove('tutorialDone', {});
+          }
+        }} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
       {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} hintsEnabled={hintsEnabled} setHintsEnabled={setHintsEnabled} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
