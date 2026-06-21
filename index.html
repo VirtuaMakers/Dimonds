@@ -5284,7 +5284,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
 
   return (
     <div onClick={onClose} style={{position:'fixed',inset:0,zIndex:300,background:'rgba(4,18,15,0.85)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:12,backdropFilter:'blur(4px)'}}>
-      <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(155deg,#0f3c38,#08231f)',border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:'100%',boxShadow:`0 24px 80px #000000cc`,fontFamily:FONT_UI,display:'flex',flexDirection:'column',overflow:'hidden',marginTop:16}}>
+      <div onClick={e=>e.stopPropagation()} style={{background:'linear-gradient(155deg,#0f3c38,#08231f)',border:`1px solid ${VM.tealLight}33`,borderRadius:20,maxWidth:420,width:'100%',maxHeight:'calc(100dvh - 24px)',boxShadow:`0 24px 80px #000000cc`,fontFamily:FONT_UI,display:'flex',flexDirection:'column',overflow:'hidden'}}>
         <div style={{padding:'18px 22px 0',borderBottom:`1px solid ${VM.tealLight}22`,flexShrink:0}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
             <h2 style={{color:VM.gold,margin:0,fontFamily:FONT_DISPLAY,fontWeight:800,letterSpacing:1}}>◆ Human Multiplayer</h2>
@@ -5297,7 +5297,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
             </div>
           )}
         </div>
-        <div style={{padding:'20px 22px 24px',overflowY:'auto',maxHeight:'calc(100dvh - 120px)'}}>
+        <div style={{padding:'20px 22px 24px',overflowY:'auto',flex:1,minHeight:0}}>
           {innerContent()}
         </div>
       </div>
