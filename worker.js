@@ -40,6 +40,7 @@ async function callGemini(prompt, env) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
+        safetySettings: GEMINI_SAFETY,
         generationConfig: { temperature: 0.95, maxOutputTokens: 120, thinkingConfig: { thinkingBudget: 0 } },
       }),
       signal: ctrl.signal,
