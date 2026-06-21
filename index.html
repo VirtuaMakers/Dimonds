@@ -5979,7 +5979,14 @@ function DiamondsGame() {
       const st = snap.val();
       if (!st) return;
       setPhase(st.phase ?? "playing");
-      if (st.phase && st.phase !== "menu") setScreen(st.phase === "gameover" ? "gameover" : "game");
+      if (st.phase && st.phase !== "menu") {
+        const newSc = st.phase === "gameover" ? "gameover" : "game";
+        setScreen(newSc);
+        if (newSc === "game" && tutorialEnabled && !hasSeenWelcomeRef.current) {
+          setShowWelcome(true);
+          hasSeenWelcomeRef.current = true;
+        }
+      }
       setHands(fbArr(st.hands).map(toHand));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
       setTurnOrder(fbArr(st.turnOrder));
@@ -6096,7 +6103,7 @@ function DiamondsGame() {
     const _sdRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human notified via buttons in action area
-    } else if (_sdRel !== 0 && opponents[_sdRel - 1]?.id === 'simp') {
+    } else if (_sdRel !== 0 && opponentSlotsRef.current[_sdRel - 1] === 'simp') {
       return; // Simp never cashes sets
     } else {
       const pts = SHOWDOWN_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -6140,7 +6147,7 @@ function DiamondsGame() {
     const _tsRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
-    } else if (_tsRel !== 0 && opponents[_tsRel - 1]?.id === 'simp') {
+    } else if (_tsRel !== 0 && opponentSlotsRef.current[_tsRel - 1] === 'simp') {
       return; // Simp never cashes sets
     } else {
       // AI player — cash in, then show event box so human sees it
@@ -6190,7 +6197,7 @@ function DiamondsGame() {
     const _rtRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
-    } else if (_rtRel !== 0 && opponents[_rtRel - 1]?.id === 'simp') {
+    } else if (_rtRel !== 0 && opponentSlotsRef.current[_rtRel - 1] === 'simp') {
       return; // Simp never cashes sets
     } else {
       const cardIds = new Set(riotCards.map(c=>c.id));
@@ -6229,9 +6236,9 @@ function DiamondsGame() {
     const _gaRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
-    } else if (_gaRel !== 0 && opponents[_gaRel - 1]?.id === 'simp') {
+    } else if (_gaRel !== 0 && opponentSlotsRef.current[_gaRel - 1] === 'simp') {
       return; // Simp never cashes sets
-    } else if (_gaRel !== 0 && opponents[_gaRel - 1]?.id === 'guy') {
+    } else if (_gaRel !== 0 && opponentSlotsRef.current[_gaRel - 1] === 'guy') {
       return; // Guy inexplicably prefers Rule of 4 with 4 aces over Golden Age — let it fall through
     } else {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
@@ -6298,7 +6305,7 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
     if (cp === mySeatingIdxRef.current) return; // Human sees buttons in action area
     const cpRelIdx = (cp - mySeatingIdxRef.current + 4) % 4;
-    const cpIsSimp = cpRelIdx !== 0 && opponents[cpRelIdx - 1]?.id === 'simp';
+    const cpIsSimp = cpRelIdx !== 0 && opponentSlotsRef.current[cpRelIdx - 1] === 'simp';
     // Riot qualifies and fires via its own effect on this same render — let it win
     if (checkRiot(hands[cp] || [], diamondsBroken)) return;
 
@@ -6510,7 +6517,7 @@ function DiamondsGame() {
     const _afRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
-    } else if (_afRel !== 0 && opponents[_afRel - 1]?.id === 'simp') {
+    } else if (_afRel !== 0 && opponentSlotsRef.current[_afRel - 1] === 'simp') {
       return; // Simp never cashes sets
     } else {
       const GA = goldenAgeRef.current ? 2 : 1;
@@ -8759,7 +8766,7 @@ function DiamondsGame() {
       snapshotKnowledge(jokerPlayer, currentHands);
       const jokerKnowledge = aiKnowledgeRef.current[jokerPlayer];
       const _kidnapRel = (jokerPlayer - mySeatingIdx + 4) % 4;
-      const kidnapSlotId = _kidnapRel !== 0 ? (opponents[_kidnapRel - 1]?.id ?? '') : '';
+      const kidnapSlotId = _kidnapRel !== 0 ? (opponentSlotsRef.current[_kidnapRel - 1] ?? '') : '';
       const kidnapIsSimp  = kidnapSlotId === 'simp';
       const kidnapIsVicky = kidnapSlotId === 'vicky';
 
@@ -8801,7 +8808,7 @@ function DiamondsGame() {
       const othersWithCards = [0,1,2,3].filter(i => i !== playerIdx && (currentHands[i]||[]).length > 0);
       const allOthers = [0,1,2,3].filter(i => i !== playerIdx);
       const _qcRel = (playerIdx - mySeatingIdx + 4) % 4;
-      const qcIsSimp = _qcRel !== 0 && opponents[_qcRel - 1]?.id === 'simp';
+      const qcIsSimp = _qcRel !== 0 && opponentSlotsRef.current[_qcRel - 1] === 'simp';
       if (othersWithCards.length >= 1 && (qcIsSimp || Math.random() < 0.30)) {
         const sortedByScore = [...allOthers].sort((a, b) => {
           // Simp targets the leader (highest score); normal AI targets lowest
@@ -8849,7 +8856,7 @@ function DiamondsGame() {
       }
 
       snapshotKnowledge(playerIdx, currentHands);
-      const qcIsVicky = !qcIsSimp && opponents[_qcRel - 1]?.id === 'vicky';
+      const qcIsVicky = !qcIsSimp && opponentSlotsRef.current[_qcRel - 1] === 'vicky';
       let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx], qcIsSimp, qcIsVicky);
 
       if (target) {
