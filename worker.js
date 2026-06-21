@@ -89,7 +89,7 @@ async function callLlama(prompt, env) {
 
 // ─── Qwen via DashScope ───────────────────────────────────────────────────────
 async function callQwen(prompt, env) {
-  const res = await fetch("https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions", {
+  const res = await fetch("https://ws-mlgonhtkp9uahp41.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
