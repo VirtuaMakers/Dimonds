@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v58';
+const CACHE_NAME = 'dimonds-v59';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
@@ -32,11 +32,30 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Network-first for AI worker requests; cache-first for everything else
-  if (e.request.url.includes('workers.dev')) {
+  const url = new URL(e.request.url);
+
+  // Network-first for AI worker requests
+  if (url.hostname.includes('workers.dev')) {
     e.respondWith(fetch(e.request).catch(() => new Response('', { status: 503 })));
     return;
   }
+
+  // Network-first for HTML (index.html / root) — always get the latest game code
+  const isHtml = url.pathname.endsWith('.html') || url.pathname.endsWith('/') || url.pathname === '/Dimonds';
+  if (isHtml) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
+  // Cache-first for everything else (images, logos, manifest)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
       if (res.ok && e.request.method === 'GET') {
