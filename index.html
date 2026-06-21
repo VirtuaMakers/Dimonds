@@ -1272,6 +1272,7 @@ const OPPONENT_OPTIONS = [
   { id:'nemotron',type:'llm', label:'Nemotron',emoji:'👾', style:'Nemotron AI',desc:'powered by Nvidia Nemotron',      logo:'assets/logo-nemotron.png',color:'#76B900', subtitle:'(Nvidia)' },
   { id:'cohere',  type:'llm', label:'Command R+',emoji:'🍁', style:'Command R+', desc:'powered by Cohere Command R+',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
 ];
+const LLM_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(o=>o.id));
 
 const FALLBACK_COMMENTS = {
   gemini: [
@@ -6269,7 +6270,7 @@ function DiamondsGame() {
     setTrickPlays([]);
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
     const llmIds = opponentSlotsRef.current
-      .filter(id => ['gemini','llama','mistral'].includes(id))
+      .filter(id => LLM_IDS.has(id))
       .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
       .filter(({ opt }) => opt);
     if (llmIds.length) {
@@ -6411,7 +6412,7 @@ function DiamondsGame() {
     setRule1UsedThisTurn([false,false,false,false]); rule1UsedThisTurnRef.current=[false,false,false,false];
     {
       const llmIds = opponentSlotsRef.current
-        .filter(id => ['gemini','llama','mistral'].includes(id))
+        .filter(id => LLM_IDS.has(id))
         .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
         .filter(({ opt }) => opt);
       if (llmIds.length) {
@@ -8066,7 +8067,7 @@ function DiamondsGame() {
     // Trick 10: every substituted LLM fires its stock trick-10 comment
     if (trickNum === 10) {
       opponentSlotsRef.current.forEach(id => {
-        if (!['gemini','llama','mistral'].includes(id)) return;
+        if (!LLM_IDS.has(id)) return;
         if (!llmSubstitutedRef.current[id] || subTrick10FiredRef.current[id]) return;
         subTrick10FiredRef.current[id] = true;
         const subOpt = OPPONENT_OPTIONS.find(o => o.id === id);
@@ -8199,7 +8200,7 @@ function DiamondsGame() {
     if (phase !== 'gameover') return;
     const llmSlots = opponentSlotsRef.current
       .map((id, i) => ({ id, playerIdx: i + 1 }))
-      .filter(({ id }) => ['gemini','llama','mistral'].includes(id));
+      .filter(({ id }) => LLM_IDS.has(id));
     if (!llmSlots.length) { setLlmTaunts({}); return; }
     const sorted = allNames.map((n,i) => ({ n, s: totalScores[i]||0, i }))
       .sort((a,b) => b.s-a.s || (a.i===0?1:b.i===0?-1:a.i-b.i));
@@ -8242,7 +8243,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (!diamondsBroken) return;
     const llmSlots = opponentSlotsRef.current
-      .filter(id => ['gemini','llama','mistral'].includes(id))
+      .filter(id => LLM_IDS.has(id))
       .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
       .filter(({ opt }) => opt);
     if (!llmSlots.length) return;
@@ -8361,7 +8362,7 @@ function DiamondsGame() {
       }
       const role = aiRoleForRound(currentPlayer, roundNum);
       const slotId = opponentSlotsRef.current[currentPlayer - 1];
-      const isLLM = ['gemini','llama','mistral'].includes(slotId);
+      const isLLM = LLM_IDS.has(slotId);
       if (isLLM) {
         askLLMForCard(slotId, hand, trickPlaysRef.current, {
           trumpBroken: diamondsBroken,
