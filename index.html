@@ -9395,7 +9395,7 @@ function DiamondsGame() {
             const STARTING_HAND_SIZE = 14;
             const availW = (typeof window !== 'undefined' ? window.innerWidth : 360) - SAFETY * 2;
             // Lock overlap to what it would be at full hand size (13 cards).
-            const maxOverlap = Math.floor((availW - cardW) / (STARTING_HAND_SIZE - 1));
+            const maxOverlap = Math.floor((availW - cardW) / (Math.max(STARTING_HAND_SIZE, total) - 1));
             const OVERLAP = Math.min(22, Math.max(8, maxOverlap));
             const totalWidth = OVERLAP * (total - 1) + cardW;
             const startX = -totalWidth / 2;
