@@ -5732,6 +5732,7 @@ function DiamondsGame() {
   const [showWelcome, setShowWelcome] = useState(false);
   const [mpPendingTutorials, setMpPendingTutorials] = useState(0); // # of human players yet to dismiss tutorial
   const dismissedEventIdsRef = useRef(new Set()); // guest: IDs of event modals already dismissed locally
+  const guestActiveEventIdsRef = useRef({}); // guest: maps event key → _id currently showing (so Firebase null doesn't wipe it before guest dismisses)
   const [showOpponentModal, setShowOpponentModal] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState([]);
   const opponentSlotsRef = useRef(opponentSlots);
@@ -6028,14 +6029,24 @@ function DiamondsGame() {
       if (st.ruleFourOffered) setRuleFourOffered(fbArr(st.ruleFourOffered));
       if (st.swingingParadoxOffered) setSwingingParadoxOffered(fbArr(st.swingingParadoxOffered));
       const dis = dismissedEventIdsRef.current;
-      if (st.riotState) { if (!dis.has(st.riotState._id)) setRiotState(st.riotState); } else { setRiotState(null); }
-      if (st.showdownState) { if (!dis.has(st.showdownState._id)) setShowdownState(st.showdownState); } else { setShowdownState(null); }
-      if (st.acesLowState) { if (!dis.has(st.acesLowState._id)) setAcesLowState(st.acesLowState); } else { setAcesLowState(null); }
-      if (st.ruleOfThreeState) { if (!dis.has(st.ruleOfThreeState._id)) setRuleOfThreeState({...st.ruleOfThreeState, cards:fbArr(st.ruleOfThreeState.cards||[])}); } else { setRuleOfThreeState(null); }
-      if (st.ruleFourState) { if (!dis.has(st.ruleFourState._id)) setRuleFourState({...st.ruleFourState, cards:fbArr(st.ruleFourState.cards||[])}); } else { setRuleFourState(null); }
-      if (st.nuclearFamilyState) { if (!dis.has(st.nuclearFamilyState._id)) setNuclearFamilyState({...st.nuclearFamilyState, cards:fbArr(st.nuclearFamilyState.cards||[])}); } else { setNuclearFamilyState(null); }
-      if (st.bloodDiamondState) { if (!dis.has(st.bloodDiamondState._id)) setBloodDiamondState({...st.bloodDiamondState, cards:fbArr(st.bloodDiamondState.cards||[])}); } else { setBloodDiamondState(null); }
-      if (st.swingingParadoxState) { if (!dis.has(st.swingingParadoxState._id)) setSwingingParadoxState({...st.swingingParadoxState, cards:fbArr(st.swingingParadoxState.cards||[])}); } else { setSwingingParadoxState(null); }
+      const gae = guestActiveEventIdsRef.current;
+      // Helper: apply event state; when Firebase sends null, hold the modal until the guest dismisses it themselves
+      const syncEv = (key, setter, newSt, transform) => {
+        if (newSt) {
+          if (!dis.has(newSt._id)) { gae[key] = newSt._id; setter(transform ? transform(newSt) : newSt); }
+        } else {
+          if (!gae[key] || dis.has(gae[key])) { delete gae[key]; setter(null); }
+          // else: guest hasn't dismissed yet — keep modal visible
+        }
+      };
+      syncEv('riot',           setRiotState,           st.riotState);
+      syncEv('showdown',       setShowdownState,       st.showdownState);
+      syncEv('acesLow',        setAcesLowState,        st.acesLowState);
+      syncEv('ruleOfThree',    setRuleOfThreeState,    st.ruleOfThreeState,    s => ({...s, cards:fbArr(s.cards||[])}));
+      syncEv('ruleFour',       setRuleFourState,       st.ruleFourState,       s => ({...s, cards:fbArr(s.cards||[])}));
+      syncEv('nuclearFamily',  setNuclearFamilyState,  st.nuclearFamilyState,  s => ({...s, cards:fbArr(s.cards||[])}));
+      syncEv('bloodDiamond',   setBloodDiamondState,   st.bloodDiamondState,   s => ({...s, cards:fbArr(s.cards||[])}));
+      syncEv('swingingParadox',setSwingingParadoxState,st.swingingParadoxState,s => ({...s, cards:fbArr(s.cards||[])}));
       setRule1State(st.rule1State ?? null);
       if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
     };
@@ -7557,7 +7568,7 @@ function DiamondsGame() {
   }
   function dismissShowdownEvent() {
     if (!showdownState) return;
-    if (showdownState._id) dismissedEventIdsRef.current.add(showdownState._id);
+    if (showdownState._id) { dismissedEventIdsRef.current.add(showdownState._id); delete guestActiveEventIdsRef.current.showdown; }
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
     setRoundScores(pendingRound);
@@ -7674,7 +7685,7 @@ function DiamondsGame() {
   }
   function dismissRiotEvent() {
     if (!riotState) return;
-    if (riotState._id) dismissedEventIdsRef.current.add(riotState._id);
+    if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
     setRiotState(null);
     setRoundScores(pendingRound);
@@ -7810,7 +7821,7 @@ function DiamondsGame() {
   // ---- Aces Low: dismiss the event box (cash-in completed), resume play ----
   function dismissAcesLowEvent() {
     if (!acesLowState) return;
-    if (acesLowState._id) dismissedEventIdsRef.current.add(acesLowState._id);
+    if (acesLowState._id) { dismissedEventIdsRef.current.add(acesLowState._id); delete guestActiveEventIdsRef.current.acesLow; }
     const { continuation } = acesLowState;
     setAcesLowState(null);
     setPhase("playing");
@@ -7856,7 +7867,7 @@ function DiamondsGame() {
   }
   function dismissRuleOfThreeEvent() {
     if (!ruleOfThreeState) return;
-    if (ruleOfThreeState._id) dismissedEventIdsRef.current.add(ruleOfThreeState._id);
+    if (ruleOfThreeState._id) { dismissedEventIdsRef.current.add(ruleOfThreeState._id); delete guestActiveEventIdsRef.current.ruleOfThree; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
     setPhase("playing");
@@ -7900,7 +7911,7 @@ function DiamondsGame() {
   }
   function dismissSwingingParadoxEvent() {
     if (!swingingParadoxState) return;
-    if (swingingParadoxState._id) dismissedEventIdsRef.current.add(swingingParadoxState._id);
+    if (swingingParadoxState._id) { dismissedEventIdsRef.current.add(swingingParadoxState._id); delete guestActiveEventIdsRef.current.swingingParadox; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
     setPhase("playing");
@@ -7983,7 +7994,7 @@ function DiamondsGame() {
 
   function dismissRuleFourEvent() {
     if (!ruleFourState) return;
-    if (ruleFourState._id) dismissedEventIdsRef.current.add(ruleFourState._id);
+    if (ruleFourState._id) { dismissedEventIdsRef.current.add(ruleFourState._id); delete guestActiveEventIdsRef.current.ruleFour; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
     setPhase("playing");
@@ -8019,7 +8030,7 @@ function DiamondsGame() {
     setPhase("nuclearfamily_event");
   }
   function dismissNuclearFamilyEvent() {
-    if (nuclearFamilyState?._id) dismissedEventIdsRef.current.add(nuclearFamilyState._id);
+    if (nuclearFamilyState?._id) { dismissedEventIdsRef.current.add(nuclearFamilyState._id); delete guestActiveEventIdsRef.current.nuclearFamily; }
     setNuclearFamilyState(null);
     setPhase("playing");
   }
@@ -8053,7 +8064,7 @@ function DiamondsGame() {
     setPhase("blooddiamond_event");
   }
   function dismissBloodDiamondEvent() {
-    if (bloodDiamondState?._id) dismissedEventIdsRef.current.add(bloodDiamondState._id);
+    if (bloodDiamondState?._id) { dismissedEventIdsRef.current.add(bloodDiamondState._id); delete guestActiveEventIdsRef.current.bloodDiamond; }
     setBloodDiamondState(null);
     setPhase("playing");
   }
