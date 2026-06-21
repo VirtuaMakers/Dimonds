@@ -1293,6 +1293,7 @@ const OPPONENT_OPTIONS = [
 ];
 const LLM_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(o=>o.id));
 const GPT_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='gpt').map(o=>o.id));
+const SEAT_EMOJIS = ['🟢', '🔵', '🟡', '🔴']; // default player emojis by seat position
 
 const FALLBACK_COMMENTS = {
   gemini: [
@@ -4135,7 +4136,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, f
   );
 }
 
-function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false }) {
+function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false }) {
   if (!result) return null;
 
   const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (scoresCommitted ? 0 : (roundScores[i]||0)));
@@ -4148,7 +4149,7 @@ function TrickResultModal({ result, allNames, onContinue, isGameOver, isHandOver
         return (
           <div key={i} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"2px 8px", borderRadius:6, background: isTop ? "rgba(75,195,175,0.1)" : "transparent"}}>
             <span style={{fontSize:11, fontFamily:FONT_UI, color: isTop ? VM.tealLight : "#ffffffaa", fontWeight: isTop ? 700 : 400}}>
-              {i === 0 ? "😎 " : ""}{n}
+              {playerEmojis[i] ? `${playerEmojis[i]} ` : ""}{n}
             </span>
             <span style={{fontSize:13, fontWeight:800, fontFamily:FONT_DISPLAY, color: isTop ? VM.gold : "#ffffffbb"}}>{runningTotals[i]}</span>
           </div>
@@ -4620,7 +4621,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
     }
     const trickNums = Object.keys(byTrick).map(Number).sort((a,b)=>a-b);
     const playerName = allNames[drillPlayer];
-    const playerIcon = playerEmojis[drillPlayer] ?? (drillPlayer === 0 ? "😎" : AI_PERSONAS[drillPlayer-1]?.emoji);
+    const playerIcon = playerEmojis[drillPlayer] ?? SEAT_EMOJIS[drillPlayer] ?? AI_PERSONAS[drillPlayer-1]?.emoji;
 
     const renderEventRow = (ev, i) => {
       const isTrick = ev.type === "trick";
@@ -5902,7 +5903,12 @@ function DiamondsGame() {
   const [remoteEmojis, setRemoteEmojis] = useState(null);
   const [mpSeatNames, setMpSeatNames] = useState(null); // host-computed names from actual seats (fixes 'human' slot label)
   const allNames = remoteNames || mpSeatNames || [playerName || "You", ...effectivePersonas.map(p => p.label)];
-  const playerEmojis = remoteEmojis || ["😎", ...effectivePersonas.map(p => p.emoji)];
+  const playerEmojis = remoteEmojis || [
+    SEAT_EMOJIS[0],
+    ...opponentSlots.map((id, i) =>
+      id === 'human' ? SEAT_EMOJIS[i + 1] : (OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]).emoji
+    ),
+  ];
 
   // ── Multiplayer state ──
   const [mySeatingIdx, setMySeatingIdx] = useState(0); // 0 = solo/host; 1-3 = guest
@@ -6326,6 +6332,7 @@ function DiamondsGame() {
     const cp = turnOrder[currentTurn];
     if (cp === mySeatingIdxRef.current) return; // Human sees buttons in action area
     const cpRelIdx = (cp - mySeatingIdxRef.current + 4) % 4;
+    if (opponentSlotsRef.current[cpRelIdx - 1] === 'human') return; // human guest handles their own sets
     const cpIsSimp = cpRelIdx !== 0 && opponentSlotsRef.current[cpRelIdx - 1] === 'simp';
     // Riot qualifies and fires via its own effect on this same render — let it win
     if (checkRiot(hands[cp] || [], diamondsBroken)) return;
@@ -10828,6 +10835,7 @@ function DiamondsGame() {
         <TrickResultModal
           result={trickResult}
           allNames={allNames}
+          playerEmojis={playerEmojis}
           onContinue={afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (autoCompleteTricks && hands.filter(h=>h.length>0).length===1 && !hands.some(h=>h.some(c=>isDiamond(c))))}
