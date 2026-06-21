@@ -3922,7 +3922,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve
   );
 }
 
-function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round", onPeek }) {
+function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip, deckTheme, roundScores=[], totalScores=[], scoreTally="round", onPeek, giverIdx=0 }) {
   const [selectedCard, setSelectedCard] = useState(null);
   const [selectedTarget, setSelectedTarget] = useState(null);
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker).sort((a,b) => RANK_VALUE[a.rank] - RANK_VALUE[b.rank]);
@@ -3950,7 +3950,7 @@ function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip,
           <div style={{marginBottom:14}}>
             <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:8,textTransform:"uppercase"}}>Give to which player?</div>
             <div style={{display:"flex",gap:6,justifyContent:"center"}}>
-              {[1,2,3].map(i => (
+              {[0,1,2,3].filter(i => i !== giverIdx).map(i => (
                 <div key={i} onClick={()=>setSelectedTarget(i)} style={{
                   background:selectedTarget===i?"#c9a84c22":"#ffffff08",
                   border:`1.5px solid ${selectedTarget===i?"#c9a84c":"#ffffff22"}`,
@@ -5900,7 +5900,8 @@ function DiamondsGame() {
   const effectivePersonas = opponentSlots.map(id => OPPONENT_OPTIONS.find(o => o.id === id) ?? OPPONENT_OPTIONS[0]);
   const [remoteNames, setRemoteNames] = useState(null);
   const [remoteEmojis, setRemoteEmojis] = useState(null);
-  const allNames = remoteNames || [playerName || "You", ...effectivePersonas.map(p => p.label)];
+  const [mpSeatNames, setMpSeatNames] = useState(null); // host-computed names from actual seats (fixes 'human' slot label)
+  const allNames = remoteNames || mpSeatNames || [playerName || "You", ...effectivePersonas.map(p => p.label)];
   const playerEmojis = remoteEmojis || ["😎", ...effectivePersonas.map(p => p.emoji)];
 
   // ── Multiplayer state ──
@@ -6066,6 +6067,15 @@ function DiamondsGame() {
         if (card) setTimeout(() => submitPlay(seatIdx, card), 0);
       } else if (type === 'tutorialDone') {
         setMpPendingTutorials(n => Math.max(0, n - 1));
+      } else if (type === 'rule1Start') {
+        setRule1State({playerIdx: seatIdx});
+        setPhase('rule1');
+      } else if (type === 'rule1Give') {
+        const hand = handsRef.current[seatIdx] || [];
+        const card = hand.find(c => c.id === payload.cardId);
+        if (card) setTimeout(() => handleRule1Give(payload.targetIdx, card, seatIdx), 0);
+      } else if (type === 'rule1Skip') {
+        setTimeout(() => handleRule1Skip(), 0);
       }
     };
     pendingRef.on('child_added', handler);
@@ -6850,6 +6860,8 @@ function DiamondsGame() {
       const opt = OPPONENT_OPTIONS.find(o => o.id === aiId);
       seats.push({ playerId: null, name: opt?.label || aiId, type:'ai', aiId });
     }
+    // Store seat names so allNames reflects real human guest names (not AI persona fallbacks)
+    setMpSeatNames(seats.map(s => s.name));
     // Write seat assignments so guests can discover their seat index
     ref.child('seats').set(seats);
     ref.child('config/status').set('playing');
@@ -9979,7 +9991,14 @@ function DiamondsGame() {
             const setBtnStyle = { ...cardBtnBase, background:"linear-gradient(135deg,#c9a84c1a,#c9a84c0a)", color:VM.gold, border:"1.5px solid #c9a84c55", cursor:"pointer", touchAction:"manipulation" };
             if (showSets) {
             if (rule1Avail) setButtons.push(
-              <button key="r1" onClick={()=>{ setRule1State({playerIdx:0}); setPhase("rule1"); }} style={{...setBtnStyle, flexDirection:"column", gap:1}}>
+              <button key="r1" onClick={()=>{
+                if (isMultiplayer() && !isHost()) {
+                  guestSubmitMove('rule1Start', {});
+                } else {
+                  setRule1State({playerIdx: mySeatingIdx});
+                  setPhase("rule1");
+                }
+              }} style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                 <span style={{display:"flex",alignItems:"center",justifyContent:"flex-start",letterSpacing:"-0.5px",width:"100%"}}>
                   <span>💠 Rule of 1</span>
                 </span>
@@ -10257,14 +10276,19 @@ function DiamondsGame() {
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* MODALS */}
-      {phase==="rule1"&&rule1State&&peekingModal!=="rule1"&&(
+      {phase==="rule1"&&rule1State&&rule1State.playerIdx===mySeatingIdx&&peekingModal!=="rule1"&&(
         <Rule1Modal
           hand={hands[mySeatingIdx]||[]}
           allNames={allNames}
           playerEmojis={playerEmojis}
           hands={hands}
-          onGive={handleRule1Give}
-          onSkip={handleRule1Skip}
+          giverIdx={mySeatingIdx}
+          onGive={isMultiplayer()&&!isHost()
+            ? (targetIdx, card) => guestSubmitMove('rule1Give', {targetIdx, cardId: card.id})
+            : handleRule1Give}
+          onSkip={isMultiplayer()&&!isHost()
+            ? () => guestSubmitMove('rule1Skip', {})
+            : handleRule1Skip}
           deckTheme={deckTheme}
           roundScores={roundScores}
           totalScores={totalScores}
@@ -10272,7 +10296,7 @@ function DiamondsGame() {
           onPeek={()=>setPeekingModal("rule1")}
         />
       )}
-      {phase==="rule1"&&rule1State&&peekingModal==="rule1"&&(
+      {phase==="rule1"&&rule1State&&rule1State.playerIdx===mySeatingIdx&&peekingModal==="rule1"&&(
         <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:"#1a2a1a",border:"1.5px solid #c9a84c",borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
           <span style={{fontSize:16}}>💠</span>
           <span style={{color:"#c9a84c",fontWeight:700,fontSize:13,fontFamily:FONT_UI}}>Return to Rule of 1</span>
