@@ -9246,12 +9246,12 @@ function DiamondsGame() {
         </div>
       </div>
     ) : (
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:12}}>
-        <div style={{height:53}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
-        <div style={{height:53}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
-        <div style={{height:37}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
-        <div style={{height:37}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
-        <div style={{height:37}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
+      <div style={{display:"flex",flexDirection:"column",justifyContent:"space-between",flex:1,paddingTop:10,paddingBottom:8}}>
+        <div style={{height:50}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
+        <div style={{height:50}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
+        <div style={{height:36}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+        <div style={{height:36}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+        <div style={{height:36}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
       </div>
     );
     return (
@@ -9294,6 +9294,7 @@ function DiamondsGame() {
           // ── Mobile: single-column layout ──
           <div style={{
             position:"relative",textAlign:"center",maxWidth:420,width:"100%",
+            display:"flex",flexDirection:"column",flex:1,
           }}>
             <h1 style={{
               fontFamily:FONT_DISPLAY,fontSize:52,fontWeight:900,
