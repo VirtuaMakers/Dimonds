@@ -214,7 +214,7 @@ function callProvider(provider, prompt, env) {
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏", kimi: "🌙", glm: "⚡", nemotron: "💚" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🐼", kimi: "🌙", glm: "⚡", nemotron: "👾" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 const PROVIDER_PERSONALITY = {
