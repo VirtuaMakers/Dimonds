@@ -1271,8 +1271,12 @@ const OPPONENT_OPTIONS = [
   { id:'qwen',    type:'llm', label:'Qwen',    emoji:'🐼', style:'Qwen AI',    desc:'powered by Alibaba Qwen',        logo:'assets/logo-qwen.jpg',    color:'#F87171', subtitle:'(Alibaba)' },
   { id:'nemotron',type:'llm', label:'Nemotron',emoji:'👾', style:'Nemotron AI',desc:'powered by Nvidia Nemotron',      logo:'assets/logo-nemotron.png',color:'#76B900', subtitle:'(Nvidia)' },
   { id:'cohere',  type:'llm', label:'Command R+',emoji:'🍁', style:'Command R+', desc:'powered by Cohere Command R+',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
+  { id:'simp',       type:'gpt', label:'Simp',       emoji:'🤡', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'(ChatGPT)' },
+  { id:'opportunist',type:'gpt', label:'Opportunist',emoji:'🎯', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'(ChatGPT)' },
+  { id:'perfect',    type:'gpt', label:'Perfect',    emoji:'♟️', style:'Optimal',   desc:'card-counting, score-aware',      logo:'assets/logo-chatgpt.png', color:'#A3E635', subtitle:'(ChatGPT)' },
 ];
 const LLM_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(o=>o.id));
+const GPT_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='gpt').map(o=>o.id));
 
 const FALLBACK_COMMENTS = {
   gemini: [
@@ -2736,6 +2740,99 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker);
   if (dimonds.length > 0) return dimonds.sort((a,b) => diamondPoints(a) - diamondPoints(b))[0];
   return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
+}
+
+// ── ChatGPT-authored AI: Simp / Opportunist / Perfect ────────────────────────
+function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
+  if (!hand || hand.length === 0) return null;
+  const { trumpBroken = true, myPlayerIdx = 0, cardsPlayedThisRound = [],
+          scores = [], knownHands = {} } = gameState ?? {};
+
+  // Legal moves (follow-suit rule, Joker always legal)
+  const legalCards = (() => {
+    if (!ledSuit) return [...hand];
+    const followers = hand.filter(c => !c.isJoker && c.suit === ledSuit);
+    if (followers.length > 0) return [...followers, ...hand.filter(c => c.isJoker)];
+    return [...hand];
+  })();
+
+  const asc  = cards => [...cards].sort((a, b) => cardScore(a) - cardScore(b));
+  const desc = cards => [...cards].sort((a, b) => cardScore(b) - cardScore(a));
+  const lowest  = cards => asc(cards)[0];
+  const highest = cards => desc(cards)[0];
+
+  // Delegate to resolveTrick so diamonds-as-trump, Joker, and A♠ are all handled correctly
+  function wouldWin(card) {
+    const sim = [...trickPlays, { playerIdx: myPlayerIdx, card }];
+    return resolveTrick(sim, trumpBroken).winnerIdx === myPlayerIdx;
+  }
+
+  function highestLosing(cards) {
+    const losers = cards.filter(c => !wouldWin(c));
+    return losers.length ? highest(losers) : lowest(cards);
+  }
+
+  function cheapestWinning(cards) {
+    const winners = cards.filter(c => wouldWin(c));
+    return winners.length ? lowest(winners) : null;
+  }
+
+  // ── SIMP: throw tricks, burn value ────────────────────────────────────────
+  if (style === "simp") {
+    if (trickPlays.length === 0) return highest(legalCards); // lead high to shed value fast
+    const losingPlay = highestLosing(legalCards);
+    if (losingPlay) return losingPlay;
+    return cheapestWinning(legalCards) ?? lowest(legalCards);
+  }
+
+  // ── OPPORTUNIST: pounce on points, fold when dry ─────────────────────────
+  if (style === "opportunist") {
+    const trickPts = trickPlays.reduce((s, p) => s + diamondPoints(p.card), 0);
+    const winner = cheapestWinning(legalCards);
+    if (winner && trickPts > 0) return winner;                // points on table → take them
+    if (trickPlays.length === 0) return desc(legalCards)[0]; // lead strong
+    const losers = legalCards.filter(c => !wouldWin(c));
+    return losers.length ? lowest(losers) : lowest(legalCards);
+  }
+
+  // ── PERFECT: card-counting EV model ──────────────────────────────────────
+  if (style === "perfect") {
+    const played   = cardsPlayedThisRound.map(p => p.card?.id ?? p.id).filter(Boolean);
+    const scoreArr = scores.map(s => (typeof s === 'object' ? s.total : s));
+    const myScore  = scoreArr[myPlayerIdx] ?? 0;
+    const topScore = Math.max(...scoreArr, 0);
+    const behindBy = topScore - myScore;
+
+    function moveEV(card) {
+      const wins    = wouldWin(card);
+      const trickPts = trickPlays.reduce((s, p) => s + diamondPoints(p.card), 0);
+      const cardPts  = diamondPoints(card);
+      let ev = 0;
+
+      // Core value: winning points that are already in the trick
+      if (wins) ev += trickPts * 10;
+      // Bonus/penalty for diamond card we're playing
+      ev += cardPts * (wins ? 4 : -6);
+      // Avoid wasting high cards on empty tricks
+      ev -= cardScore(card) * (trickPts === 0 ? 0.15 : 0.05);
+      // Endgame: every card counts
+      if (hand.length <= 5 && wins) ev += 18;
+      // Deficit: take risks to catch up
+      if (behindBy > 20 && wins) ev += 14;
+      // Lead: protect the margin
+      if (behindBy < 0 && !wins) ev += 8;
+      // Card counting: more unknown cards = more uncertainty, slight caution
+      const unseen = Math.max(0, 53 - played.length - hand.length);
+      ev += unseen * 0.02;
+
+      return ev;
+    }
+
+    return legalCards.reduce((best, card) =>
+      moveEV(card) > moveEV(best) ? card : best, legalCards[0]);
+  }
+
+  return legalCards[0];
 }
 
 function aiChooseKidnapTarget(hands, playerIdx, knowledge) {
@@ -8381,6 +8478,22 @@ function DiamondsGame() {
           if (card) submitPlay(currentPlayer, card);
           else setCurrentTurn(t => t + 1);
         });
+      } else if (GPT_IDS.has(slotId)) {
+        const gptState = {
+          trumpBroken: diamondsBroken,
+          myPlayerIdx: currentPlayer,
+          cardsPlayedThisRound: playedCardsRef.current,
+          scores: totalScores.map((s, i) => ({ name: allNames[i], total: s, round: roundScores[i] })),
+          tricksPlayed,
+          roundNum,
+          ledSuit,
+          knownHands: aiKnowledgeRef.current[currentPlayer] ?? {},
+          currentLeader: turnOrder[0],
+          remainingDeck: 53 - playedCardsRef.current.length - hands.reduce((s, h) => s + h.length, 0),
+        };
+        const card = gptChooseCard(hand, slotId, trickPlaysRef.current, ledSuit, gptState);
+        if (card) submitPlay(currentPlayer, card);
+        else setCurrentTurn(t => t + 1);
       } else {
         const card = aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
         if (card) {
