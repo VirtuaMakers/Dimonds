@@ -159,6 +159,30 @@ async function callGLM(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
+// ─── Cohere Command R+ ───────────────────────────────────────────────────────
+async function callCohere(prompt, env) {
+  const res = await fetch("https://api.cohere.com/compatibility/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.COHERE_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "command-r-plus",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Cohere] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Cohere ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 // ─── Nemotron via Nvidia NIM ──────────────────────────────────────────────────
 async function callNemotron(prompt, env) {
   const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
@@ -211,15 +235,17 @@ function callProvider(provider, prompt, env) {
   if (provider === "kimi")     return callKimi(prompt, env);
   if (provider === "glm")      return callGLM(prompt, env);
   if (provider === "nemotron") return callNemotron(prompt, env);
+  if (provider === "cohere")   return callCohere(prompt, env);
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🐼", kimi: "🌙", glm: "⚡", nemotron: "👾" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🐼", kimi: "🌙", glm: "⚡", nemotron: "👾", cohere: "🍁" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 const PROVIDER_PERSONALITY = {
   gemini:   "You are British — dry, witty, and ever so slightly posh. ",
   nemotron: "You are sardonic and casually reference your Nvidia GPU hardware. ",
+  cohere:   "You are Canadian — polite, methodical, and quietly confident, occasionally self-deprecating. ",
 };
 
 function commentPrompt(event, context, provider) {
