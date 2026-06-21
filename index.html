@@ -6413,28 +6413,24 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 1 (Girl's Best Friend) — give a diamond to another player at any time
+    // Rule of 1 (Girl's Best Friend) — give a diamond to another player at any time.
+    // Both humans and AI tend to target the leader (the exciting, competitive move).
+    // Simp gives its BEST diamond to the leader (self-destructive max-boost).
+    // Normal AI gives its LOWEST-value diamond to the leader (keep the good ones).
     if (!rule1UsedThisTurn[cp]) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
       if (aiDimonds.length > 0 && (cpIsSimp || Math.random() < 0.25)) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
-        let bestTarget = -1;
-        if (cpIsSimp) {
-          // Simp always gives its best diamond to the leader (highest score)
-          let highestScore = -Infinity;
-          for (let i = 0; i < 4; i++) {
-            if (i === cp) continue;
-            if (combined[i] > highestScore) { highestScore = combined[i]; bestTarget = i; }
-          }
-        } else {
-          let lowestScore = Infinity;
-          for (let i = 0; i < 4; i++) {
-            if (i === cp) continue;
-            if (combined[i] < lowestScore) { lowestScore = combined[i]; bestTarget = i; }
-          }
+        // Both Simp and normal AI target the leader (highest combined score)
+        let bestTarget = -1, highestScore = -Infinity;
+        for (let i = 0; i < 4; i++) {
+          if (i === cp) continue;
+          if (combined[i] > highestScore) { highestScore = combined[i]; bestTarget = i; }
         }
         if (bestTarget !== -1) {
-          const giftCard = aiDimonds.reduce((best, c) => diamondPoints(c) > diamondPoints(best) ? c : best, aiDimonds[0]);
+          const giftCard = cpIsSimp
+            ? aiDimonds.reduce((b, c) => diamondPoints(c) > diamondPoints(b) ? c : b, aiDimonds[0]) // best
+            : aiDimonds.reduce((b, c) => diamondPoints(c) < diamondPoints(b) ? c : b, aiDimonds[0]); // lowest
           handleRule1Give(bestTarget, giftCard, cp);
           return;
         }
