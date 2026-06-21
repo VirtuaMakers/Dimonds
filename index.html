@@ -2927,26 +2927,38 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
   return legalCards[0];
 }
 
-function aiChooseKidnapTarget(hands, playerIdx, knowledge) {
+function aiChooseKidnapTarget(hands, playerIdx, knowledge, preferWorst = false) {
   const opponents = [];
   for (let i = 0; i < hands.length; i++) {
     if (i !== playerIdx && (hands[i]||[]).length > 0) opponents.push(i);
   }
   if (opponents.length === 0) return null;
-  // Use knowledge to target best known card
+  const cardVal = card => isDiamond(card) ? diamondPoints(card)*10 + cardScore(card) : cardScore(card);
+  // Use knowledge to target best/worst known card
   if (knowledge) {
-    let bestKnown = null, bestVal = -1;
+    let bestKnown = null, bestVal = preferWorst ? Infinity : -1;
     for (const opp of opponents) {
       const knownIds = knowledge[opp];
       if (!knownIds) continue;
       (hands[opp]||[]).forEach((card, ci) => {
         if (knownIds.has(card.id)) {
-          const val = isDiamond(card) ? diamondPoints(card)*10 + cardScore(card) : cardScore(card);
-          if (val > bestVal) { bestVal = val; bestKnown = { fromPlayer: opp, cardIdx: ci }; }
+          const val = cardVal(card);
+          if (preferWorst ? val < bestVal : val > bestVal) { bestVal = val; bestKnown = { fromPlayer: opp, cardIdx: ci }; }
         }
       });
     }
     if (bestKnown) return bestKnown;
+  }
+  // Worst-card fallback: scan all opponent hands for lowest-value card
+  if (preferWorst) {
+    let worstTarget = null, worstVal = Infinity;
+    for (const opp of opponents) {
+      (hands[opp]||[]).forEach((card, ci) => {
+        const val = cardVal(card);
+        if (val < worstVal) { worstVal = val; worstTarget = { fromPlayer: opp, cardIdx: ci }; }
+      });
+    }
+    return worstTarget;
   }
   // Blind random fallback
   const fromPlayer = opponents[Math.floor(Math.random() * opponents.length)];
@@ -6025,8 +6037,11 @@ function DiamondsGame() {
     if (showdownOffered[cp]) return;
     if (!checkShowdown(hands[cp] || [])) return;
     setShowdownOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    const _sdRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human notified via buttons in action area
+    } else if (_sdRel !== 0 && opponents[_sdRel - 1]?.id === 'simp') {
+      return; // Simp never cashes sets
     } else {
       const pts = SHOWDOWN_BONUS * (goldenAgeRef.current ? 2 : 1);
       const stealIds = new Set((hands[cp]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)).map(c=>c.id));
@@ -6066,8 +6081,11 @@ function DiamondsGame() {
     if (!checkTheSteal(hands[cp] || [])) return;
     // Mark offered so it only fires once per round per player
     setTheStealOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    const _tsRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
+    } else if (_tsRel !== 0 && opponents[_tsRel - 1]?.id === 'simp') {
+      return; // Simp never cashes sets
     } else {
       // AI player — cash in, then show event box so human sees it
       const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -6113,8 +6131,11 @@ function DiamondsGame() {
     const riotCards = checkRiot(hands[cp] || [], diamondsBroken);
     if (!riotCards) return;
     setRiotOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    const _rtRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
+    } else if (_rtRel !== 0 && opponents[_rtRel - 1]?.id === 'simp') {
+      return; // Simp never cashes sets
     } else {
       const cardIds = new Set(riotCards.map(c=>c.id));
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
@@ -6149,8 +6170,11 @@ function DiamondsGame() {
     if (acesLowOffered[cp]) return;
     if (!checkAcesLow(hands[cp] || [])) return;
     setAcesLowOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    const _gaRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
+    } else if (_gaRel !== 0 && opponents[_gaRel - 1]?.id === 'simp') {
+      return; // Simp never cashes sets
     } else {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
       const familyCount = (hands[cp] || []).filter(c => familyIds.includes(c.id)).length;
@@ -6215,11 +6239,13 @@ function DiamondsGame() {
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
     if (cp === mySeatingIdxRef.current) return; // Human sees buttons in action area
+    const cpRelIdx = (cp - mySeatingIdxRef.current + 4) % 4;
+    const cpIsSimp = cpRelIdx !== 0 && opponents[cpRelIdx - 1]?.id === 'simp';
     // Riot qualifies and fires via its own effect on this same render — let it win
     if (checkRiot(hands[cp] || [], diamondsBroken)) return;
 
     // Rule of 4 (Dimond in the Rough) — four of a kind (checked first; rarer and higher value)
-    {
+    if (!cpIsSimp) {
       const quad4 = checkRuleFour(hands[cp] || []);
       const quad4OK = quad4 && (!quad4.some(c => c.suit==="♦") || diamondsBroken);
       if (quad4OK) {
@@ -6255,7 +6281,7 @@ function DiamondsGame() {
     }
 
     // Rule of 3 — available always unless the set contains a Dimond and Dimonds not yet broken
-    {
+    if (!cpIsSimp) {
       const trio = checkRuleOfThree(hands[cp] || []);
       const trioDiaOK = trio && (diamondsBroken || !trio.some(c => isDiamond(c)));
       if (trioDiaOK) {
@@ -6291,7 +6317,7 @@ function DiamondsGame() {
     }
 
     // Rule of 2 (Swinging Paradox)
-    if (diamondsBroken) {
+    if (diamondsBroken && !cpIsSimp) {
       const quad = checkSwingingParadox(hands[cp] || []);
       if (quad) {
         const ranks4 = [...new Set(quad.map(c=>c.rank))].sort().join(',');
@@ -6326,7 +6352,7 @@ function DiamondsGame() {
     }
 
     // Rule of 5 (Nuclear Family) — 3-card run + 2 diamonds (only when diamonds broken)
-    if (diamondsBroken) {
+    if (diamondsBroken && !cpIsSimp) {
       const nf5 = checkNuclearFamily(hands[cp] || []);
       if (nf5) {
         const nfKey = nf5.map(c=>c.id).sort().join(',');
@@ -6357,7 +6383,7 @@ function DiamondsGame() {
     }
 
     // Rule of 6 (Blood Diamond) — 5-card cross-suit run + 1 diamond (only when diamonds broken)
-    if (diamondsBroken) {
+    if (diamondsBroken && !cpIsSimp) {
       const bd6 = checkBloodDiamond(hands[cp] || []);
       if (bd6) {
         const bdKey = bd6.map(c=>c.id).sort().join(',');
@@ -6390,13 +6416,22 @@ function DiamondsGame() {
     // Rule of 1 (Girl's Best Friend) — AI uses it to break dimonds; pointless once broken
     if (!rule1UsedThisTurn[cp] && !diamondsBroken) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
-      if (aiDimonds.length > 0 && Math.random() < 0.25) {
+      if (aiDimonds.length > 0 && (cpIsSimp || Math.random() < 0.25)) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
-        // Target: player with lowest combined score (the leader — burden them)
-        let bestTarget = -1, lowestScore = Infinity;
-        for (let i = 0; i < 4; i++) {
-          if (i === cp) continue;
-          if (combined[i] < lowestScore) { lowestScore = combined[i]; bestTarget = i; }
+        let bestTarget = -1;
+        if (cpIsSimp) {
+          // Simp always gives its best diamond to the leader (highest score)
+          let highestScore = -Infinity;
+          for (let i = 0; i < 4; i++) {
+            if (i === cp) continue;
+            if (combined[i] > highestScore) { highestScore = combined[i]; bestTarget = i; }
+          }
+        } else {
+          let lowestScore = Infinity;
+          for (let i = 0; i < 4; i++) {
+            if (i === cp) continue;
+            if (combined[i] < lowestScore) { lowestScore = combined[i]; bestTarget = i; }
+          }
         }
         if (bestTarget !== -1) {
           const giftCard = aiDimonds.reduce((best, c) => diamondPoints(c) > diamondPoints(best) ? c : best, aiDimonds[0]);
@@ -6418,8 +6453,11 @@ function DiamondsGame() {
     if (checkShowdown(hands[cp] || [])) return; // Showdown fires first and takes priority
     if (!checkAmericanFamily(hands[cp] || [])) return;
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[cp]=true; return n; });
+    const _afRel = (cp - mySeatingIdxRef.current + 4) % 4;
     if (cp === mySeatingIdxRef.current) {
       return; // Human player notified via buttons in action area
+    } else if (_afRel !== 0 && opponents[_afRel - 1]?.id === 'simp') {
+      return; // Simp never cashes sets
     } else {
       const GA = goldenAgeRef.current ? 2 : 1;
       const pts = AMERICAN_FAMILY_BONUS * GA;
@@ -8666,6 +8704,8 @@ function DiamondsGame() {
 
       snapshotKnowledge(jokerPlayer, currentHands);
       const jokerKnowledge = aiKnowledgeRef.current[jokerPlayer];
+      const _kidnapRel = (jokerPlayer - mySeatingIdx + 4) % 4;
+      const kidnapIsSimp = _kidnapRel !== 0 && opponents[_kidnapRel - 1]?.id === 'simp';
 
       if (isRobbin) {
         // Always rob the best available card — even a non-diamond (the "silly mistake" is allowed)
@@ -8675,7 +8715,7 @@ function DiamondsGame() {
         return;
       }
 
-      const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge);
+      const target = aiChooseKidnapTarget(currentHands, jokerPlayer, jokerKnowledge, kidnapIsSimp);
       if (target) {
         handleKidnap(target.fromPlayer, target.cardIdx);
       } else {
@@ -8700,24 +8740,39 @@ function DiamondsGame() {
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
       snapshotKnowledge(playerIdx, currentHands);
 
-      // 30% chance to reallocate: take best diamond from a player with cards, give to the lowest-score player
-      // In a score tie, prefer AI over human (AI wins ties in this game)
+      // Reallocation: take a card from a non-leader, give to the leader.
+      // Simp always reallocates and picks the best card to give to the highest scorer.
       const othersWithCards = [0,1,2,3].filter(i => i !== playerIdx && (currentHands[i]||[]).length > 0);
       const allOthers = [0,1,2,3].filter(i => i !== playerIdx);
-      if (othersWithCards.length >= 1 && Math.random() < 0.30) {
+      const _qcRel = (playerIdx - mySeatingIdx + 4) % 4;
+      const qcIsSimp = _qcRel !== 0 && opponents[_qcRel - 1]?.id === 'simp';
+      if (othersWithCards.length >= 1 && (qcIsSimp || Math.random() < 0.30)) {
         const sortedByScore = [...allOthers].sort((a, b) => {
-          const diff = newTotal[a] - newTotal[b];
+          // Simp targets the leader (highest score); normal AI targets lowest
+          const diff = qcIsSimp ? newTotal[b] - newTotal[a] : newTotal[a] - newTotal[b];
           if (diff !== 0) return diff;
-          return (a === 0 ? 1 : 0) - (b === 0 ? 1 : 0); // tie: AI before human
+          return (a === 0 ? 1 : 0) - (b === 0 ? 1 : 0);
         });
         const leader = sortedByScore[0];
-        const nonLeaders = othersWithCards.filter(i => i !== leader); // source must have cards
+        const nonLeaders = othersWithCards.filter(i => i !== leader);
         if (nonLeaders.length > 0) {
-          const takFrom = nonLeaders[Math.floor(Math.random() * nonLeaders.length)];
-          // Exclude special cards — their mechanics only trigger when played in a trick, not via silent transfer
-          const eligible = (currentHands[takFrom] || []).filter(c => !c.isJoker && c.id !== 'A♠');
-          if (eligible.length > 0) {
-            const movedCard = eligible[Math.floor(Math.random() * eligible.length)];
+          let takFrom, movedCard;
+          if (qcIsSimp) {
+            // Steal the highest-value card from any non-leader to give to the leader
+            const cardVal = c => isDiamond(c) ? diamondPoints(c)*10 + cardScore(c) : cardScore(c);
+            let bestVal = -Infinity;
+            for (const p of nonLeaders) {
+              for (const c of (currentHands[p]||[]).filter(c => !c.isJoker && c.id !== 'A♠')) {
+                const v = cardVal(c);
+                if (v > bestVal) { bestVal = v; movedCard = c; takFrom = p; }
+              }
+            }
+          } else {
+            takFrom = nonLeaders[Math.floor(Math.random() * nonLeaders.length)];
+            const eligible = (currentHands[takFrom] || []).filter(c => !c.isJoker && c.id !== 'A♠');
+            movedCard = eligible.length > 0 ? eligible[Math.floor(Math.random() * eligible.length)] : null;
+          }
+          if (movedCard != null) {
             const realIdx = (currentHands[takFrom] || []).indexOf(movedCard);
             const newHandsRealloc = currentHands.map((h, i) => {
               if (i === takFrom) return h.filter((_, ci) => ci !== realIdx);
@@ -8738,7 +8793,7 @@ function DiamondsGame() {
       }
 
       snapshotKnowledge(playerIdx, currentHands);
-      let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx]);
+      let target = aiChooseKidnapTarget(currentHands, playerIdx, aiKnowledgeRef.current[playerIdx], qcIsSimp);
 
       if (target) {
         const stolenCard = currentHands[target.fromPlayer]?.[target.cardIdx];
