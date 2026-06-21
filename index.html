@@ -2495,7 +2495,7 @@ function allBloodDiamondCombos(hand) {
     const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]]];
     const runIds = new Set(runCards.map(c => c.id));
     const extras = [...diamonds, ...hand.filter(c => c.isJoker)].filter(d => !runIds.has(d.id));
-    extras.sort((a, b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank));
+    extras.sort((a, b) => (a.isJoker ? 99 : RANK_ORDER.indexOf(a.rank)) - (b.isJoker ? 99 : RANK_ORDER.indexOf(b.rank)));
     for (const extra of extras) results.push([...runCards, extra]);
   }
   return results;
