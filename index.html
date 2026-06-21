@@ -1271,8 +1271,8 @@ const OPPONENT_OPTIONS = [
   { id:'qwen',    type:'llm', label:'Qwen',    emoji:'🐼', style:'Qwen AI',    desc:'powered by Alibaba Qwen',        logo:'assets/logo-qwen.jpg',    color:'#F87171', subtitle:'(Alibaba)' },
   { id:'nemotron',type:'llm', label:'Nemotron',emoji:'👾', style:'Nemotron AI',desc:'powered by Nvidia Nemotron',      logo:'assets/logo-nemotron.png',color:'#76B900', subtitle:'(Nvidia)' },
   { id:'cohere',  type:'llm', label:'Command R+',emoji:'🍁', style:'Command R+', desc:'powered by Cohere Command R+',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
-  { id:'simp',       type:'gpt', label:'Simp',       emoji:'🤡', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'(ChatGPT)' },
-  { id:'opportunist',type:'gpt', label:'Opportunist',emoji:'🎯', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'(ChatGPT)' },
+  { id:'simp',       type:'gpt', label:'Simp',       emoji:'🦠', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'(ChatGPT)' },
+  { id:'opportunist',type:'gpt', label:'Opportunist',emoji:'🦅', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'(ChatGPT)' },
   { id:'perfect',    type:'gpt', label:'Perfect',    emoji:'♟️', style:'Optimal',   desc:'card-counting, score-aware',      logo:'assets/logo-chatgpt.png', color:'#A3E635', subtitle:'(ChatGPT)' },
 ];
 const LLM_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(o=>o.id));
@@ -8943,15 +8943,15 @@ function DiamondsGame() {
     });
     const tileInner = (opt) => (<>
       <div style={{
-        height:48,width:"100%",
+        height:60,width:"100%",
         display:"flex",alignItems:"center",justifyContent:"center",
         background:"#fff",
         borderBottom:"1px solid rgba(0,0,0,0.12)",
         marginBottom:6,
       }}>
         {opt.logo
-          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'85%',maxHeight:36,objectFit:"contain"}}/>
-          : <div style={{fontSize:26,lineHeight:1}}>{opt.emoji}</div>
+          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'92%',maxHeight:48,objectFit:"contain"}}/>
+          : <div style={{fontSize:30,lineHeight:1}}>{opt.emoji}</div>
         }
       </div>
       <div style={{color:"#fff",fontSize:12,fontWeight:700,fontFamily:FONT_UI,marginBottom:1,textAlign:"center"}}>
@@ -9097,6 +9097,7 @@ function DiamondsGame() {
               background:"linear-gradient(155deg,#0f3c38,#08231f)",
               border:`1px solid ${VM.tealLight}33`,
               borderRadius:20,maxWidth:420,width:"100%",
+              maxHeight:"92dvh",
               boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
               fontFamily:FONT_UI,display:"flex",flexDirection:"column",
               overflow:"hidden",
@@ -9109,9 +9110,9 @@ function DiamondsGame() {
                   <GoldBtn onClick={()=>setShowOpponentModal(false)} small secondary>Close</GoldBtn>
                 </div>
               </div>
-              <div style={{padding:"18px 22px 20px"}}>
+              <div style={{padding:"10px 22px 3px",overflowY:"auto",flex:1,minHeight:0}}>
                 {opponentPickerContent}
-                <div style={{marginTop:16,display:"flex",justifyContent:"center"}}>
+                <div style={{marginTop:3,display:"flex",justifyContent:"center"}}>
                   <GoldBtn
                     disabled={opponentSlots.length !== 3}
                     onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
