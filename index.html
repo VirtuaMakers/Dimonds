@@ -5277,9 +5277,9 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
                 boxShadow: sel?`0 0 8px ${opt.color||VM.tealLight}44`:'none',
                 touchAction:'manipulation',
               }}>
-                <div style={{height:44,width:'100%',background:'#fff',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
+                <div style={{height:52,width:'100%',background:'#fff',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
                   {opt.logo
-                    ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'95%',maxHeight:38,objectFit:'contain'}}/>
+                    ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'98%',maxHeight:46,objectFit:'contain'}}/>
                     : <span style={{fontSize:22}}>{opt.emoji}</span>
                   }
                 </div>
@@ -9080,14 +9080,14 @@ function DiamondsGame() {
     });
     const tileInner = (opt) => (<>
       <div style={{
-        height:60,width:"100%",
+        height:72,width:"100%",
         display:"flex",alignItems:"center",justifyContent:"center",
         background:"#fff",
         borderBottom:"1px solid rgba(0,0,0,0.12)",
         marginBottom:6,
       }}>
         {opt.logo
-          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'92%',maxHeight:48,objectFit:"contain"}}/>
+          ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'98%',maxHeight:62,objectFit:"contain"}}/>
           : <div style={{fontSize:30,lineHeight:1}}>{opt.emoji}</div>
         }
       </div>
@@ -9146,12 +9146,12 @@ function DiamondsGame() {
         </div>
       </div>
     ) : (
-      <div style={{display:"flex",flexDirection:"column",gap:10,marginTop:8}}>
-        <div style={{height:44}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
-        <div style={{height:44}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
-        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
-        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
-        <div style={{height:31}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
+      <div style={{display:"flex",flexDirection:"column",gap:14,marginTop:12}}>
+        <div style={{height:54}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
+        <div style={{height:54}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
+        <div style={{height:38}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+        <div style={{height:38}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+        <div style={{height:38}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
       </div>
     );
     return (
@@ -9196,12 +9196,12 @@ function DiamondsGame() {
             position:"relative",textAlign:"center",maxWidth:420,width:"100%",
           }}>
             <h1 style={{
-              fontFamily:FONT_DISPLAY,fontSize:46,fontWeight:900,
+              fontFamily:FONT_DISPLAY,fontSize:52,fontWeight:900,
               background:`linear-gradient(135deg,${VM.tealLight} 0%,${VM.goldBright} 45%,${VM.gold} 70%,${VM.tealLight} 100%)`,
               WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-              margin:"0 0 2px",letterSpacing:6,textShadow:"none",
+              margin:"0 0 4px",letterSpacing:6,textShadow:"none",
             }}>DIMONDS</h1>
-            <p style={{color:VM.tealLight+"77",fontSize:10,letterSpacing:4,marginBottom:14,textTransform:"uppercase",fontFamily:FONT_UI}}>
+            <p style={{color:VM.tealLight+"77",fontSize:11,letterSpacing:4,marginBottom:18,textTransform:"uppercase",fontFamily:FONT_UI}}>
               Pressure Makes Champions · 4 Players
             </p>
             {nameBox}
