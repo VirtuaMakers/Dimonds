@@ -159,6 +159,30 @@ async function callGLM(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
+// ─── Nemotron via Nvidia NIM ──────────────────────────────────────────────────
+async function callNemotron(prompt, env) {
+  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "nvidia/llama-3.1-nemotron-70b-instruct",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Nemotron] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Nemotron ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 // ─── Mistral ──────────────────────────────────────────────────────────────────
 async function callMistral(prompt, env) {
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -184,12 +208,13 @@ function callProvider(provider, prompt, env) {
   if (provider === "llama")   return callLlama(prompt, env);
   if (provider === "mistral") return callMistral(prompt, env);
   if (provider === "qwen")    return callQwen(prompt, env);
-  if (provider === "kimi")    return callKimi(prompt, env);
-  if (provider === "glm")     return callGLM(prompt, env);
+  if (provider === "kimi")     return callKimi(prompt, env);
+  if (provider === "glm")      return callGLM(prompt, env);
+  if (provider === "nemotron") return callNemotron(prompt, env);
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏", kimi: "🌙", glm: "⚡" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏", kimi: "🌙", glm: "⚡", nemotron: "💚" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 function commentPrompt(event, context, provider) {
