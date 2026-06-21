@@ -6294,7 +6294,7 @@ function DiamondsGame() {
         let done = false;
         const fireSub = () => {
           if (done) return; done = true;
-          llmSubstitutedRef.current[id] = true;
+          // Opener timeout: show sub text but don't permanently exile — one slow response isn't proof of death
           const text = pickSub(id, 'trick1');
           if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
         };
@@ -6436,7 +6436,7 @@ function DiamondsGame() {
           let done = false;
           const fireSub = () => {
             if (done) return; done = true;
-            llmSubstitutedRef.current[id] = true;
+            // Opener timeout: show sub text but don't permanently exile
             const text = pickSub(id, 'trick1');
             if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
           };
@@ -8257,7 +8257,7 @@ function DiamondsGame() {
       let done = false;
       const fireSub = () => {
         if (done) return; done = true;
-        llmSubstitutedRef.current[id] = true;
+        // Diamonds timeout: show sub text but don't permanently exile — all LLMs hit simultaneously here
         const text = pickSub(id, 'diamonds');
         if (text) { soundLLMComment(); setLlmComments(prev => [{ name: opt.label, text, color: opt.color }, ...prev].slice(0, 6)); }
       };
