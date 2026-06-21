@@ -5979,14 +5979,7 @@ function DiamondsGame() {
       const st = snap.val();
       if (!st) return;
       setPhase(st.phase ?? "playing");
-      if (st.phase && st.phase !== "menu") {
-        const newSc = st.phase === "gameover" ? "gameover" : "game";
-        setScreen(newSc);
-        if (newSc === "game" && tutorialEnabled && !hasSeenWelcomeRef.current) {
-          setShowWelcome(true);
-          hasSeenWelcomeRef.current = true;
-        }
-      }
+      if (st.phase && st.phase !== "menu") setScreen(st.phase === "gameover" ? "gameover" : "game");
       setHands(fbArr(st.hands).map(toHand));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
       setTurnOrder(fbArr(st.turnOrder));
@@ -6039,6 +6032,15 @@ function DiamondsGame() {
     ref.child('state').on('value', handler);
     return () => ref.child('state').off('value', handler);
   }, [mpRole]);
+
+  // Show welcome tutorial for multiplayer guests when they first reach the game screen
+  useEffect(() => {
+    if (mpRole !== 'guest') return;
+    if (screen !== 'game') return;
+    if (!tutorialEnabled || hasSeenWelcomeRef.current) return;
+    setShowWelcome(true);
+    hasSeenWelcomeRef.current = true;
+  }, [screen, mpRole, tutorialEnabled]);
 
   // ── Firebase: host processes guest pendingMoves ───────────────────────────────
   useEffect(() => {
@@ -6667,7 +6669,7 @@ function DiamondsGame() {
       const flipInterval = setInterval(()=>{
         idx++;
         setDealRevealIdx(idx);
-        if (idx >= newHands[0].length) clearInterval(flipInterval);
+        if (idx > newHands[0].length) clearInterval(flipInterval);
       }, 110);
     }, 1150);
   }
@@ -6810,7 +6812,7 @@ function DiamondsGame() {
       const flipInterval = setInterval(()=>{
         idx++;
         setDealRevealIdx(idx);
-        if (idx >= newHands[0].length) clearInterval(flipInterval);
+        if (idx > newHands[0].length) clearInterval(flipInterval);
       }, 110);
     }, 1150);
   }
