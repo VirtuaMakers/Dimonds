@@ -217,17 +217,24 @@ function callProvider(provider, prompt, env) {
 const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏", kimi: "🌙", glm: "⚡", nemotron: "💚" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
+const PROVIDER_PERSONALITY = {
+  gemini:   "You are British — dry, witty, and ever so slightly posh. ",
+  nemotron: "You are sardonic and casually reference your Nvidia GPU hardware. ",
+};
+
 function commentPrompt(event, context, provider) {
+  const personality = PROVIDER_PERSONALITY[provider] ?? "";
   const ban = OFFLINE_EMOJI[provider] ? ` Do NOT end your reply with ${OFFLINE_EMOJI[provider]}.` : "";
-  return `You are a witty, slightly smug AI playing a trick-taking card game called Dimonds. ` +
+  return `You are a witty, slightly smug AI playing a trick-taking card game called Dimonds. ${personality}` +
     `React to this game event in ONE short sentence (max 15 words), staying in character as a competitive but good-natured opponent. ` +
     `Event: ${event}. Context: ${context}. Reply with just the sentence, no quotes.${ban}`;
 }
 
 function tauntPrompt({ placement, allNames, scores, winnerName, thisScore, topScore }, provider) {
   const place = ["", "1st", "2nd", "3rd", "4th"][placement] ?? `${placement}th`;
+  const personality = PROVIDER_PERSONALITY[provider] ?? "";
   const ban = OFFLINE_EMOJI[provider] ? ` Do NOT end your reply with ${OFFLINE_EMOJI[provider]}.` : "";
-  return `You are an AI player who just finished ${place} place in a card game called Dimonds. ` +
+  return `You are an AI player who just finished ${place} place in a card game called Dimonds. ${personality}` +
     `Winner: ${winnerName} (${topScore} pts). Your score: ${thisScore} pts. ` +
     `All players: ${allNames.join(", ")}. Scores: ${JSON.stringify(scores)}. ` +
     `Write ONE short post-game taunt or reaction (max 15 words). Be playful. No quotes.${ban}`;
