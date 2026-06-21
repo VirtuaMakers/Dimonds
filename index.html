@@ -5186,7 +5186,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(iv);
-          onStartGame(joinedRef.current, nameInput||'Host', selectedAIsRef.current);
+          onStartGame(joinedRef.current, nameInput||'Player 1', selectedAIsRef.current);
           return 0;
         }
         return t - 1;
@@ -5318,7 +5318,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
         </div>
         {/* AI picker */}
         <AIPicker/>
-        <GoldBtn onClick={()=>onStartGame(joinedPlayers, nameInput||'Host', selectedAIs)}>
+        <GoldBtn onClick={()=>onStartGame(joinedPlayers, nameInput||'Player 1', selectedAIs)}>
           Start Game ◆
         </GoldBtn>
       </div>
@@ -5730,6 +5730,7 @@ function DiamondsGame() {
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [mpPendingTutorials, setMpPendingTutorials] = useState(0); // # of human players yet to dismiss tutorial
+  const dismissedEventIdsRef = useRef(new Set()); // guest: IDs of event modals already dismissed locally
   const [showOpponentModal, setShowOpponentModal] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState([]);
   const opponentSlotsRef = useRef(opponentSlots);
@@ -6019,14 +6020,15 @@ function DiamondsGame() {
       if (st.ruleOfThreeOffered) setRuleOfThreeOffered(fbArr(st.ruleOfThreeOffered));
       if (st.ruleFourOffered) setRuleFourOffered(fbArr(st.ruleFourOffered));
       if (st.swingingParadoxOffered) setSwingingParadoxOffered(fbArr(st.swingingParadoxOffered));
-      setRiotState(st.riotState ?? null);
-      setShowdownState(st.showdownState ?? null);
-      setAcesLowState(st.acesLowState ?? null);
-      if (st.ruleOfThreeState) { setRuleOfThreeState({...st.ruleOfThreeState, cards:fbArr(st.ruleOfThreeState.cards||[])}); } else { setRuleOfThreeState(null); }
-      if (st.ruleFourState) { setRuleFourState({...st.ruleFourState, cards:fbArr(st.ruleFourState.cards||[])}); } else { setRuleFourState(null); }
-      if (st.nuclearFamilyState) { setNuclearFamilyState({...st.nuclearFamilyState, cards:fbArr(st.nuclearFamilyState.cards||[])}); } else { setNuclearFamilyState(null); }
-      if (st.bloodDiamondState) { setBloodDiamondState({...st.bloodDiamondState, cards:fbArr(st.bloodDiamondState.cards||[])}); } else { setBloodDiamondState(null); }
-      if (st.swingingParadoxState) { setSwingingParadoxState({...st.swingingParadoxState, cards:fbArr(st.swingingParadoxState.cards||[])}); } else { setSwingingParadoxState(null); }
+      const dis = dismissedEventIdsRef.current;
+      if (st.riotState) { if (!dis.has(st.riotState._id)) setRiotState(st.riotState); } else { setRiotState(null); }
+      if (st.showdownState) { if (!dis.has(st.showdownState._id)) setShowdownState(st.showdownState); } else { setShowdownState(null); }
+      if (st.acesLowState) { if (!dis.has(st.acesLowState._id)) setAcesLowState(st.acesLowState); } else { setAcesLowState(null); }
+      if (st.ruleOfThreeState) { if (!dis.has(st.ruleOfThreeState._id)) setRuleOfThreeState({...st.ruleOfThreeState, cards:fbArr(st.ruleOfThreeState.cards||[])}); } else { setRuleOfThreeState(null); }
+      if (st.ruleFourState) { if (!dis.has(st.ruleFourState._id)) setRuleFourState({...st.ruleFourState, cards:fbArr(st.ruleFourState.cards||[])}); } else { setRuleFourState(null); }
+      if (st.nuclearFamilyState) { if (!dis.has(st.nuclearFamilyState._id)) setNuclearFamilyState({...st.nuclearFamilyState, cards:fbArr(st.nuclearFamilyState.cards||[])}); } else { setNuclearFamilyState(null); }
+      if (st.bloodDiamondState) { if (!dis.has(st.bloodDiamondState._id)) setBloodDiamondState({...st.bloodDiamondState, cards:fbArr(st.bloodDiamondState.cards||[])}); } else { setBloodDiamondState(null); }
+      if (st.swingingParadoxState) { if (!dis.has(st.swingingParadoxState._id)) setSwingingParadoxState({...st.swingingParadoxState, cards:fbArr(st.swingingParadoxState.cards||[])}); } else { setSwingingParadoxState(null); }
       setRule1State(st.rule1State ?? null);
       if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
     };
@@ -6135,7 +6137,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setShowdownState({ playerIdx: cp, points: pts, aiEvent: true, pendingRound: newRS, pendingTotal: newTotal });
+      setShowdownState({ _id:Math.random(), playerIdx: cp, points: pts, aiEvent: true, pendingRound: newRS, pendingTotal: newTotal });
       setPhase("showdown_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
@@ -6227,7 +6229,7 @@ function DiamondsGame() {
         setScreen("gameover");
         return;
       }
-      setRiotState({ playerIdx: cp, cards: riotCards, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
+      setRiotState({ _id:Math.random(), playerIdx: cp, cards: riotCards, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
       setPhase("riot_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx, diamondsBroken]);
@@ -6265,7 +6267,7 @@ function DiamondsGame() {
         logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:ACES_LOW_BONUS, setEmoji:"🤖", setName:"Golden Age", cards:[] });
         soundAcesLow();
         flagTrickInstance(`${allNames[cp]} triggered The Golden Age — all points doubled for the rest of the round`);
-        setAcesLowState({ playerIdx:cp, cashed:true, points:ACES_LOW_BONUS, continuation:null });
+        setAcesLowState({ _id:Math.random(), playerIdx:cp, cashed:true, points:ACES_LOW_BONUS, continuation:null });
         setPhase("aceslow_event");
       } else {
         addLog(`✈️ ${allNames[cp]} HOLDS The Golden Age — pushing for bigger sets`);
@@ -6683,6 +6685,7 @@ function DiamondsGame() {
 
   function startGame(newName) {
     const name = newName || playerName;
+    setPlayerName(name);
     if (sessionNameRef.current === name) {
       setGameNum(n => n + 1);
     } else {
@@ -6832,7 +6835,7 @@ function DiamondsGame() {
     // Seat 0 = host, seats 1-3 = joined guests, remaining = AI
     const seats = [{ playerId: myPlayerIdRef.current, name: hostName||playerName||'Host', type:'human' }];
     guestPlayers.forEach(p => {
-      if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||'Guest', type:'human' });
+      if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||`Player ${seats.length + 1}`, type:'human' });
     });
     // Fill remaining seats: pre-selected AIs first, then random from unselected
     const selectedQueue = [...preSelectedAIs];
@@ -7535,6 +7538,7 @@ function DiamondsGame() {
   }
   function dismissShowdownEvent() {
     if (!showdownState) return;
+    if (showdownState._id) dismissedEventIdsRef.current.add(showdownState._id);
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
     setRoundScores(pendingRound);
@@ -7651,6 +7655,7 @@ function DiamondsGame() {
   }
   function dismissRiotEvent() {
     if (!riotState) return;
+    if (riotState._id) dismissedEventIdsRef.current.add(riotState._id);
     const { pendingRound, pendingTotal } = riotState;
     setRiotState(null);
     setRoundScores(pendingRound);
@@ -7765,7 +7770,7 @@ function DiamondsGame() {
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:ACES_LOW_BONUS, setEmoji:"🤖", setName:"Golden Age", cards:[] });
     soundAcesLow();
     flagTrickInstance(`${allNames[playerIdx]} triggered The Golden Age — all points doubled for the rest of the round`);
-    setAcesLowState({ ...acesLowState, cashed:true, points:ACES_LOW_BONUS,
+    setAcesLowState({ _id:Math.random(), ...acesLowState, cashed:true, points:ACES_LOW_BONUS,
       continuation: continuation ? {...continuation, newHands: updatedHands} : null });
     setPhase("aceslow_event");
   }
@@ -7786,6 +7791,7 @@ function DiamondsGame() {
   // ---- Aces Low: dismiss the event box (cash-in completed), resume play ----
   function dismissAcesLowEvent() {
     if (!acesLowState) return;
+    if (acesLowState._id) dismissedEventIdsRef.current.add(acesLowState._id);
     const { continuation } = acesLowState;
     setAcesLowState(null);
     setPhase("playing");
@@ -7831,6 +7837,7 @@ function DiamondsGame() {
   }
   function dismissRuleOfThreeEvent() {
     if (!ruleOfThreeState) return;
+    if (ruleOfThreeState._id) dismissedEventIdsRef.current.add(ruleOfThreeState._id);
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
     setPhase("playing");
@@ -7874,6 +7881,7 @@ function DiamondsGame() {
   }
   function dismissSwingingParadoxEvent() {
     if (!swingingParadoxState) return;
+    if (swingingParadoxState._id) dismissedEventIdsRef.current.add(swingingParadoxState._id);
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
     setPhase("playing");
@@ -7956,6 +7964,7 @@ function DiamondsGame() {
 
   function dismissRuleFourEvent() {
     if (!ruleFourState) return;
+    if (ruleFourState._id) dismissedEventIdsRef.current.add(ruleFourState._id);
     const { continuation } = ruleFourState;
     setRuleFourState(null);
     setPhase("playing");
@@ -7991,6 +8000,7 @@ function DiamondsGame() {
     setPhase("nuclearfamily_event");
   }
   function dismissNuclearFamilyEvent() {
+    if (nuclearFamilyState?._id) dismissedEventIdsRef.current.add(nuclearFamilyState._id);
     setNuclearFamilyState(null);
     setPhase("playing");
   }
@@ -8024,6 +8034,7 @@ function DiamondsGame() {
     setPhase("blooddiamond_event");
   }
   function dismissBloodDiamondEvent() {
+    if (bloodDiamondState?._id) dismissedEventIdsRef.current.add(bloodDiamondState._id);
     setBloodDiamondState(null);
     setPhase("playing");
   }
@@ -10353,7 +10364,7 @@ function DiamondsGame() {
       )}
 
       {phase==="showdown_event" && showdownState && (
-        <EventBox borderColor="#55cc77" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
+        <EventBox key={showdownState._id} borderColor="#55cc77" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[showdownState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>All 4 steal cards — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -10390,7 +10401,7 @@ function DiamondsGame() {
       )}
 
       {phase==="riot_event" && riotState && (
-        <EventBox borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
+        <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{riotState.cards?.length ?? 7} {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -10612,6 +10623,7 @@ function DiamondsGame() {
       {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
       {phase==="aceslow_event" && acesLowState && (
         <EventBox
+          key={acesLowState._id}
           borderColor="#a8a8a8"
           emoji="🤖"
           title="The Golden Age"
