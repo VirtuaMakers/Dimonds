@@ -9110,13 +9110,13 @@ function DiamondsGame() {
         })}
         <div onClick={() => assignOpponent('random')} style={{...tileStyle(false), gridColumn:2}}>
           <div style={{
-            height:48,width:"100%",
+            height:72,width:"100%",
             display:"flex",alignItems:"center",justifyContent:"center",
             background:"#fff",
             borderBottom:"1px solid rgba(0,0,0,0.12)",
             marginBottom:6,
           }}>
-            <div style={{fontSize:26,lineHeight:1}}>🎲</div>
+            <div style={{fontSize:32,lineHeight:1}}>🎲</div>
           </div>
           <div style={{color:"#fff",fontSize:10,fontWeight:700,fontFamily:FONT_UI,marginBottom:1,textAlign:"center"}}>
             Randomize 🎲
@@ -9249,7 +9249,7 @@ function DiamondsGame() {
               </div>
               <div style={{padding:"10px 22px 3px",overflowY:"auto",flex:1,minHeight:0}}>
                 {opponentPickerContent}
-                <div style={{marginTop:3,display:"flex",justifyContent:"center"}}>
+                <div style={{marginTop:6,display:"flex",justifyContent:"center"}}>
                   <GoldBtn
                     disabled={opponentSlots.length !== 3}
                     onClick={()=>{setShowOpponentModal(false);setPlayerName(nameInput.trim()||"You");startGame(nameInput.trim()||"You");}}>
