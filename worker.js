@@ -111,6 +111,54 @@ async function callQwen(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
+// ─── Kimi via Moonshot AI ─────────────────────────────────────────────────────
+async function callKimi(prompt, env) {
+  const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.KIMI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "moonshot-v1-8k",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[Kimi] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Kimi ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
+// ─── GLM via Zhipu AI ─────────────────────────────────────────────────────────
+async function callGLM(prompt, env) {
+  const res = await fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.GLM_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "glm-4-flash",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    console.error(`[GLM] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`GLM ${res.status}`);
+  }
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content?.trim() ?? "";
+}
+
 // ─── Mistral ──────────────────────────────────────────────────────────────────
 async function callMistral(prompt, env) {
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
@@ -136,10 +184,12 @@ function callProvider(provider, prompt, env) {
   if (provider === "llama")   return callLlama(prompt, env);
   if (provider === "mistral") return callMistral(prompt, env);
   if (provider === "qwen")    return callQwen(prompt, env);
+  if (provider === "kimi")    return callKimi(prompt, env);
+  if (provider === "glm")     return callGLM(prompt, env);
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🌏", kimi: "🌙", glm: "⚡" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 function commentPrompt(event, context, provider) {
