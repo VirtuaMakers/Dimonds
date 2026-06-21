@@ -9528,22 +9528,22 @@ function DiamondsGame() {
           <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Round <strong style={{color:VM.tealLight}}>{roundNum}</strong></span>
           <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
-        <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+        <div style={{display:"flex",gap:3,alignItems:"center",flexShrink:0}}>
           <button onClick={toggleMusic} title={musicOn ? "Mute music" : "Play music"} style={{
             background:"rgba(75,195,175,0.06)",border:"1px solid rgba(75,195,175,0.27)",
-            borderRadius:8,padding:"4px 8px",fontSize:14,
+            borderRadius:8,padding:"4px 5px",fontSize:14,
             cursor:"pointer",minHeight:26,touchAction:"manipulation",
             opacity: musicOn ? 1 : 0.45,
           }}>{musicOn ? "🎵" : "🔇"}</button>
           <button onClick={()=>setShowRules(true)} style={{
             background:"rgba(75,195,175,0.06)",border:"1px solid rgba(75,195,175,0.27)",
-            borderRadius:8,padding:"4px 9px",fontSize:10,fontWeight:800,
+            borderRadius:8,padding:"4px 6px",fontSize:10,fontWeight:800,
             color:"#7ae8ff",cursor:"pointer",fontFamily:FONT_DISPLAY,
             letterSpacing:0.5,textTransform:"uppercase",minHeight:26,touchAction:"manipulation",
           }}>Rules</button>
           <button onClick={()=>setShowOptions(true)} style={{
             background:"rgba(75,195,175,0.06)",border:"1px solid rgba(75,195,175,0.27)",
-            borderRadius:8,padding:"4px 9px",fontSize:10,fontWeight:800,
+            borderRadius:8,padding:"4px 6px",fontSize:10,fontWeight:800,
             color:"#7ae8ff",cursor:"pointer",fontFamily:FONT_DISPLAY,
             letterSpacing:0.5,textTransform:"uppercase",minHeight:26,touchAction:"manipulation",
           }}>Options</button>
