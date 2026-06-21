@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v84';
+const CACHE_NAME = 'dimonds-v85';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
@@ -17,6 +17,7 @@ const ASSETS = [
   '/Dimonds/assets/logo-cohere.png',
   '/Dimonds/assets/logo-chatgpt.png',
   '/Dimonds/assets/waiting.gif',
+  '/Dimonds/assets/bg-music.mp3',
 ];
 
 self.addEventListener('install', e => {

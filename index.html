@@ -111,6 +111,7 @@ function getAudioCtx() {
 // so the very first tap after rotation unlocks audio again.
 function _tryResumeAudio() {
   if (_audioCtx?.state === "suspended") _audioCtx.resume().catch(()=>{});
+  startBgMusic();
 }
 if (typeof window !== 'undefined') {
   document.addEventListener('touchstart',   _tryResumeAudio, { passive:true, capture:true });
@@ -127,6 +128,28 @@ if (typeof window !== 'undefined') {
 let SOUND_ENABLED = true;
 function setSoundEnabled(v) { SOUND_ENABLED = !!v; }
 function isSoundEnabled() { return SOUND_ENABLED; }
+
+// ── Background music ─────────────────────────────────────────────────────────
+let _bgMusic = null;
+let MUSIC_ENABLED = (() => { try { return localStorage.getItem('dimonds_music') !== 'off'; } catch(e) { return true; } })();
+function _getBgMusic() {
+  if (_bgMusic) return _bgMusic;
+  _bgMusic = new Audio('/Dimonds/assets/bg-music.mp3');
+  _bgMusic.loop = true;
+  _bgMusic.volume = 0.3;
+  return _bgMusic;
+}
+function startBgMusic() {
+  if (!MUSIC_ENABLED) return;
+  const m = _getBgMusic();
+  if (m.paused) m.play().catch(() => {}); // silently fail until user gesture
+}
+function setMusicEnabled(v) {
+  MUSIC_ENABLED = !!v;
+  try { localStorage.setItem('dimonds_music', v ? 'on' : 'off'); } catch(e) {}
+  if (MUSIC_ENABLED) startBgMusic(); else { if (_bgMusic) _bgMusic.pause(); }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 function playTone({ freq=440, type="sine", duration=0.18, volume=0.18, attack=0.01, decay=0.15, delay=0 }) {
   if (!SOUND_ENABLED) return;
@@ -5730,6 +5753,8 @@ function DiamondsGame() {
   const [showOptions, setShowOptions] = useState(false);
   const [showMultiplayer, setShowMultiplayer] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [musicOn, setMusicOn] = useState(() => MUSIC_ENABLED);
+  function toggleMusic() { const v = !musicOn; setMusicOn(v); setMusicEnabled(v); }
   const [mpPendingTutorials, setMpPendingTutorials] = useState(0); // # of human players yet to dismiss tutorial
   const dismissedEventIdsRef = useRef(new Set()); // guest: IDs of event modals already dismissed locally
   const guestActiveEventIdsRef = useRef({}); // guest: maps event key → _id currently showing (so Firebase null doesn't wipe it before guest dismisses)
@@ -9500,6 +9525,12 @@ function DiamondsGame() {
           <span style={{color:VM.tealLight+"99",fontSize:10,fontFamily:FONT_UI,whiteSpace:"nowrap"}}>Tricks <strong style={{color:VM.tealLight}}>{tricksPlayed}</strong></span>
         </div>
         <div style={{display:"flex",gap:4,alignItems:"center",flexShrink:0}}>
+          <button onClick={toggleMusic} title={musicOn ? "Mute music" : "Play music"} style={{
+            background:"rgba(75,195,175,0.06)",border:"1px solid rgba(75,195,175,0.27)",
+            borderRadius:8,padding:"4px 8px",fontSize:14,
+            cursor:"pointer",minHeight:26,touchAction:"manipulation",
+            opacity: musicOn ? 1 : 0.45,
+          }}>{musicOn ? "🎵" : "🔇"}</button>
           <button onClick={()=>setShowRules(true)} style={{
             background:"rgba(75,195,175,0.06)",border:"1px solid rgba(75,195,175,0.27)",
             borderRadius:8,padding:"4px 9px",fontSize:10,fontWeight:800,
