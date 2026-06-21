@@ -10897,7 +10897,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Blood Diamond event box */}
-      {bloodDiamondState && (
+      {bloodDiamondState?.cashed && (
         <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel="PROCEED" onContinue={dismissBloodDiamondEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[bloodDiamondState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Rainbow run + 1 dimond redeemed!</div>
