@@ -9680,7 +9680,8 @@ function DiamondsGame() {
               );
             }
             bdCombos.forEach(combo => {
-              const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
+              const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
+              const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
               setButtons.push(
                 <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
@@ -9806,7 +9807,8 @@ function DiamondsGame() {
                             </div>;
                           })()}
                           {bdLockedCombos.map((combo, i) => {
-                            const bdLabel = combo.slice(0,5).map(c=>c.rank+c.suit).join("-") + " + " + combo[5].rank+combo[5].suit;
+                            const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
+                            const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
                             return <div key={`bdl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                               <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🩸 Blood Diamond</span><span style={{opacity:0.6}}>+{BLOOD_DIAMOND_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{bdLabel}</span>
