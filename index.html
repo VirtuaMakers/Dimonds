@@ -103,8 +103,24 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
 }
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = createAudioCtx();
-  if (_audioCtx?.state === "suspended") _audioCtx.resume();
+  if (_audioCtx?.state === "suspended") _audioCtx.resume().catch(()=>{});
   return _audioCtx;
+}
+// iOS suspends AudioContext on orientation change and app backgrounding.
+// resume() only works inside a user gesture, so we hook capture-phase touch/pointer
+// so the very first tap after rotation unlocks audio again.
+function _tryResumeAudio() {
+  if (_audioCtx?.state === "suspended") _audioCtx.resume().catch(()=>{});
+}
+if (typeof window !== 'undefined') {
+  document.addEventListener('touchstart',   _tryResumeAudio, { passive:true, capture:true });
+  document.addEventListener('pointerdown',  _tryResumeAudio, { passive:true, capture:true });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') _tryResumeAudio();
+  });
+  window.addEventListener('orientationchange', () => {
+    setTimeout(_tryResumeAudio, 400); // let iOS settle before resuming
+  });
 }
 
 // Global sound on/off flag — toggled by the speaker icon in the top bar
