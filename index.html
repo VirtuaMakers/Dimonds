@@ -10313,6 +10313,17 @@ function DiamondsGame() {
       {/* Safe-area spacer — clears iPhone home indicator */}
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
+      {/* WAITING GIF — shows in multiplayer when it's not the player's turn */}
+      {isMultiplayer() && !isPlayerTurn && phase === "playing" && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:50,
+          display:"flex", alignItems:"center", justifyContent:"center",
+          pointerEvents:"none",
+        }}>
+          <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:110, height:110, opacity:0.85}} />
+        </div>
+      )}
+
       {/* MODALS */}
       {phase==="rule1"&&rule1State&&rule1State.playerIdx===mySeatingIdx&&peekingModal!=="rule1"&&(
         <Rule1Modal
