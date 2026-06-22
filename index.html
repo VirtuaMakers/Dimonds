@@ -5231,6 +5231,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
   const [status, setStatus] = React.useState('idle'); // idle | hosting | joining | waiting
   const [timeLeft, setTimeLeft] = React.useState(MP_TIMER_SECONDS);
   const [error, setError] = React.useState('');
+  const [waitTimedOut, setWaitTimedOut] = React.useState(false);
   const roomRefLocal = React.useRef(null);
   const dead = React.useRef(false);
   const joinedRef = React.useRef([]);
@@ -5255,6 +5256,14 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       });
     }, 1000);
     return () => clearInterval(iv);
+  }, [status]);
+
+  // 30-second timeout if game state never arrives after host starts
+  React.useEffect(() => {
+    if (status !== 'waiting') return;
+    setWaitTimedOut(false);
+    const timer = setTimeout(() => setWaitTimedOut(true), 30000);
+    return () => clearTimeout(timer);
   }, [status]);
 
   function handleCreateRoom() {
@@ -5394,9 +5403,24 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     );
     if (status === 'waiting') return (
       <div style={{textAlign:'center',padding:'8px 0'}}>
-        <div style={{fontSize:32,marginBottom:10}}>🎴</div>
-        <div style={{color:VM.goldBright,fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Game Starting!</div>
-        <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI}}>Host is dealing cards…</div>
+        {waitTimedOut ? (
+          <>
+            <div style={{fontSize:32,marginBottom:10}}>⚠️</div>
+            <div style={{color:'#ff9966',fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:8}}>Connection Timed Out</div>
+            <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,lineHeight:1.7,marginBottom:16}}>
+              The game didn't start within 30 seconds.<br/>
+              Possible causes: poor signal, network switch, or the host left.<br/>
+              <span style={{color:VM.tealLight+'aa'}}>Both players should close and try again.</span>
+            </div>
+            <GoldBtn secondary onClick={onClose}>Close</GoldBtn>
+          </>
+        ) : (
+          <>
+            <div style={{fontSize:32,marginBottom:10}}>🎴</div>
+            <div style={{color:VM.goldBright,fontSize:15,fontWeight:700,fontFamily:FONT_DISPLAY,marginBottom:4}}>Game Starting!</div>
+            <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI}}>Host is dealing cards…</div>
+          </>
+        )}
       </div>
     );
     // idle — host or join tab
@@ -6006,6 +6030,7 @@ function DiamondsGame() {
   const isMultiplayer = () => !!mpRoomRef.current;
   const isHost = () => mpRole !== 'guest';
   const [showMpLobby, setShowMpLobby] = useState(false);
+  const [mpDisconnected, setMpDisconnected] = useState(false);
 
   function guestSubmitMove(type, payload) {
     if (!mpRoomRef.current) return;
@@ -6029,6 +6054,15 @@ function DiamondsGame() {
       setMpWaitingForDismissals(true);
     }
   }
+
+  // ── Firebase: connection state monitoring ─────────────────────────────────
+  useEffect(() => {
+    if (!isMultiplayer()) return;
+    const connRef = RTDB.ref('.info/connected');
+    const handler = snap => setMpDisconnected(snap.val() === false);
+    connRef.on('value', handler);
+    return () => connRef.off('value', handler);
+  }, [mpRole]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isMultiplayer()) return;
@@ -6102,7 +6136,7 @@ function DiamondsGame() {
       const st = snap.val();
       if (!st) return;
       setPhase(st.phase ?? "playing");
-      if (st.phase && st.phase !== "menu") setScreen(st.phase === "gameover" ? "gameover" : "game");
+      if (st.phase && st.phase !== "menu") { setScreen(st.phase === "gameover" ? "gameover" : "game"); setShowMpLobby(false); }
       setHands(fbArr(st.hands).map(toHand));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
       setTurnOrder(fbArr(st.turnOrder));
@@ -10679,10 +10713,13 @@ function DiamondsGame() {
       {isMultiplayer() && !isPlayerTurn && phase === "playing" && (
         <div style={{
           position:"fixed", inset:0, zIndex:50,
-          display:"flex", alignItems:"center", justifyContent:"center",
-          pointerEvents:"none",
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          background:"rgba(0,0,0,0.45)", pointerEvents:"none",
         }}>
-          <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:110, height:110, opacity:0.85}} />
+          <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:110, height:110, opacity:0.85, marginBottom:12}} />
+          <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
+            {`Waiting for ${allNames[turnOrder[currentTurn]] ?? '…'}…`}
+          </div>
         </div>
       )}
 
@@ -10697,6 +10734,25 @@ function DiamondsGame() {
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
             {isHost() ? "Waiting for all players to continue…" : "Waiting for host…"}
           </div>
+        </div>
+      )}
+
+      {/* DISCONNECTED OVERLAY */}
+      {isMultiplayer() && mpDisconnected && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:500,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          background:"rgba(10,20,16,0.95)", gap:14,
+        }}>
+          <div style={{fontSize:36}}>⚠️</div>
+          <div style={{color:"#ff9966", fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, letterSpacing:1}}>Connection Interrupted</div>
+          <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:280, lineHeight:1.7}}>
+            Trying to reconnect automatically.<br/>
+            Keep this screen open — if your signal is good, the game will resume.<br/>
+            <span style={{color:VM.tealLight+"88"}}>If this persists, both players should return to menu and rejoin.</span>
+          </div>
+          <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:60, height:60, opacity:0.7}} />
+          <GoldBtn secondary small onClick={() => setScreen("menu")}>Return to Menu</GoldBtn>
         </div>
       )}
 
