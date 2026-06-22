@@ -7867,7 +7867,7 @@ function DiamondsGame() {
     if (showdownState._id) { dismissedEventIdsRef.current.add(showdownState._id); delete guestActiveEventIdsRef.current.showdown; }
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setRoundScores(pendingRound);
       setTotalScores(pendingTotal);
@@ -7991,7 +7991,7 @@ function DiamondsGame() {
     if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
     setRiotState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setRoundScores(pendingRound);
       setTotalScores(pendingTotal);
@@ -8136,7 +8136,7 @@ function DiamondsGame() {
     if (acesLowState._id) { dismissedEventIdsRef.current.add(acesLowState._id); delete guestActiveEventIdsRef.current.acesLow; }
     const { continuation } = acesLowState;
     setAcesLowState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
@@ -8189,7 +8189,7 @@ function DiamondsGame() {
     if (ruleOfThreeState._id) { dismissedEventIdsRef.current.add(ruleOfThreeState._id); delete guestActiveEventIdsRef.current.ruleOfThree; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
@@ -8242,7 +8242,7 @@ function DiamondsGame() {
     if (swingingParadoxState._id) { dismissedEventIdsRef.current.add(swingingParadoxState._id); delete guestActiveEventIdsRef.current.swingingParadox; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
@@ -8334,7 +8334,7 @@ function DiamondsGame() {
     if (ruleFourState._id) { dismissedEventIdsRef.current.add(ruleFourState._id); delete guestActiveEventIdsRef.current.ruleFour; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
@@ -8378,7 +8378,7 @@ function DiamondsGame() {
   function dismissNuclearFamilyEvent() {
     if (nuclearFamilyState?._id) { dismissedEventIdsRef.current.add(nuclearFamilyState._id); delete guestActiveEventIdsRef.current.nuclearFamily; }
     setNuclearFamilyState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => setPhase("playing"));
   }
 
@@ -8419,7 +8419,7 @@ function DiamondsGame() {
   function dismissBloodDiamondEvent() {
     if (bloodDiamondState?._id) { dismissedEventIdsRef.current.add(bloodDiamondState._id); delete guestActiveEventIdsRef.current.bloodDiamond; }
     setBloodDiamondState(null);
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     gateEventAdvance(() => setPhase("playing"));
   }
 
@@ -11095,7 +11095,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 3 (Democracy) — offer */}
-      {phase==="ruleofthree_offer" && ruleOfThreeState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="ruleofthree_offer" && ruleOfThreeState && ruleOfThreeState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🦅</div>
@@ -11126,7 +11126,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 2 (Swinging Paradox) — offer */}
-      {phase==="swingingparadox_offer" && swingingParadoxState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="swingingparadox_offer" && swingingParadoxState && swingingParadoxState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💍</div>
@@ -11146,7 +11146,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 2 event box */}
-      {swingingParadoxState && (
+      {swingingParadoxState && phase !== 'swingingparadox_offer' && (
         <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
@@ -11157,7 +11157,7 @@ function DiamondsGame() {
       )}
 
       {/* Rule of 4 (Dimond in the Rough) — offer */}
-      {phase==="rulefour_offer" && ruleFourState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="rulefour_offer" && ruleFourState && ruleFourState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>💎</div>
@@ -11177,7 +11177,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 4 event box */}
-      {ruleFourState && (
+      {ruleFourState && phase !== 'rulefour_offer' && (
         <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
@@ -11188,7 +11188,7 @@ function DiamondsGame() {
       )}
 
       {/* Nuclear Family — offer modal */}
-      {phase==="nuclearfamily_offer" && nuclearFamilyState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="nuclearfamily_offer" && nuclearFamilyState && nuclearFamilyState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🏠</div>
@@ -11202,7 +11202,7 @@ function DiamondsGame() {
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={declineNuclearFamily} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
-              <button onClick={acceptNuclearFamily} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem +{NUCLEAR_FAMILY_BONUS*(goldenAgeRef.current?2:1)}</button>
+              <button onClick={acceptNuclearFamily} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem Set +{NUCLEAR_FAMILY_BONUS*(goldenAgeRef.current?2:1)}</button>
             </div>
           </div>
         </div>
@@ -11219,7 +11219,7 @@ function DiamondsGame() {
       )}
 
       {/* Blood Diamond — offer modal */}
-      {phase==="blooddiamond_offer" && bloodDiamondState && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="blooddiamond_offer" && bloodDiamondState && bloodDiamondState.playerIdx === mySeatingIdx && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{position:"fixed",top:0,left:0,right:0,height:"58%",background:"rgba(4,18,15,0.72)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:200,padding:16}}>
           <div style={{background:"linear-gradient(155deg,#0f3c38,#08231f)",border:"2.5px solid #0a0a0a",borderRadius:20,padding:"28px 32px",maxWidth:400,width:"100%",boxShadow:"0 0 40px #00000088, 0 20px 60px #000000cc",textAlign:"center",display:"flex",flexDirection:"column",alignItems:"center"}}>
             <div style={{fontSize:40,marginBottom:8,lineHeight:1}}>🩸</div>
@@ -11233,7 +11233,7 @@ function DiamondsGame() {
             </div>
             <div style={{display:"flex",gap:10}}>
               <button onClick={declineBloodDiamond} style={{background:"transparent",color:VM.tealLight,border:`1.5px solid ${VM.tealLight}66`,borderRadius:10,padding:"12px 22px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY}}>Hold Cards</button>
-              <button onClick={acceptBloodDiamond} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem +{BLOOD_DIAMOND_BONUS*(goldenAgeRef.current?2:1)}</button>
+              <button onClick={acceptBloodDiamond} style={{background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,color:"#0a2320",border:"none",borderRadius:10,padding:"12px 28px",fontSize:13,fontWeight:900,cursor:"pointer",letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_DISPLAY,boxShadow:`0 4px 14px ${VM.gold}33`}}>Redeem Set +{BLOOD_DIAMOND_BONUS*(goldenAgeRef.current?2:1)}</button>
             </div>
           </div>
         </div>
