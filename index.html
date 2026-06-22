@@ -10377,7 +10377,8 @@ function DiamondsGame() {
               );
             });
             nfCombos.forEach((combo, i) => {
-              const nfLabel = combo.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + combo.slice(3).map(c=>c.rank+c.suit).join("/");
+              const fmtNF = c => c.isJoker ? "🃏" : c.rank+c.suit;
+              const nfLabel = combo.slice(0,3).map(fmtNF).join("-") + " + " + combo.slice(3).map(fmtNF).join("/");
               setButtons.push(
                 <button key={`nf-${i}`} onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:combo}); setPhase("nuclearfamily_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
@@ -10404,7 +10405,7 @@ function DiamondsGame() {
             if (riotAvail) {
               const riotSuit = riotAvail.find(c=>!c.isJoker)?.suit ?? "?";
               setButtons.push(
-                <button key="riot" onClick={()=>{ setRiotState({playerIdx:mySeatingIdx,cards:riotAvail,suit:riotAvail[0].suit}); setPhase("riot"); }}
+                <button key="riot" onClick={()=>{ setRiotState({playerIdx:mySeatingIdx,cards:riotAvail,suit:riotSuit}); setPhase("riot"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🔥 Riot</span><span style={{opacity:0.75}}>+{RIOT_BONUS*GA}</span>
@@ -10509,7 +10510,8 @@ function DiamondsGame() {
                             </div>;
                           })}
                           {nfLockedCombos.map((combo,i) => {
-                            const nfLabel = combo.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + combo.slice(3).map(c=>c.rank+c.suit).join("/");
+                            const fmtNF = c => c.isJoker ? "🃏" : c.rank+c.suit;
+                            const nfLabel = combo.slice(0,3).map(fmtNF).join("-") + " + " + combo.slice(3).map(fmtNF).join("/");
                             return <div key={`nfl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                               <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🏠 Nuclear Fam.</span><span style={{opacity:0.6}}>+{NUCLEAR_FAMILY_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{nfLabel}</span>
@@ -11128,7 +11130,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Nuclear Family event box */}
-      {nuclearFamilyState && (
+      {nuclearFamilyState?.cashed && (
         <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
