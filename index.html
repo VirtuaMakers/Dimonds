@@ -4986,7 +4986,7 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
 // ============================================================
 // OPTIONS PANEL — placeholder for future options
 // ============================================================
-function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, hintsEnabled, setHintsEnabled, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally, tutorialEnabled, setTutorialEnabled }) {
+function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeckTheme, autoCompleteTricks, setAutoCompleteTricks, cardGlowHints, setCardGlowHints, hintsEnabled, setHintsEnabled, winScore, setWinScore, animSpeed, setAnimSpeed, showCommuniques, setShowCommuniques, scoreTally, setScoreTally, tutorialEnabled, setTutorialEnabled, gameInProgress=false }) {
   const maxH = typeof window !== "undefined" ? window.innerHeight - 28 : 620;
   const row = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:`1px solid ${VM.tealLight}18` };
   const label = { color:"#ffffffcc", fontSize:13, fontFamily:FONT_UI, fontWeight:600 };
@@ -5097,16 +5097,21 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
           </div>
           {/* Win Score Threshold */}
           <div style={{...row, flexDirection:"column", alignItems:"flex-start", gap:8}}>
-            <div><div style={label}>Win Score</div><div style={sub}>Points needed to win the game</div></div>
-            <div style={{display:"flex", gap:4}}>
+            <div>
+              <div style={label}>Win Score</div>
+              <div style={sub}>Points needed to win the game</div>
+              {gameInProgress && <div style={{...sub, color:"#ffffff44", fontStyle:"italic", marginTop:3}}>This option can only be changed before a game starts.</div>}
+            </div>
+            <div style={{display:"flex", gap:4, opacity: gameInProgress ? 0.45 : 1}}>
               {[40,80,120].map(s=>(
-                <button key={s} onClick={()=>setWinScore(s)} style={{
+                <button key={s} onClick={gameInProgress ? undefined : ()=>setWinScore(s)} style={{
                   background: winScore===s ? `linear-gradient(135deg,${VM.gold},#c9a84c)` : "#ffffff14",
                   border:`1.5px solid ${winScore===s ? VM.gold : "#ffffff33"}`,
-                  borderRadius:16, padding:"5px 16px", cursor:"pointer",
+                  borderRadius:16, padding:"5px 16px",
+                  cursor: gameInProgress ? "default" : "pointer",
                   color: winScore===s ? "#0a2320" : "#ffffffaa",
                   fontWeight:800, fontSize:11, fontFamily:FONT_DISPLAY, letterSpacing:0.5,
-                  touchAction:"manipulation",
+                  touchAction:"manipulation", pointerEvents: gameInProgress ? "none" : "auto",
                 }}>{s}</button>
               ))}
             </div>
@@ -6969,7 +6974,7 @@ function DiamondsGame() {
     setDealerIdx(initDealer);
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
-    setGameLog(["Dimonds – pressure makes champions!"]);
+    setGameLog([<>Dimonds – Pressure makes champions! — first player to <span style={{color:"#e2c97e",fontWeight:800}}>{winScore}</span> points wins!</>]);
     setGameTricksPerPlayer([0,0,0,0]);
     setGameSetsPerPlayer([0,0,0,0]);
     setScreen("game");
@@ -9894,7 +9899,7 @@ function DiamondsGame() {
 
       {/* AI OPPONENTS */}
       <div style={{display:"flex",gap:6,padding:"4px 12px",flexShrink:0}}>
-        {[1,2,3].map(i=>{
+        {[0,1,2,3].filter(i => i !== mySeatingIdx).map(i=>{
           const isActive = turnOrder[currentTurn]===i && phase==="playing";
           return (
             <div key={i} style={{
@@ -11242,7 +11247,7 @@ function DiamondsGame() {
         }} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
-      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} hintsEnabled={hintsEnabled} setHintsEnabled={setHintsEnabled} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
+      {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} hintsEnabled={hintsEnabled} setHintsEnabled={setHintsEnabled} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled} gameInProgress={true}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
       {phase==="cuttingteeth_interrupt" && !cyttGuestDismissed && (
