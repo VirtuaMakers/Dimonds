@@ -5804,6 +5804,10 @@ function DiamondsGame() {
   const [cyttGuestDismissed, setCyttGuestDismissed] = useState(false); // guest: have I dismissed the CYT modal locally?
   const dismissedEventIdsRef = useRef(new Set()); // guest: IDs of event modals already dismissed locally
   const guestActiveEventIdsRef = useRef({}); // guest: maps event key → _id currently showing (so Firebase null doesn't wipe it before guest dismisses)
+  const mpEventPendingDismissalsRef = useRef(0); // host: # of humans yet to dismiss current event modal
+  const pendingEventContinuationRef = useRef(null); // host: fn to call once all players have dismissed
+  const [mpWaitingForDismissals, setMpWaitingForDismissals] = useState(false);
+  const [guestEventDismissed, setGuestEventDismissed] = useState(false);
   const [showOpponentModal, setShowOpponentModal] = useState(false);
   const [opponentSlots, setOpponentSlots] = useState([]);
   const opponentSlotsRef = useRef(opponentSlots);
@@ -6013,6 +6017,34 @@ function DiamondsGame() {
     });
   }
 
+  function gateEventAdvance(fn) {
+    if (!isMultiplayer()) { fn(); return; }
+    const next = Math.max(0, mpEventPendingDismissalsRef.current - 1);
+    mpEventPendingDismissalsRef.current = next;
+    if (next === 0) {
+      setMpWaitingForDismissals(false);
+      fn();
+    } else {
+      pendingEventContinuationRef.current = fn;
+      setMpWaitingForDismissals(true);
+    }
+  }
+
+  useEffect(() => {
+    if (!isMultiplayer()) return;
+    const eventPhases = ['ruleofthree_event','swingingparadox_event','rulefour_event',
+      'nuclearfamily_event','blooddiamond_event','showdown_event','riot_event',
+      'aceslow_event','trickresult','roundover','gameover'];
+    if (isHost()) {
+      if (!eventPhases.includes(phase)) return;
+      mpEventPendingDismissalsRef.current = 1 + opponentSlotsRef.current.filter(id => id === 'human').length;
+      pendingEventContinuationRef.current = null;
+      setMpWaitingForDismissals(false);
+    } else {
+      setGuestEventDismissed(false);
+    }
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Firebase: host writes full game state snapshot ──────────────────────────
   useEffect(() => {
     if (!isMultiplayer() || !isHost()) return;
@@ -6178,6 +6210,15 @@ function DiamondsGame() {
         setMpPendingTutorials(n => Math.max(0, n - 1));
       } else if (type === 'cyttAck') {
         setCyttPending(n => Math.max(0, n - 1));
+      } else if (type === 'eventDismiss') {
+        const next = Math.max(0, mpEventPendingDismissalsRef.current - 1);
+        mpEventPendingDismissalsRef.current = next;
+        if (next === 0 && pendingEventContinuationRef.current) {
+          const fn = pendingEventContinuationRef.current;
+          pendingEventContinuationRef.current = null;
+          setMpWaitingForDismissals(false);
+          fn();
+        }
       } else if (type === 'rule1Start') {
         setRule1State({playerIdx: seatIdx});
         setPhase('rule1');
@@ -7826,13 +7867,14 @@ function DiamondsGame() {
     if (showdownState._id) { dismissedEventIdsRef.current.add(showdownState._id); delete guestActiveEventIdsRef.current.showdown; }
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setRoundScores(pendingRound);
       setTotalScores(pendingTotal);
       soundRoundWin();
       setPhase("roundover");
       setRoundNum(r=>r+1);
-    }
+    });
   }
 
   function handleRule1Give(targetIdx, card, giverIdx = 0) {
@@ -7949,13 +7991,14 @@ function DiamondsGame() {
     if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
     setRiotState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setRoundScores(pendingRound);
       setTotalScores(pendingTotal);
       soundRoundWin();
       setPhase("roundover");
       setRoundNum(r=>r+1);
-    }
+    });
   }
 
   // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
@@ -8093,10 +8136,11 @@ function DiamondsGame() {
     if (acesLowState._id) { dismissedEventIdsRef.current.add(acesLowState._id); delete guestActiveEventIdsRef.current.acesLow; }
     const { continuation } = acesLowState;
     setAcesLowState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
-    }
+    });
   }
 
   // ---- Rule of 3: human accepts ----
@@ -8145,10 +8189,11 @@ function DiamondsGame() {
     if (ruleOfThreeState._id) { dismissedEventIdsRef.current.add(ruleOfThreeState._id); delete guestActiveEventIdsRef.current.ruleOfThree; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
-    }
+    });
   }
 
   // ---- Rule of 4 (Swinging Paradox): human accepts ----
@@ -8197,10 +8242,11 @@ function DiamondsGame() {
     if (swingingParadoxState._id) { dismissedEventIdsRef.current.add(swingingParadoxState._id); delete guestActiveEventIdsRef.current.swingingParadox; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
-    }
+    });
   }
 
   // ---- Rule of 4 (Dimond in the Rough): human accepts ----
@@ -8288,10 +8334,11 @@ function DiamondsGame() {
     if (ruleFourState._id) { dismissedEventIdsRef.current.add(ruleFourState._id); delete guestActiveEventIdsRef.current.ruleFour; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
-    if (!isMultiplayer() || isHost()) {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => {
       setPhase("playing");
       if (continuation) continuePlayFlow(continuation.playerIdx, continuation.card, continuation.newPlays, continuation.newHands);
-    }
+    });
   }
 
   function declineNuclearFamily() {
@@ -8331,7 +8378,8 @@ function DiamondsGame() {
   function dismissNuclearFamilyEvent() {
     if (nuclearFamilyState?._id) { dismissedEventIdsRef.current.add(nuclearFamilyState._id); delete guestActiveEventIdsRef.current.nuclearFamily; }
     setNuclearFamilyState(null);
-    if (!isMultiplayer() || isHost()) setPhase("playing");
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => setPhase("playing"));
   }
 
   function declineBloodDiamond() {
@@ -8371,7 +8419,8 @@ function DiamondsGame() {
   function dismissBloodDiamondEvent() {
     if (bloodDiamondState?._id) { dismissedEventIdsRef.current.add(bloodDiamondState._id); delete guestActiveEventIdsRef.current.bloodDiamond; }
     setBloodDiamondState(null);
-    if (!isMultiplayer() || isHost()) setPhase("playing");
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('eventDismiss', {}); return; }
+    gateEventAdvance(() => setPhase("playing"));
   }
 
   function aiChooseRescueTarget(currentHands, playerIdx, knowledge) {
@@ -10637,6 +10686,20 @@ function DiamondsGame() {
         </div>
       )}
 
+      {/* WAITING FOR DISMISSALS — shows after a player dismisses a modal while others catch up */}
+      {isMultiplayer() && (mpWaitingForDismissals || (!isHost() && guestEventDismissed)) && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:200,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          background:"rgba(0,0,0,0.55)", pointerEvents:"all",
+        }}>
+          <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:90, height:90, opacity:0.8, marginBottom:14}} />
+          <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
+            {isHost() ? "Waiting for all players to continue…" : "Waiting for host…"}
+          </div>
+        </div>
+      )}
+
       {/* MODALS */}
       {phase==="rule1"&&rule1State&&rule1State.playerIdx===mySeatingIdx&&peekingModal!=="rule1"&&(
         <Rule1Modal
@@ -11191,7 +11254,11 @@ function DiamondsGame() {
           result={trickResult}
           allNames={allNames}
           playerEmojis={playerEmojis}
-          onContinue={afterTrickResult}
+          onContinue={isMultiplayer()
+            ? (isHost()
+              ? () => gateEventAdvance(afterTrickResult)
+              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+            : afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (autoCompleteTricks && hands.filter(h=>h.length>0).length===1 && !hands.some(h=>h.some(c=>isDiamond(c))))}
           isGoldenAge={goldenAgeActive}
@@ -11208,8 +11275,12 @@ function DiamondsGame() {
           allNames={allNames}
           playerEmojis={playerEmojis}
           roundScores={roundScores}
-          onContinue={isMultiplayer()&&!isHost() ? ()=>{} : startNextRound}
-          continueLabel={isMultiplayer()&&!isHost() ? "Waiting for host…" : "Deal Next Round"}
+          onContinue={isMultiplayer()
+            ? (isHost()
+              ? () => gateEventAdvance(startNextRound)
+              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+            : startNextRound}
+          continueLabel={isMultiplayer() && (mpWaitingForDismissals || guestEventDismissed) ? "Waiting for players…" : "Deal Next Round"}
           eventLog={roundEventLog}
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
@@ -11222,8 +11293,16 @@ function DiamondsGame() {
           scores={totalScores}
           allNames={allNames}
           playerEmojis={playerEmojis}
-          onRestart={()=>{ startGame(); }}
-          onMainMenu={()=>{ setScreen("menu"); }}
+          onRestart={isMultiplayer()
+            ? (isHost()
+              ? () => gateEventAdvance(startGame)
+              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+            : () => startGame()}
+          onMainMenu={isMultiplayer()
+            ? (isHost()
+              ? () => gateEventAdvance(() => setScreen("menu"))
+              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+            : () => setScreen("menu")}
           onShowCredits={()=>setShowCredits(true)}
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
