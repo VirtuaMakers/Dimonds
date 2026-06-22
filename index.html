@@ -6131,6 +6131,17 @@ function DiamondsGame() {
         if (card) setTimeout(() => handleRule1Give(payload.targetIdx, card, seatIdx), 0);
       } else if (type === 'rule1Skip') {
         setTimeout(() => handleRule1Skip(), 0);
+      } else if (type === 'ruleOfThreeAccept') {
+        const hand = handsRef.current[seatIdx] || [];
+        const cardIdSet = new Set(payload.cardIds || []);
+        const cards = hand.filter(c => cardIdSet.has(c.id));
+        if (cards.length !== 3) return;
+        const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
+        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
+        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        addLog(`🦅 ${allNames[seatIdx]} cashes in Rule of 3! +${pts} pts`);
+        setRuleOfThreeState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:false, continuation:null });
+        setPhase('ruleofthree_event');
       }
     };
     pendingRef.on('child_added', handler);
@@ -7878,6 +7889,12 @@ function DiamondsGame() {
   // ---- Rule of 3: human accepts ----
   function acceptRuleOfThree() {
     if (!ruleOfThreeState) return;
+    if (isMultiplayer() && !isHost()) {
+      guestSubmitMove('ruleOfThreeAccept', { cardIds: (ruleOfThreeState.cards||[]).map(c=>c.id) });
+      setRuleOfThreeState(null);
+      setPhase('playing');
+      return;
+    }
     const { playerIdx, cards, continuation } = ruleOfThreeState;
     const cardIds = new Set(cards.map(c=>c.id));
     const sourceHands = continuation ? continuation.newHands : hands;
@@ -10106,7 +10123,7 @@ function DiamondsGame() {
             r3AvailCombos.forEach((combo, i) => {
               const label = combo.map(c => `${c.rank}${c.suit}`).join(" / ");
               setButtons.push(
-                <button key={`r3-${i}`} onClick={()=>{ setRuleOfThreeState({playerIdx:0,cards:combo,continuation:null}); setPhase("ruleofthree_offer"); }}
+                <button key={`r3-${i}`} onClick={()=>{ setRuleOfThreeState({playerIdx:mySeatingIdx,cards:combo,continuation:null}); setPhase("ruleofthree_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🦅 Rule of 3</span><span style={{opacity:0.75}}>+{RULE_OF_THREE_BONUS*GA}</span>
