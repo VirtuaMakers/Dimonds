@@ -5262,7 +5262,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
   React.useEffect(() => {
     if (status !== 'waiting') return;
     setWaitTimedOut(false);
-    const timer = setTimeout(() => setWaitTimedOut(true), 30000);
+    const timer = setTimeout(() => setWaitTimedOut(true), 60000);
     return () => clearTimeout(timer);
   }, [status]);
 
@@ -6063,6 +6063,19 @@ function DiamondsGame() {
     connRef.on('value', handler);
     return () => connRef.off('value', handler);
   }, [mpRole]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auto-exit after 1 minute of lost connection ───────────────────────────
+  useEffect(() => {
+    if (!mpDisconnected) return;
+    const timer = setTimeout(() => {
+      mpRoomRef.current = null;
+      setMpRole('none');
+      setShowMpLobby(false);
+      setMpDisconnected(false);
+      setScreen("menu");
+    }, 60000);
+    return () => clearTimeout(timer);
+  }, [mpDisconnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isMultiplayer()) return;
@@ -10747,9 +10760,8 @@ function DiamondsGame() {
           <div style={{fontSize:36}}>⚠️</div>
           <div style={{color:"#ff9966", fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, letterSpacing:1}}>Connection Interrupted</div>
           <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:280, lineHeight:1.7}}>
-            Trying to reconnect automatically.<br/>
-            Keep this screen open — if your signal is good, the game will resume.<br/>
-            <span style={{color:VM.tealLight+"88"}}>If this persists, both players should return to menu and rejoin.</span>
+            Trying to reconnect — if your signal is good, the game will resume on its own.<br/>
+            <span style={{color:"#ff996688"}}>After 1 minute, you'll be returned to the menu automatically.</span>
           </div>
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:60, height:60, opacity:0.7}} />
           <GoldBtn secondary small onClick={() => setScreen("menu")}>Return to Menu</GoldBtn>
