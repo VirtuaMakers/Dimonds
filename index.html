@@ -7642,8 +7642,9 @@ function DiamondsGame() {
       addLog("♦ Cutting Your Teeth — Dimonds are now in play! (via Rule of 1)");
       setPendingPlayContinuation(null);
     }
-    if (giverIdx === 0) {
-      // Human: existing phase flow
+    const giverIsHuman = giverIdx === 0 || opponentSlots[giverIdx - 1] === 'human';
+    if (giverIsHuman) {
+      // Human (host or guest): go straight to phase, no announcement modal
       setPeekingModal(null);
       setPhase(brokeNow ? "cuttingteeth_interrupt" : "playing");
     } else {
@@ -10990,6 +10991,7 @@ function DiamondsGame() {
           title="Cutting Your Teeth!"
           btnLabel="PROCEED"
           onContinue={() => {
+            if (isMultiplayer() && !isHost()) return;
             const cont = pendingPlayContinuation;
             setPendingPlayContinuation(null);
             setPhase("playing");
