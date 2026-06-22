@@ -2492,6 +2492,36 @@ function checkNuclearFamily(hand) {
   }
   return null;
 }
+// Returns ALL valid Nuclear Family combos: each is [run0, run1, run2, diamond1, diamond2]
+function allNuclearFamilyCombos(hand) {
+  const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+  const nonJokers = hand.filter(c => !c.isJoker);
+  const diamonds = [...nonJokers.filter(c => isDiamond(c)), ...hand.filter(c => c.isJoker)];
+  const bySuit = {};
+  for (const c of nonJokers) {
+    if (!bySuit[c.suit]) bySuit[c.suit] = [];
+    bySuit[c.suit].push(c);
+  }
+  const results = [];
+  for (const cards of Object.values(bySuit)) {
+    const sorted = [...cards].sort((a,b) => RANK_ORDER.indexOf(a.rank) - RANK_ORDER.indexOf(b.rank));
+    for (let i = 0; i <= sorted.length - 3; i++) {
+      const ra = RANK_ORDER.indexOf(sorted[i].rank);
+      const rb = RANK_ORDER.indexOf(sorted[i+1].rank);
+      const rc = RANK_ORDER.indexOf(sorted[i+2].rank);
+      if (rb !== ra+1 || rc !== rb+1) continue;
+      const run = [sorted[i], sorted[i+1], sorted[i+2]];
+      const runIds = new Set(run.map(c => c.id));
+      const extras = diamonds.filter(d => !runIds.has(d.id));
+      for (let a = 0; a < extras.length - 1; a++) {
+        for (let b = a + 1; b < extras.length; b++) {
+          results.push([...run, extras[a], extras[b]]);
+        }
+      }
+    }
+  }
+  return results;
+}
 
 // Rule of 6 (Blood Diamond) — 5-card cross-suit sequential run + 1 additional diamond
 function checkBloodDiamond(hand) {
@@ -10231,12 +10261,12 @@ function DiamondsGame() {
           const setsPanel = (() => {
             const showSets = isPlayerTurn && phase === "playing" && !dealing && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && !trickPlays.some(p => p.playerIdx === mySeatingIdx);
             if (!isDesktop && !showSets) return null;
-            let h0 = [], GA = 1, nfAvail = null, bdAvail = null, bdCombos = [];
+            let h0 = [], GA = 1, nfCombos = [], bdCombos = [];
             let r3AvailCombos = [], r3LockedCombos = [], r3Locked = false;
             let r4AvailCombos = [], r4LockedCombos = [], r4Locked = false;
             let spCombos = [], spLockedCombos = [], spLocked = false;
             let riotAvail = null, riotLocked = null;
-            let nfLocked = null, bdLockedCombos = [];
+            let nfLockedCombos = [], bdLockedCombos = [];
             let hasLocked = false, showdownAvail = null, stealAvail = null, afAvail = null, gaAvail = null;
             let rule1Avail = false;
             const setButtons = [];
@@ -10256,12 +10286,11 @@ function DiamondsGame() {
             spLocked = spLockedCombos.length > 0;
             riotAvail = checkRiot(h0, diamondsBroken);
             riotLocked = !diamondsBroken && !riotAvail && checkRiot(h0, true);
-            nfAvail = diamondsBroken ? checkNuclearFamily(h0) : null;
-            nfLocked = !diamondsBroken ? checkNuclearFamily(h0) : null;
-            bdAvail = diamondsBroken ? checkBloodDiamond(h0) : null;
+            nfCombos = diamondsBroken ? allNuclearFamilyCombos(h0) : [];
+            nfLockedCombos = !diamondsBroken ? allNuclearFamilyCombos(h0) : [];
             bdCombos = diamondsBroken ? allBloodDiamondCombos(h0) : [];
             bdLockedCombos = !diamondsBroken ? allBloodDiamondCombos(h0) : [];
-            hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked || nfLocked || bdLockedCombos.length > 0);
+            hasLocked = !!(spLocked || r3Locked || r4Locked || riotLocked || nfLockedCombos.length > 0 || bdLockedCombos.length > 0);
             showdownAvail = checkShowdown(h0);
             stealAvail = checkTheSteal(h0);
             afAvail = checkAmericanFamily(h0);
@@ -10332,10 +10361,10 @@ function DiamondsGame() {
                 </button>
               );
             });
-            if (nfAvail) {
-              const nfLabel = nfAvail.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfAvail.slice(3).map(c=>c.rank+c.suit).join("/");
+            nfCombos.forEach((combo, i) => {
+              const nfLabel = combo.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + combo.slice(3).map(c=>c.rank+c.suit).join("/");
               setButtons.push(
-                <button key="nf" onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:nfAvail}); setPhase("nuclearfamily_offer"); }}
+                <button key={`nf-${i}`} onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:combo}); setPhase("nuclearfamily_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
@@ -10343,7 +10372,7 @@ function DiamondsGame() {
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
                 </button>
               );
-            }
+            });
             bdCombos.forEach(combo => {
               const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
               const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
@@ -10464,13 +10493,13 @@ function DiamondsGame() {
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{label}</span>
                             </div>;
                           })}
-                          {nfLocked && (() => {
-                            const nfLabel = nfLocked.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + nfLocked.slice(3).map(c=>c.rank+c.suit).join(" & ");
-                            return <div style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
+                          {nfLockedCombos.map((combo,i) => {
+                            const nfLabel = combo.slice(0,3).map(c=>c.rank+c.suit).join("-") + " + " + combo.slice(3).map(c=>c.rank+c.suit).join("/");
+                            return <div key={`nfl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                               <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🏠 Nuclear Fam.</span><span style={{opacity:0.6}}>+{NUCLEAR_FAMILY_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{nfLabel}</span>
                             </div>;
-                          })()}
+                          })}
                           {bdLockedCombos.map((combo, i) => {
                             const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
                             const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
