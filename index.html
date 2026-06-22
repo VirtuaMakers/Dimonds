@@ -9904,8 +9904,8 @@ function DiamondsGame() {
               boxShadow: isActive?`0 0 14px ${VM.tealLight}1f`:"none",
             }}>
               <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:2}}>
-                <span style={{fontSize:14}}>{effectivePersonas[i-1].emoji}</span>
-                <span style={{fontSize:10,color:effectivePersonas[i-1].type==='llm'?effectivePersonas[i-1].color:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{effectivePersonas[i-1].label}</span>
+                <span style={{fontSize:14}}>{playerEmojis[i]}</span>
+                <span style={{fontSize:10,color:effectivePersonas[i-1]?.type==='llm'?effectivePersonas[i-1].color:"#ffffffcc",fontWeight:700,fontFamily:FONT_UI}}>{allNames[i]}</span>
                 {isActive&&<span style={{fontSize:8,color:VM.tealLight,marginLeft:"auto",animation:"pulse 1s infinite",fontFamily:FONT_UI}}>thinking…</span>}
               </div>
               {/* Fanned face-down cards for AI */}
