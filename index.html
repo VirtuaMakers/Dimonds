@@ -4136,9 +4136,9 @@ function RescueModal({ hands, acePlayerIdx, allNames, playerEmojis=[], onRescue,
 // ============================================================
 // TRICK RESULT MODAL — 4 distinct event styles
 // ============================================================
-function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, footer }) {
+function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, footer, btnDisabled }) {
   const firedRef = React.useRef(false);
-  const handleContinue = () => { if (firedRef.current) return; firedRef.current = true; onContinue(); };
+  const handleContinue = () => { if (firedRef.current || btnDisabled) return; firedRef.current = true; onContinue(); };
   return (
     <div style={{
       position:"fixed", inset:0,
@@ -4175,15 +4175,17 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, f
           {children}
         </div>
         {footer}
-        <button onClick={handleContinue} style={{
-          background:`linear-gradient(135deg,${VM.gold},#c9a84c)`,
-          color:"#0a2320", border:"none", borderRadius:10,
+        <button onClick={handleContinue} disabled={!!btnDisabled} style={{
+          background: btnDisabled ? `linear-gradient(135deg,#2a4a45,#1a332e)` : `linear-gradient(135deg,${VM.gold},#c9a84c)`,
+          color: btnDisabled ? "#ffffff55" : "#0a2320",
+          border:"none", borderRadius:10,
           padding:"12px 36px", fontSize:14,
-          fontWeight:900, cursor:"pointer",
+          fontWeight:900, cursor: btnDisabled ? "default" : "pointer",
           letterSpacing:2, textTransform:"uppercase",
           marginTop:20, fontFamily:FONT_DISPLAY,
-          boxShadow:`0 4px 14px ${VM.gold}33`,
+          boxShadow: btnDisabled ? "none" : `0 4px 14px ${VM.gold}33`,
           touchAction:"manipulation",
+          transition:"background 0.3s, color 0.3s",
         }}>{btnLabel}</button>
       </div>
     </div>
@@ -5793,6 +5795,8 @@ function DiamondsGame() {
   const [musicOn, setMusicOn] = useState(() => MUSIC_ENABLED);
   function toggleMusic() { const v = !musicOn; setMusicOn(v); setMusicEnabled(v); }
   const [mpPendingTutorials, setMpPendingTutorials] = useState(0); // # of human players yet to dismiss tutorial
+  const [cyttPending, setCyttPending] = useState(0); // host: # of human guests who haven't dismissed CYT modal yet
+  const [cyttGuestDismissed, setCyttGuestDismissed] = useState(false); // guest: have I dismissed the CYT modal locally?
   const dismissedEventIdsRef = useRef(new Set()); // guest: IDs of event modals already dismissed locally
   const guestActiveEventIdsRef = useRef({}); // guest: maps event key → _id currently showing (so Firebase null doesn't wipe it before guest dismisses)
   const [showOpponentModal, setShowOpponentModal] = useState(false);
@@ -6141,6 +6145,15 @@ function DiamondsGame() {
     // tutorialDone is sent when guest clicks dismiss (see WelcomeModal onClose below)
   }, [screen, mpRole, tutorialEnabled]);
 
+  // Reset CYT dismiss state each time the phase enters cuttingteeth_interrupt
+  useEffect(() => {
+    if (phase !== 'cuttingteeth_interrupt') return;
+    setCyttGuestDismissed(false);
+    if (isMultiplayer() && isHost()) {
+      setCyttPending(opponentSlots.filter(id => id === 'human').length);
+    }
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Firebase: host processes guest pendingMoves ───────────────────────────────
   useEffect(() => {
     if (!isMultiplayer() || !isHost()) return;
@@ -6158,6 +6171,8 @@ function DiamondsGame() {
         if (card) setTimeout(() => submitPlay(seatIdx, card), 0);
       } else if (type === 'tutorialDone') {
         setMpPendingTutorials(n => Math.max(0, n - 1));
+      } else if (type === 'cyttAck') {
+        setCyttPending(n => Math.max(0, n - 1));
       } else if (type === 'rule1Start') {
         setRule1State({playerIdx: seatIdx});
         setPhase('rule1');
@@ -11218,14 +11233,21 @@ function DiamondsGame() {
       {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} hintsEnabled={hintsEnabled} setHintsEnabled={setHintsEnabled} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled}/>}
 
       {/* CUTTING YOUR TEETH — interrupts immediately when a diamond is played or given via Rule of 1 */}
-      {phase==="cuttingteeth_interrupt" && (
+      {phase==="cuttingteeth_interrupt" && !cyttGuestDismissed && (
         <EventBox
           borderColor="#cc1111"
           emoji="🦷"
           title="Cutting Your Teeth!"
-          btnLabel="PROCEED"
+          btnDisabled={isMultiplayer() && isHost() && cyttPending > 0}
+          btnLabel={isMultiplayer() && isHost() && cyttPending > 0
+            ? `Waiting for ${cyttPending} player${cyttPending !== 1 ? 's' : ''}…`
+            : "PROCEED"}
           onContinue={() => {
-            if (isMultiplayer() && !isHost()) return;
+            if (isMultiplayer() && !isHost()) {
+              setCyttGuestDismissed(true);
+              guestSubmitMove('cyttAck', {});
+              return;
+            }
             const cont = pendingPlayContinuation;
             setPendingPlayContinuation(null);
             setPhase("playing");
