@@ -7881,7 +7881,7 @@ function DiamondsGame() {
     if (rule1UsedThisTurnRef.current[giverIdx]) return; // prevent double-fire
     rule1UsedThisTurnRef.current = rule1UsedThisTurnRef.current.map((v,i) => i===giverIdx ? true : v);
     const cardId = card.id;
-    const newHands = hands.map((h, i) => {
+    const newHands = handsRef.current.map((h, i) => {
       if (i === giverIdx) return h.filter(c => c.id !== cardId);
       if (i === targetIdx) return [...h, card];
       return h;
@@ -7899,7 +7899,7 @@ function DiamondsGame() {
       addLog("♦ Cutting Your Teeth — Dimonds are now in play! (via Rule of 1)");
       setPendingPlayContinuation(null);
     }
-    const giverIsHuman = giverIdx === 0 || opponentSlots[giverIdx - 1] === 'human';
+    const giverIsHuman = giverIdx === 0 || opponentSlotsRef.current[giverIdx - 1] === 'human';
     if (giverIsHuman) {
       // Human (host or guest): go straight to phase, no announcement modal
       setPeekingModal(null);
@@ -9885,7 +9885,7 @@ function DiamondsGame() {
               transition:"all 0.2s",
               boxShadow: isLeading?`0 0 16px ${VM.tealLight}22`:"none",
             }}>
-              <div style={{fontSize:9,color:(i>0&&effectivePersonas[i-1].type==='llm')?(effectivePersonas[i-1].color):VM.tealLight+"aa",letterSpacing:1,marginBottom:1,fontFamily:FONT_UI}}>{n.slice(0,7)}</div>
+              <div style={{fontSize:9,color:(i>0&&effectivePersonas[i-1]?.type==='llm')?(effectivePersonas[i-1]?.color):VM.tealLight+"aa",letterSpacing:1,marginBottom:1,fontFamily:FONT_UI}}>{n.slice(0,7)}</div>
               <AnimatedNumber value={total} style={{
                 fontSize:20,fontWeight:800,fontFamily:FONT_DISPLAY,
                 color:isLeading?VM.gold:"#ffffffcc",
@@ -11115,7 +11115,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 3 event box */}
-      {ruleOfThreeState && (
+      {ruleOfThreeState && phase !== 'ruleofthree_offer' && (
         <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
