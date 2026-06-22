@@ -5663,6 +5663,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {role:"Concepts", name:"ChatGPT (OpenAI)"},
                 {role:"Graphics", name:"Copilot (Microsoft)\nGemini (Alphabet)\nDesigner (Microsoft)\nGerardus Dunkel"},
                 {role:"Playtesting", name:"Thomas Bruckmann\nCal Mumpkin\nEric Sanderson\nDonnie Swing\nRob Vasseur"},
+                {role:"Music", name:"Suno (Suno)"},
               ].map(({role,name})=>(
                 <div key={role} style={{marginBottom:10, paddingLeft:8}}>
                   <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
@@ -5681,6 +5682,17 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                       <div><span style={{color:"#ffffffcc"}}>🚨 Gordy</span> — Aggressive. Hunts the American Family &amp; Showdown; guards steal cards.</div>
                       <div><span style={{color:"#ffffffcc"}}>📰 Vicky</span> — Grand Larceny. Chain-kidnapper; cashes every set she touches.</div>
                       <div><span style={{color:"#ffffffcc"}}>🌴 Guy</span> — Set Builder. Hunts Rule of 4, Blood Diamond, Riot, and The Steal — and inexplicably uses 4 Aces as Rule of 4.</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{marginBottom:12}}>
+                  <div style={{color:"#c9a84cbb",fontSize:11,fontWeight:700,marginBottom:4}}>The "Computer" Players, by ChatGPT</div>
+                  <div style={{lineHeight:1.7}}>
+                    Simp, Luce, and Perfect are each coded by ChatGPT (OpenAI), with a distinct play style.
+                    <div style={{marginTop:6,paddingLeft:8,borderLeft:`2px solid #c9a84c33`}}>
+                      <div><span style={{color:"#ffffffcc"}}>🦠 Simp</span> — Defeatist. A nihilistic player who uncannily hastens his own defeat.</div>
+                      <div><span style={{color:"#ffffffcc"}}>🦅 Luce</span> — Opportunist. Doesn't think ahead, but does well in the moment.</div>
+                      <div><span style={{color:"#ffffffcc"}}>♟️ Perfect</span> — Strongest AI. Has perfect memory, relying on only legal moves.</div>
                     </div>
                   </div>
                 </div>
