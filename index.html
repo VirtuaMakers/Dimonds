@@ -6044,7 +6044,7 @@ function DiamondsGame() {
   // ── Multiplayer state ──
   const [mySeatingIdx, setMySeatingIdx] = useState(0); // 0 = solo/host; 1-3 = guest
   const mySeatingIdxRef = useRef(0);
-  useEffect(() => { mySeatingIdxRef.current = mySeatingIdx; }, [mySeatingIdx]);
+  mySeatingIdxRef.current = mySeatingIdx;
   const mpRoomRef = useRef(null);   // RTDB ref to current room, null = solo
   const myPlayerIdRef = useRef(getPlayerId());
   const [mpRole, setMpRole] = useState('none'); // 'none' | 'host' | 'guest'
@@ -6152,7 +6152,7 @@ function DiamondsGame() {
       rule1State, rule1UsedThisTurn,
     };
     ref.child('state').set(snap).catch(e => console.error('[FB write]', e));
-  }, [phase, hands, trickPlays, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
+  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
@@ -7289,7 +7289,7 @@ function DiamondsGame() {
     };
     ref.child('seats').on('value', handler);
     return () => ref.child('seats').off('value', handler);
-  }, [mpRole]);
+  }, [mpRole, mpJoinAttempt]);
   // ────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
