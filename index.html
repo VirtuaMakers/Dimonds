@@ -5432,7 +5432,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
           <span style={{color:VM.tealLight+'88'}}>Up to 3 friends can join. You have 5 minutes.</span>
         </div>
         <AIPicker/>
-        <GoldBtn onClick={handleCreateRoom}>Create Room ◆</GoldBtn>
+        <div style={{display:'flex',justifyContent:'center'}}><GoldBtn onClick={handleCreateRoom}>Create Room ◆</GoldBtn></div>
       </div>
     );
     return (
@@ -5465,7 +5465,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
           }}
         />
         {error && <div style={{color:'#ff7070',fontSize:12,fontFamily:FONT_UI,marginBottom:10,textAlign:'center'}}>{error}</div>}
-        <GoldBtn onClick={handleJoinRoom}>Join Room ◆</GoldBtn>
+        <div style={{display:'flex',justifyContent:'center'}}><GoldBtn onClick={handleJoinRoom}>Join Room ◆</GoldBtn></div>
       </div>
     );
   };
