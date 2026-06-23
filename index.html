@@ -6008,6 +6008,16 @@ function DiamondsGame() {
   theStealStateRef.current = theStealState;
   const showdownStateRef = useRef(showdownState);
   showdownStateRef.current = showdownState;
+  const kidnapStateRef = useRef(kidnapState);
+  kidnapStateRef.current = kidnapState;
+  const rescueStateRef = useRef(rescueState);
+  rescueStateRef.current = rescueState;
+  const queenClubsStateRef = useRef(queenClubsState);
+  queenClubsStateRef.current = queenClubsState;
+  const robbinSummonStateRef = useRef(robbinSummonState);
+  robbinSummonStateRef.current = robbinSummonState;
+  const aceRobChoiceStateRef = useRef(aceRobChoiceState);
+  aceRobChoiceStateRef.current = aceRobChoiceState;
   useEffect(() => {
     if (screen !== "gameover" && phase !== "gameover") return;
     if (sessionWinRecordedGame.current === gameNum) return;
@@ -6134,7 +6144,7 @@ function DiamondsGame() {
       } : null,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
       showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
-      ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered,
+      ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
       riotState, showdownState, acesLowState,
       ruleOfThreeState: ruleOfThreeState ? { ...ruleOfThreeState, cards:(ruleOfThreeState.cards||[]).map(toCardFB) } : null,
       ruleFourState: ruleFourState ? { ...ruleFourState, cards:(ruleFourState.cards||[]).map(toCardFB) } : null,
@@ -6150,6 +6160,9 @@ function DiamondsGame() {
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
       riotState, showdownState, acesLowState, ruleOfThreeState, ruleFourState, swingingParadoxState,
       nuclearFamilyState, bloodDiamondState,
+      showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
+      ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
+      allNames, playerEmojis, opponentSlots,
       rule1State, rule1UsedThisTurn]);
 
   // ── Firebase: guest reads full game state snapshot ───────────────────────────
@@ -6439,6 +6452,26 @@ function DiamondsGame() {
         addLog(`🌆 SHOWDOWN — ${allNames[seatIdx]} plays on. All four steal cards stay in hand.`);
         setShowdownState(null);
         setPhase("playing");
+      } else if (type === 'kidnap') {
+        setTimeout(() => handleKidnap(payload.fromPlayer, payload.cardIdx), 0);
+      } else if (type === 'kidnapSkip') {
+        setTimeout(() => handleKidnapSkip(), 0);
+      } else if (type === 'rescue') {
+        setTimeout(() => handleRescue(payload.fromPlayer, payload.cardIdx), 0);
+      } else if (type === 'queenClubsThieve') {
+        setTimeout(() => handleQueenClubsThieve(payload.fromPlayer, payload.cardIdx), 0);
+      } else if (type === 'queenClubsReallocate') {
+        setTimeout(() => handleQueenClubsReallocate(payload.fromPlayer, payload.cardIdx, payload.toPlayer), 0);
+      } else if (type === 'queenClubsSkip') {
+        setTimeout(() => handleQueenClubsSkip(), 0);
+      } else if (type === 'robbinSummonYes') {
+        setTimeout(() => handleRobbinSummonYes(), 0);
+      } else if (type === 'robbinSummonNo') {
+        setTimeout(() => handleRobbinSummonNo(), 0);
+      } else if (type === 'aceRobChoiceRob') {
+        setTimeout(() => handleAceRobChoiceRob(), 0);
+      } else if (type === 'aceRobChoiceNoRob') {
+        setTimeout(() => handleAceRobChoiceNoRob(), 0);
       }
     };
     pendingRef.on('child_added', handler);
@@ -7651,10 +7684,12 @@ function DiamondsGame() {
   }
 
   function handleKidnap(fromPlayer, cardIdx) {
-    if (!kidnapState) return; // safety guard
-    const currentHands = kidnapState.hands; // use snapshot, not stale closure
-    const jokerPlayerIdx = kidnapState.jokerPlayerIdx;
-    const isRobbin = !!kidnapState.isRobbinJack;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('kidnap', { fromPlayer, cardIdx }); return; }
+    const ks = kidnapStateRef.current;
+    if (!ks) return;
+    const currentHands = ks.hands;
+    const jokerPlayerIdx = ks.jokerPlayerIdx;
+    const isRobbin = !!ks.isRobbinJack;
 
     const stolenCard = currentHands[fromPlayer][cardIdx];
 
@@ -7672,11 +7707,11 @@ function DiamondsGame() {
     flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...kidnapState.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer, pendingRobbinKidnap: undefined };
+    const resultObj = { ...ks.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer, pendingRobbinKidnap: undefined };
 
     // If Joker kidnapped AND J♦ was also in same trick, show Joker event first, then PROCEED → J♦ rob
-    const pendingRobbinRob = !isRobbin && kidnapState.resultObj?.jackDiamondRob;
-    const pendingRobbinIdx = kidnapState.resultObj?.jackDiamondPlayerIdx;
+    const pendingRobbinRob = !isRobbin && ks.resultObj?.jackDiamondRob;
+    const pendingRobbinIdx = ks.resultObj?.jackDiamondPlayerIdx;
     if (pendingRobbinRob && pendingRobbinIdx !== undefined) {
       const hasTargets = newHands.some((h,i) => i !== pendingRobbinIdx && h.length > 0);
       if (hasTargets) {
@@ -7689,9 +7724,9 @@ function DiamondsGame() {
     }
 
     // If Q♣ was also in this trick, chain her move after J♦'s rob
-    const pendingQC = isRobbin && kidnapState.pendingQueenClubs ? {
-      ...kidnapState.pendingQueenClubs,
-      hands: newHands, // use post-rob hands so Q♣ sees the updated state
+    const pendingQC = isRobbin && ks.pendingQueenClubs ? {
+      ...ks.pendingQueenClubs,
+      hands: newHands,
     } : null;
     setTrickResult(pendingQC ? { ...resultObj, pendingQueenClubs: pendingQC } : resultObj);
     setKidnapState(null);
@@ -7700,20 +7735,22 @@ function DiamondsGame() {
 
     const allEmpty = newHands.every(h=>h.length===0);
     if (allEmpty) {
-      const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
+      const newTotal = totalScoresRef.current.map((s,i)=>s+(roundScoresRef.current[i]||0));
       if (newTotal.some(s=>s>=winScoreRef.current)) { setTotalScores(newTotal); setPendingFireworks(true); }
     }
   }
 
   function handleKidnapSkip() {
-    if (!kidnapState) return;
-    const isRobbin = !!kidnapState.isRobbinJack;
-    const jackPlayerIdx = kidnapState.jokerPlayerIdx;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('kidnapSkip', {}); return; }
+    const ks = kidnapStateRef.current;
+    if (!ks) return;
+    const isRobbin = !!ks.isRobbinJack;
+    const jackPlayerIdx = ks.jokerPlayerIdx;
 
     if (!isRobbin) {
       soundJokerRelease();
       addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
-      setTrickResult({ ...kidnapState.resultObj, jokerWin: true, jackDiamondRob: false, pendingRobbinKidnap: undefined });
+      setTrickResult({ ...ks.resultObj, jokerWin: true, jackDiamondRob: false, pendingRobbinKidnap: undefined });
       setKidnapState(null);
       setPhase("trickresult");
       return;
@@ -7721,7 +7758,7 @@ function DiamondsGame() {
 
     // Robbin Jack passes — always awards consolation +1 diamond, no summoning
     soundRobbinPass();
-    const isChainedAfterJoker = !!kidnapState.resultObj.jokerWin || !!kidnapState.resultObj.pendingJokerKidnap;
+    const isChainedAfterJoker = !!ks.resultObj.jokerWin || !!ks.resultObj.pendingJokerKidnap;
     if (!isChainedAfterJoker) {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +1 pt.`);
       setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
@@ -7729,9 +7766,9 @@ function DiamondsGame() {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
     // If Q♣ was also in the trick, chain her move after the pass resolution
-    const pendingQC = kidnapState.pendingQueenClubs || null;
-    const passResultObj = { ...kidnapState.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined, ...(pendingQC && { pendingQueenClubs: pendingQC }) };
-    const savedHands = kidnapState.hands;
+    const pendingQC = ks.pendingQueenClubs || null;
+    const passResultObj = { ...ks.resultObj, jokerWin: isChainedAfterJoker, jackDiamondRob: false, jackDiamondPassed: true, jackDiamondPlayerIdx: jackPlayerIdx, pendingRobbinKidnap: undefined, ...(pendingQC && { pendingQueenClubs: pendingQC }) };
+    const savedHands = ks.hands;
     // Rescue fires for whoever holds A♠, even if A♠ wasn't in this trick
     const aceHolderIdx = savedHands.findIndex(h => h.some(c => isAceSpades(c)));
     setKidnapState(null);
@@ -7747,8 +7784,10 @@ function DiamondsGame() {
   }
 
   function handleRobbinSummonYes() {
-    if (!robbinSummonState) return;
-    const { jackPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = robbinSummonState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('robbinSummonYes', {}); return; }
+    const rs = robbinSummonStateRef.current;
+    if (!rs) return;
+    const { jackPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = rs;
     const newHands = currentHands.map((h,i) => i===aceHolderIdx ? h.filter(c=>!isAceSpades(c)) : h);
     setHands(newHands);
     addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) summons The Ace of Spades!`);
@@ -7758,7 +7797,7 @@ function DiamondsGame() {
       jackDPlayerIdx: jackPlayerIdx,
       aceBlockedJoker: true,
       aceBlockedQueenClubs: false,
-      baseRoundScores: [...roundScores],
+      baseRoundScores: [...roundScoresRef.current],
       baseResultObj: { ...resultObj, winnerIdx: aceHolderIdx, jokerWin: false, aceBlocked: true, aceBlockedJoker: true, robbinSummon: true },
       currentHands: newHands,
       passConsolation: 5,
@@ -7768,8 +7807,10 @@ function DiamondsGame() {
   }
 
   function handleRobbinSummonNo() {
-    if (!robbinSummonState) return;
-    const { jokerPlayerIdx, hands: currentHands, resultObj, gameWon, newTotal } = robbinSummonState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('robbinSummonNo', {}); return; }
+    const rs = robbinSummonStateRef.current;
+    if (!rs) return;
+    const { jokerPlayerIdx, hands: currentHands, resultObj, gameWon, newTotal } = rs;
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setRobbinSummonState(null);
     setKidnapState({ jokerPlayerIdx, hands: currentHands, resultObj });
@@ -7842,14 +7883,18 @@ function DiamondsGame() {
   }
 
   function handleAceRobChoiceRob() {
-    if (!aceRobChoiceState) return;
-    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = aceRobChoiceState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('aceRobChoiceRob', {}); return; }
+    const arc = aceRobChoiceStateRef.current;
+    if (!arc) return;
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = arc;
     finalizeAceRobResolution(true, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands);
   }
 
   function handleAceRobChoiceNoRob() {
-    if (!aceRobChoiceState) return;
-    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation = 1 } = aceRobChoiceState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('aceRobChoiceNoRob', {}); return; }
+    const arc = aceRobChoiceStateRef.current;
+    if (!arc) return;
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation = 1 } = arc;
     finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation);
   }
 
@@ -8065,10 +8110,12 @@ function DiamondsGame() {
 
   // ---- Ace of Spades Rescue: A♠ wins trick with no Joker present → rescue a card ----
   function handleRescue(fromPlayer, cardIdx) {
-    if (!rescueState) return;
-    const currentHands = rescueState.hands;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('rescue', { fromPlayer, cardIdx }); return; }
+    const rs = rescueStateRef.current;
+    if (!rs) return;
+    const currentHands = rs.hands;
     const rescuedCard = currentHands[fromPlayer][cardIdx];
-    const acePlayerIdx = rescueState.acePlayerIdx;
+    const acePlayerIdx = rs.acePlayerIdx;
 
     const newHands = currentHands.map((h,i) => {
       if (i === fromPlayer) return h.filter((_,ci)=>ci!==cardIdx);
@@ -8082,7 +8129,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(rescuedCard, fromPlayer, acePlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...rescueState.resultObj, aceBlocked: false, aceBlockedJoker: false, aceBlockedQueenClubs: false, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
+    const resultObj = { ...rs.resultObj, aceBlocked: false, aceBlockedJoker: false, aceBlockedQueenClubs: false, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
     setTrickResult(resultObj);
     setRescueState(null);
     setPeekingModal(null);
@@ -8090,7 +8137,7 @@ function DiamondsGame() {
 
     const allEmpty = newHands.every(h=>h.length===0);
     if (allEmpty) {
-      const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
+      const newTotal = totalScoresRef.current.map((s,i)=>s+(roundScoresRef.current[i]||0));
       setTotalScores(newTotal);
       if (newTotal.some(s=>s>=winScoreRef.current)) setPendingFireworks(true);
     }
@@ -8098,8 +8145,10 @@ function DiamondsGame() {
 
   // ---- Queen of Clubs: Thieve a card from an opponent ----
   function handleQueenClubsThieve(fromPlayer, cardIdx) {
-    if (!queenClubsState) return;
-    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = queenClubsState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('queenClubsThieve', { fromPlayer, cardIdx }); return; }
+    const qcs = queenClubsStateRef.current;
+    if (!qcs) return;
+    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = qcs;
     const stolenCard = currentHands[fromPlayer][cardIdx];
     const newHands = currentHands.map((h,i) => {
       if (i === fromPlayer) return h.filter((_,ci) => ci !== cardIdx);
@@ -8120,8 +8169,10 @@ function DiamondsGame() {
 
   // ---- Queen of Clubs: Reallocate a card from one player to another ----
   function handleQueenClubsReallocate(fromPlayer, cardIdx, toPlayer) {
-    if (!queenClubsState) return;
-    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = queenClubsState;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('queenClubsReallocate', { fromPlayer, cardIdx, toPlayer }); return; }
+    const qcs = queenClubsStateRef.current;
+    if (!qcs) return;
+    const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = qcs;
     const movedCard = currentHands[fromPlayer][cardIdx];
     const newHands = currentHands.map((h,i) => {
       if (i === fromPlayer) return h.filter((_,ci) => ci !== cardIdx);
@@ -8141,9 +8192,11 @@ function DiamondsGame() {
 
   // ---- Queen of Clubs: Skip / pass ----
   function handleQueenClubsSkip() {
-    if (!queenClubsState) return;
-    const { resultObj, gameWon, newTotal } = queenClubsState;
-    addLog(`♣ ${allNames[queenClubsState.playerIdx]} (Queen of Clubs) — passes`);
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('queenClubsSkip', {}); return; }
+    const qcs = queenClubsStateRef.current;
+    if (!qcs) return;
+    const { resultObj, gameWon, newTotal } = qcs;
+    addLog(`♣ ${allNames[qcs.playerIdx]} (Queen of Clubs) — passes`);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setTrickResult(resultObj);
     setQueenClubsState(null);
