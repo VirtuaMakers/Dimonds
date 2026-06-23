@@ -5994,6 +5994,10 @@ function DiamondsGame() {
   handsRef.current = hands;
   const trickPlaysRef = useRef(trickPlays);
   trickPlaysRef.current = trickPlays;
+  const currentTurnRef = useRef(currentTurn);
+  currentTurnRef.current = currentTurn;
+  const turnOrderRef = useRef(turnOrder);
+  turnOrderRef.current = turnOrder;
   const roundScoresRef = useRef(roundScores);
   roundScoresRef.current = roundScores;
   const totalScoresRef = useRef(totalScores);
@@ -7370,9 +7374,10 @@ function DiamondsGame() {
     }
 
     // Advance currentTurn, skipping players with no cards — never skip human if they have cards
-    let nextTurn = currentTurn + 1;
-    while (nextTurn < 4 && newHands[turnOrder[nextTurn]]?.length === 0) {
-      if (turnOrder[nextTurn] === mySeatingIdxRef.current && (newHands[mySeatingIdxRef.current]?.length ?? 0) > 0) break; // guard: never skip human with cards
+    const activeTurnOrder = turnOrderRef.current;
+    let nextTurn = currentTurnRef.current + 1;
+    while (nextTurn < 4 && newHands[activeTurnOrder[nextTurn]]?.length === 0) {
+      if (activeTurnOrder[nextTurn] === mySeatingIdxRef.current && (newHands[mySeatingIdxRef.current]?.length ?? 0) > 0) break; // guard: never skip human with cards
       nextTurn++;
     }
     if (nextTurn >= 4) {
