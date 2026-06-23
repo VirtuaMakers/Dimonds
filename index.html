@@ -5437,14 +5437,6 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     );
     return (
       <div>
-        <div style={{
-          width:'100%',borderRadius:14,overflow:'hidden',
-          border:`2px solid ${VM.tealLight}`,
-          boxShadow:`0 0 14px ${VM.tealLight}44`,
-          marginBottom:14,background:'#fff',
-        }}>
-          <img src="/Dimonds/images/dimonds-logo.png" alt="Dimonds" style={{width:'100%',height:'auto',display:'block'}}/>
-        </div>
         <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:14,textAlign:'center',lineHeight:1.6}}>
           Enter the 4-letter room code from the host.
         </div>
@@ -5466,6 +5458,14 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
         />
         {error && <div style={{color:'#ff7070',fontSize:12,fontFamily:FONT_UI,marginBottom:10,textAlign:'center'}}>{error}</div>}
         <div style={{display:'flex',justifyContent:'center'}}><GoldBtn onClick={handleJoinRoom}>Join Room ◆</GoldBtn></div>
+        <div style={{
+          width:'100%',borderRadius:14,overflow:'hidden',
+          border:`2px solid ${VM.tealLight}`,
+          boxShadow:`0 0 14px ${VM.tealLight}44`,
+          marginTop:14,background:'#fff',
+        }}>
+          <img src="/Dimonds/images/dimonds-logo.png" alt="Dimonds" style={{width:'100%',height:'auto',display:'block'}}/>
+        </div>
       </div>
     );
   };
