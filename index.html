@@ -4220,6 +4220,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
   const multiplier = isGoldenAge ? 2 : 1;
   const pointsWon = rawPoints * multiplier;
   const btnLabel = isGameOver ? "END"
+    : result.rule1Announced ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
     : result.pendingAceLockUp ? "PROCEED"
@@ -10739,7 +10740,7 @@ function DiamondsGame() {
       {/* WAITING FOR DISMISSALS — shows after a player dismisses a modal while others catch up */}
       {isMultiplayer() && (mpWaitingForDismissals || (!isHost() && guestEventDismissed)) && (
         <div style={{
-          position:"fixed", inset:0, zIndex:200,
+          position:"fixed", inset:0, zIndex:250,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
           background:"rgba(0,0,0,0.55)", pointerEvents:"all",
         }}>
