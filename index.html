@@ -32,6 +32,9 @@
   ::-webkit-scrollbar-track { background: #00000033; }
   ::-webkit-scrollbar-thumb { background: #4bc3af66; border-radius: 4px; }
   ::-webkit-scrollbar-thumb:hover { background: #4bc3af99; }
+  /* Mobile home screen: scrollable column with invisible scrollbar */
+  .home-col { overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .home-col::-webkit-scrollbar { display: none; }
   /* Prevent iOS callout/magnifier on long-press */
   * { -webkit-touch-callout: none; }
   input { -webkit-touch-callout: default; }
@@ -5908,8 +5911,9 @@ function DiamondsGame() {
 
   // Reactive window width — updates layout when device rotates or window resizes
   const [windowWidth, setWindowWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 768);
+  const [windowHeight, setWindowHeight] = useState(typeof window !== "undefined" ? window.innerHeight : 900);
   useEffect(() => {
-    const handler = () => setWindowWidth(window.innerWidth);
+    const handler = () => { setWindowWidth(window.innerWidth); setWindowHeight(window.innerHeight); };
     window.addEventListener("resize", handler);
     return () => window.removeEventListener("resize", handler);
   }, []);
@@ -9490,6 +9494,7 @@ function DiamondsGame() {
   }
   if (screen === "menu") {
     const isWide = windowWidth >= 700;
+    const isCompact = !isWide && windowHeight < 720;
     const BG_FLOAT_ANIMS = ["bgFloat0","bgFloat1","bgFloat2","bgFloat3","bgFloat4"];
     const BG_DURATIONS   = [9.2, 11.5, 8.8, 13.1, 10.4, 12.7, 9.6, 14.2, 8.3, 11.9];
     const BG_DELAYS      = [0, -3.2, -5.7, -1.8, -7.3, -4.1, -2.6, -6.4, -0.9, -8.1];
@@ -9513,7 +9518,7 @@ function DiamondsGame() {
       </div>
     );
     const nameBox = (
-      <div style={{...GLASS,borderRadius:14,padding: isWide ? "18px 24px" : "14px 20px",marginBottom:isWide?16:12,border:`1.5px solid ${VM.gold}99`,boxShadow:`0 4px 16px ${VM.gold}2a`}}>
+      <div style={{...GLASS,borderRadius:14,padding: isWide ? "18px 24px" : isCompact ? "10px 16px" : "14px 20px",marginBottom:isWide?16:isCompact?8:12,border:`1.5px solid ${VM.gold}99`,boxShadow:`0 4px 16px ${VM.gold}2a`}}>
         <label style={{color:VM.gold,fontSize:13,letterSpacing:2,display:"block",marginBottom:8,textTransform:"uppercase",fontWeight:700,fontFamily:FONT_UI}}>Your Name</label>
         <input
           className="name-input"
@@ -9725,29 +9730,29 @@ function DiamondsGame() {
           </div>
         ) : (
           // ── Mobile: single-column layout ──
-          <div style={{
+          <div className="home-col" style={{
             position:"relative",textAlign:"center",maxWidth:420,width:"100%",
             display:"flex",flexDirection:"column",flex:1,minHeight:0,
           }}>
             <h1 style={{
-              fontFamily:FONT_DISPLAY,fontSize:52,fontWeight:900,
+              fontFamily:FONT_DISPLAY,fontSize:isCompact?42:52,fontWeight:900,
               background:`linear-gradient(135deg,${VM.tealLight} 0%,${VM.goldBright} 45%,${VM.gold} 70%,${VM.tealLight} 100%)`,
               WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",
-              margin:"0 0 4px",letterSpacing:6,textShadow:"none",
+              margin:"0 0 4px",letterSpacing:isCompact?4:6,textShadow:"none",
             }}>DIMONDS</h1>
-            <p style={{color:VM.tealLight+"77",fontSize:11,letterSpacing:4,marginBottom:18,textTransform:"uppercase",fontFamily:FONT_UI}}>
+            <p style={{color:VM.tealLight+"77",fontSize:11,letterSpacing:4,marginBottom:isCompact?8:18,textTransform:"uppercase",fontFamily:FONT_UI}}>
               Pressure Makes Champions · 4 Players
             </p>
             {nameBox}
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:6}}>
-              <div style={{height:54}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
-              <div style={{height:54}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
+            <div style={{display:"flex",flexDirection:"column",gap:isCompact?6:8,marginTop:isCompact?4:6}}>
+              <div style={{height:isCompact?44:54}}><GoldBtn fill onClick={()=>setShowOpponentModal(true)}>Play Dimonds ◆</GoldBtn></div>
+              <div style={{height:isCompact?44:54}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
             </div>
             {cardSelector}
-            <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:4,paddingBottom:10}}>
-              <div style={{height:48}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
-              <div style={{height:48}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
-              <div style={{height:48}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
+            <div style={{display:"flex",flexDirection:"column",gap:isCompact?6:8,marginTop:isCompact?2:4,paddingBottom:10}}>
+              <div style={{height:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+              <div style={{height:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+              <div style={{height:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
             </div>
           </div>
         )}
