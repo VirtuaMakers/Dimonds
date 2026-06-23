@@ -10577,7 +10577,7 @@ function DiamondsGame() {
                 <button key={`nf-${i}`} onClick={()=>{ setNuclearFamilyState({playerIdx:mySeatingIdx, cards:combo}); setPhase("nuclearfamily_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🏠 Nuclear Fam.</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
+                    <span>🏠 Rule of 5</span><span style={{opacity:0.75}}>+{NUCLEAR_FAMILY_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{nfLabel}</span>
                 </button>
@@ -10590,7 +10590,7 @@ function DiamondsGame() {
                 <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
-                    <span>🩸 Blood Diamond</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
+                    <span>🩸 Rule of 6</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
                   </span>
                   <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
                 </button>
@@ -10707,7 +10707,7 @@ function DiamondsGame() {
                             const fmtNF = c => c.isJoker ? "🃏" : c.rank+c.suit;
                             const nfLabel = combo.slice(0,3).map(fmtNF).join("-") + " + " + combo.slice(3).map(fmtNF).join("/");
                             return <div key={`nfl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
-                              <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🏠 Nuclear Fam.</span><span style={{opacity:0.6}}>+{NUCLEAR_FAMILY_BONUS*GA}</span></span>
+                              <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🏠 Rule of 5</span><span style={{opacity:0.6}}>+{NUCLEAR_FAMILY_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{nfLabel}</span>
                             </div>;
                           })}
@@ -10715,7 +10715,7 @@ function DiamondsGame() {
                             const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
                             const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
                             return <div key={`bdl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
-                              <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🩸 Blood Diamond</span><span style={{opacity:0.6}}>+{BLOOD_DIAMOND_BONUS*GA}</span></span>
+                              <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🩸 Rule of 6</span><span style={{opacity:0.6}}>+{BLOOD_DIAMOND_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{bdLabel}</span>
                             </div>;
                           })}
