@@ -5263,7 +5263,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
   React.useEffect(() => {
     if (status !== 'waiting') return;
     setWaitTimedOut(false);
-    const timer = setTimeout(() => setWaitTimedOut(true), 60000);
+    const timer = setTimeout(() => setWaitTimedOut(true), 30000);
     return () => clearTimeout(timer);
   }, [status]);
 
