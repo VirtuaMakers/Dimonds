@@ -5460,7 +5460,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
           }}
         />
         {error && <div style={{color:'#ff7070',fontSize:12,fontFamily:FONT_UI,marginBottom:10,textAlign:'center'}}>{error}</div>}
-        <GoldBtn onClick={handleJoinRoom} fill>Join Room ◆</GoldBtn>
+        <div style={{height:56}}><GoldBtn onClick={handleJoinRoom} fill>Join Room ◆</GoldBtn></div>
         <div style={{
           width:'100%',borderRadius:14,overflow:'hidden',
           border:`2px solid ${VM.tealLight}`,
