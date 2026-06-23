@@ -5990,6 +5990,8 @@ function DiamondsGame() {
   const diamondsBrokenRef = useRef(false);
   useEffect(() => { diamondsBrokenRef.current = diamondsBroken; }, [diamondsBroken]);
   // Always-current refs so AI timer callbacks never read stale state
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
   const handsRef = useRef(hands);
   handsRef.current = hands;
   const trickPlaysRef = useRef(trickPlays);
@@ -6170,10 +6172,12 @@ function DiamondsGame() {
     if (!ref) return;
     const toHand = h => fbArr(h).map(c => ({...c}));
     const toPlay = p => p ? ({ playerIdx:p.playerIdx, card:{...p.card} }) : null;
+    // Phases the guest manages locally (offer modals) — don't let host "playing" override them
+    const GUEST_LOCAL_PHASES = new Set(['ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal']);
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
-      setPhase(st.phase ?? "playing");
+      if (!GUEST_LOCAL_PHASES.has(phaseRef.current)) setPhase(st.phase ?? "playing");
       if (st.phase && st.phase !== "menu") { setScreen(st.phase === "gameover" ? "gameover" : "game"); setShowMpLobby(false); }
       setHands(fbArr(st.hands).map(toHand));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
