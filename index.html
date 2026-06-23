@@ -11000,7 +11000,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {riotState && (
+      {riotState && phase !== "riot" && (
         <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{riotState.cards?.length ?? 7} {riotState.suit} cards redeemed — Round over!</div>
