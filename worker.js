@@ -169,7 +169,7 @@ async function callCohere(prompt, env) {
       Authorization: `Bearer ${env.COHERE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "command-r",
+      model: "command-r7b-12-2024",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
@@ -193,7 +193,7 @@ async function callNemotron(prompt, env) {
       Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "nvidia-nemotron-nano-9b-v2",
+      model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
