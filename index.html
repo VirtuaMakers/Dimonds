@@ -6181,7 +6181,14 @@ function DiamondsGame() {
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
-      if (!GUEST_LOCAL_PHASES.has(phaseRef.current)) setPhase(st.phase ?? "playing");
+      if (!GUEST_LOCAL_PHASES.has(phaseRef.current)) {
+        setPhase(st.phase ?? "playing");
+        // If phase stays "playing" (React no-ops the setState), useEffect([phase]) won't fire
+        // and guestEventDismissed won't auto-reset — do it explicitly here.
+        if ((st.phase ?? "playing") === "playing" && phaseRef.current === "playing") {
+          setGuestEventDismissed(false);
+        }
+      }
       if (st.phase && st.phase !== "menu") { setScreen(st.phase === "gameover" ? "gameover" : "game"); setShowMpLobby(false); }
       setHands(fbArr(st.hands).map(toHand));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
