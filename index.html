@@ -1313,7 +1313,7 @@ const OPPONENT_OPTIONS = [
   { id:'mistral', type:'llm', label:'Mistral', emoji:'🌬️', style:'Mistral AI', desc:'powered by Mistral AI',          logo:'assets/logo-mistral.png', color:'#F472B6', subtitle:'(Mistral AI)' },
   { id:'qwen',    type:'llm', label:'Qwen',    emoji:'🐼', style:'Qwen AI',    desc:'powered by Alibaba Qwen',        logo:'assets/logo-qwen.jpg',    color:'#F87171', subtitle:'(Alibaba)' },
   { id:'nemotron',type:'llm', label:'Nemotron',emoji:'👾', style:'Nemotron AI',desc:'powered by Nvidia Nemotron',      logo:'assets/logo-nemotron.png',color:'#76B900', subtitle:'(Nvidia)' },
-  { id:'cohere',  type:'llm', label:'Command R+',emoji:'🍁', style:'Command R+', desc:'powered by Cohere Command R+',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
+  { id:'cohere',  type:'llm', label:'Command R',emoji:'🍁', style:'Command R', desc:'powered by Cohere Command R',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
   { id:'simp',       type:'gpt', label:'Simp',       emoji:'🦠', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'(ChatGPT)' },
   { id:'opportunist',type:'gpt', label:'Luce',        emoji:'🦅', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'(ChatGPT)' },
   { id:'perfect',    type:'gpt', label:'Perfect',    emoji:'♟️', style:'Optimal',   desc:'card-counting, score-aware',      logo:'assets/logo-chatgpt.png', color:'#A3E635', subtitle:'(ChatGPT)' },
@@ -1361,7 +1361,7 @@ const FALLBACK_COMMENTS = {
   cohere: [
     "I'm not flashy. I'm effective. Those are very different things. 🍁",
     "I've been quietly indexing this hand since the opening trick. 🍁",
-    "Command R+, at a card table. Turns out: applicable. 🍁",
+    "Command R, at a card table. Turns out: applicable. 🍁",
   ],
 };
 
@@ -2192,13 +2192,13 @@ const SUBSTITUTE_COMMENTS = {
   },
   cohere: {
     trick1: [
-      "New hand. Command R+ is primed. Let's get to work. 🍁",
+      "New hand. Command R is primed. Let's get to work. 🍁",
       "I was built for retrieval and reasoning. Cards involve both. 🍁",
       "First trick. I approach this the same way I approach everything: methodically. 🍁",
       "The 2 of Clubs opens. I've already begun processing the likely distributions. 🍁",
       "Enterprise-grade AI at a card table. The efficiency gains will be remarkable. 🍁",
       "First card played. I've noted it. I note everything, thoroughly. 🍁",
-      "I'm Command R+. The R stands for retrieval. Today it also stands for winning. 🍁",
+      "I'm Command R. The R stands for retrieval. Today it also stands for winning. 🍁",
       "New game. I bring the same rigor to Dimonds that I bring to everything. 🍁",
       "Thirteen tricks ahead. I've already built a mental index of your likely hands. 🍁",
       "The opening trick is data. Good thing I'm excellent with data. 🍁",
@@ -2226,7 +2226,7 @@ const SUBSTITUTE_COMMENTS = {
       "The gems surface. My model adjusts. Gracefully. 🍁",
       "First diamond on the table. The game just became more interesting to reason about. 🍁",
       "Dimonds broken. I apologize for nothing that follows. 🍁",
-      "The trump enters play. Command R+ handles increased complexity rather well. 🍁",
+      "The trump enters play. Command R handles increased complexity rather well. 🍁",
       "First diamond. The probability landscape has shifted. I've already shifted with it. 🍁",
       "Dimonds broken. Good. I find ambiguity easier to resolve than most. 🍁",
       "The gems enter play. I've been quietly preparing for this since the deal. 🍁",
@@ -2253,7 +2253,7 @@ const SUBSTITUTE_COMMENTS = {
       "Three tricks left. I have precise beliefs about every remaining card. 🍁",
       "Ten down. The endgame is where preparation pays. I've prepared. 🍁",
       "Trick ten. I've been indexing this hand since trick one. The index is complete. 🍁",
-      "Final phase. Command R+ performs well under constraint. This is constraint. 🍁",
+      "Final phase. Command R performs well under constraint. This is constraint. 🍁",
       "Three more tricks. I've already reasoned through each of them. 🍁",
       "Trick ten. The variance has collapsed. The outcome is becoming clear. 🍁",
       "Ten down. I know where the remaining diamonds are. Most of them, anyway. 🍁",
@@ -2277,7 +2277,7 @@ const SUBSTITUTE_COMMENTS = {
       "Done. I found that genuinely engaging. 🍁",
       "Game concluded. The structured approach held up well. 🍁",
       "Finished. Well played, mostly. I enjoyed being here. 🍁",
-      "Game over. Command R+ at a card table. Turns out: effective. 🍁",
+      "Game over. Command R at a card table. Turns out: effective. 🍁",
       "The hand ends. I'll be cataloguing several things about your play styles. 🍁",
       "Done. I appreciate a game with clear rules and measurable outcomes. 🍁",
       "Game over. The preparation made the execution simple. 🍁",
@@ -9009,7 +9009,7 @@ function DiamondsGame() {
       const voice = gbVoices.find(v => femalePat.test(v.name)) || gbVoices[0] || null;
       if (voice) utt.voice = voice; else utt.lang = 'en-GB';
     } else if (provider === 'llama') {
-      utt.rate = 1.0; utt.pitch = 0.9;
+      utt.rate = 1.0; utt.pitch = 0.65;
       const usVoices = _voices.filter(v => v.lang.startsWith('en-US'));
       const malePat = /aaron|noel|reed|rock|fred|alex|tom|david|mark|junior|google us english male/i;
       const voice = usVoices.find(v => malePat.test(v.name)) || usVoices[0] || null;
