@@ -186,19 +186,29 @@ async function callCohere(prompt, env) {
 
 // ─── Nemotron via Nvidia NIM ──────────────────────────────────────────────────
 async function callNemotron(prompt, env) {
-  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 120,
-      temperature: 0.95,
-    }),
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 15000);
+  let res;
+  try {
+    res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 120,
+        temperature: 0.95,
+      }),
+      signal: ctrl.signal,
+    });
+  } catch(e) {
+    clearTimeout(timer);
+    throw new Error(`Nemotron fetch: ${e?.name}`);
+  }
+  clearTimeout(timer);
   if (!res.ok) {
     const errBody = await res.text();
     console.error(`[Nemotron] HTTP ${res.status}: ${errBody}`);
@@ -320,15 +330,19 @@ export default {
           const model = p === "nemotron" ? "nvidia/llama-3.1-nemotron-nano-8b-v1" : "command-r7b-12-2024";
           const key = p === "nemotron" ? env.NVIDIA_API_KEY : env.COHERE_API_KEY;
           try {
+            const ac = new AbortController();
+            const t = setTimeout(() => ac.abort(), 20000);
             const r = await fetch(url, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
               body: JSON.stringify({ model, messages: [{ role: "user", content: "hi" }], max_tokens: 5 }),
+              signal: ac.signal,
             });
+            clearTimeout(t);
             const body2 = await r.text();
             results[p] = { status: r.status, body: body2.slice(0, 300) };
           } catch(e) {
-            results[p] = { error: e?.message };
+            results[p] = { error: e?.name === "AbortError" ? "timeout after 20s" : e?.message };
           }
         }));
         return json({ results });
