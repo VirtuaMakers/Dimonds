@@ -10827,7 +10827,7 @@ function DiamondsGame() {
       )}
 
       {/* WAITING FOR DISMISSALS — shows after a player dismisses a modal while others catch up */}
-      {isMultiplayer() && (mpWaitingForDismissals || (!isHost() && guestEventDismissed)) && (
+      {isMultiplayer() && (mpWaitingForDismissals || (!isHost() && (guestEventDismissed || cyttGuestDismissed))) && (
         <div style={{
           position:"fixed", inset:0, zIndex:250,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
@@ -10835,7 +10835,7 @@ function DiamondsGame() {
         }}>
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:90, height:90, opacity:0.8, marginBottom:14}} />
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
-            {isHost() ? "Waiting for all players to continue…" : "Waiting for host…"}
+            {isHost() ? "Waiting for all players to continue…" : `Waiting for ${allNames[0]}…`}
           </div>
         </div>
       )}
