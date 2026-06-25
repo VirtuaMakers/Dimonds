@@ -9020,6 +9020,24 @@ function DiamondsGame() {
       const femalePat = /am[eé]lie|julie|hortense|marie|audrey|alice|camille|elsa|claire|sophie|c[eé]line|virginie|google fran/i;
       const voice = frVoices.find(v => femalePat.test(v.name)) || frVoices[0] || null;
       if (voice) utt.voice = voice; else utt.lang = 'fr-FR';
+    } else if (provider === 'qwen') {
+      utt.rate = 0.9; utt.pitch = 0.85;
+      const zhVoices = _voices.filter(v => v.lang.startsWith('zh'));
+      const voice = zhVoices[0] || null;
+      if (voice) utt.voice = voice; else utt.lang = 'zh-CN';
+    } else if (provider === 'cohere') {
+      utt.rate = 0.95; utt.pitch = 1.05;
+      const caVoices = _voices.filter(v => v.lang.startsWith('en-CA'));
+      const usVoices = _voices.filter(v => v.lang.startsWith('en-US'));
+      const femalePat = /samantha|fiona|karen|moira|zira|eva|linda|janet|victoria|allison|ava|google us english female/i;
+      const voice = caVoices[0] || usVoices.find(v => femalePat.test(v.name)) || usVoices[0] || null;
+      if (voice) utt.voice = voice; else utt.lang = 'en-CA';
+    } else if (provider === 'nemotron') {
+      utt.rate = 1.08; utt.pitch = 0.72;
+      const usVoices = _voices.filter(v => v.lang.startsWith('en-US'));
+      const malePat = /aaron|noel|reed|rock|fred|alex|tom|david|mark|junior|google us english male/i;
+      const voice = usVoices.find(v => malePat.test(v.name)) || usVoices[0] || null;
+      if (voice) utt.voice = voice; else utt.lang = 'en-US';
     }
     window.speechSynthesis.speak(utt);
   }

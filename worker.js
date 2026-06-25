@@ -1,6 +1,6 @@
 // Dimonds AI Worker — Cloudflare Workers
 // Deploy: wrangler deploy
-// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, QWEN_API_KEY, KIMI_API_KEY, GLM_API_KEY
+// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, QWEN_API_KEY, KIMI_API_KEY, GLM_API_KEY, NVIDIA_API_KEY, COHERE_API_KEY
 //
 // Actions:
 //   { action:'comment', provider, event, context }  → { text }
@@ -160,7 +160,7 @@ async function callGLM(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-// ─── Cohere Command R+ ───────────────────────────────────────────────────────
+// ─── Cohere Command R ────────────────────────────────────────────────────────
 async function callCohere(prompt, env) {
   const res = await fetch("https://api.cohere.com/compatibility/v1/chat/completions", {
     method: "POST",
@@ -169,7 +169,7 @@ async function callCohere(prompt, env) {
       Authorization: `Bearer ${env.COHERE_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "command-r-plus",
+      model: "command-r",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
