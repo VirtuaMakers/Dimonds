@@ -309,6 +309,31 @@ export default {
     const { action, provider } = body;
 
     try {
+      // ── Debug — raw API probe (temporary) ────────────────────────────────
+      if (action === "debug") {
+        const providers = body.providers ?? ["nemotron", "cohere"];
+        const results = {};
+        await Promise.all(providers.map(async p => {
+          const url = p === "nemotron"
+            ? "https://integrate.api.nvidia.com/v1/chat/completions"
+            : "https://api.cohere.com/compatibility/v1/chat/completions";
+          const model = p === "nemotron" ? "nvidia-nemotron-nano-9b-v2" : "command-r";
+          const key = p === "nemotron" ? env.NVIDIA_API_KEY : env.COHERE_API_KEY;
+          try {
+            const r = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+              body: JSON.stringify({ model, messages: [{ role: "user", content: "hi" }], max_tokens: 5 }),
+            });
+            const body2 = await r.text();
+            results[p] = { status: r.status, body: body2.slice(0, 300) };
+          } catch(e) {
+            results[p] = { error: e?.message };
+          }
+        }));
+        return json({ results });
+      }
+
       // ── Comment ──────────────────────────────────────────────────────────
       if (action === "comment") {
         const prompt = commentPrompt(body.event ?? "", body.context ?? "", provider);
