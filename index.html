@@ -6127,6 +6127,8 @@ function DiamondsGame() {
     if (!ref) return;
     const toCardFB = c => ({ rank:c.rank, suit:c.suit, id:c.id, ...(c.isJoker?{isJoker:true}:{}) });
     const toPlay = p => ({ playerIdx:p.playerIdx, card:toCardFB(p.card) });
+    // Firebase rejects undefined values — strip them before writing
+    const stripUndef = obj => Object.fromEntries(Object.entries(obj).filter(([,v]) => v !== undefined));
     const snap = {
       phase,
       hands: hands.map(h => (h||[]).map(toCardFB)),
@@ -6134,12 +6136,12 @@ function DiamondsGame() {
       turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       allNames, playerEmojis, opponentSlots,
-      trickResult: trickResult ? {
+      trickResult: trickResult ? stripUndef({
         ...trickResult,
         plays: (trickResult.plays||[]).map(toPlay),
         diamondsCaptured: (trickResult.diamondsCaptured||[]).map(toCardFB),
         familyCards: (trickResult.familyCards||[]).map(toCardFB),
-      } : null,
+      }) : null,
       pendingPlayContinuation: pendingPlayContinuation ? {
         playerIdx: pendingPlayContinuation.playerIdx,
         card: toCardFB(pendingPlayContinuation.card),
