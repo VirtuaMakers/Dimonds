@@ -193,7 +193,7 @@ async function callNemotron(prompt, env) {
       Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
     },
     body: JSON.stringify({
-      model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
+      model: "nvidia/nemotron-4-340b-instruct",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 120,
       temperature: 0.95,
@@ -317,7 +317,7 @@ export default {
           const url = p === "nemotron"
             ? "https://integrate.api.nvidia.com/v1/chat/completions"
             : "https://api.cohere.com/compatibility/v1/chat/completions";
-          const model = p === "nemotron" ? "nvidia-nemotron-nano-9b-v2" : "command-r";
+          const model = p === "nemotron" ? "nvidia/nemotron-4-340b-instruct" : "command-r7b-12-2024";
           const key = p === "nemotron" ? env.NVIDIA_API_KEY : env.COHERE_API_KEY;
           try {
             const r = await fetch(url, {
