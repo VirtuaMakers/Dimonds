@@ -5826,6 +5826,7 @@ function DiamondsGame() {
   const [playerName, setPlayerName] = useState("You");
   const [gameNum, setGameNum] = useState(0);
   const sessionNameRef = React.useRef(null); // tracks name in use for current session count
+  const sessionOpponentsRef = React.useRef(null); // tracks opponent lineup for session reset
   const hasSeenWelcomeRef = useRef(false);
   const [nameInput, setNameInput] = useState("");
   const [showRules, setShowRules] = useState(false);
@@ -7110,10 +7111,12 @@ function DiamondsGame() {
   function startGame(newName) {
     const name = newName || playerName;
     setPlayerName(name);
-    if (sessionNameRef.current === name) {
+    const opponentsKey = opponentSlotsRef.current.join(",");
+    if (sessionNameRef.current === name && sessionOpponentsRef.current === opponentsKey) {
       setGameNum(n => n + 1);
     } else {
       sessionNameRef.current = name;
+      sessionOpponentsRef.current = opponentsKey;
       setGameNum(1);
       setSessionWins([0,0,0,0]);
       setSessionGamesPlayed(0);
