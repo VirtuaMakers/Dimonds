@@ -3596,7 +3596,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
 // ============================================================
 // MODALS
 // ============================================================
-function Modal({ children, dim=true }) {
+function Modal({ children, dim=true, maxWidth=420 }) {
   return (
     <div style={{
       position:"fixed",inset:0,
@@ -3611,7 +3611,7 @@ function Modal({ children, dim=true }) {
         background:"linear-gradient(155deg,#0f3c38,#08231f)",
         border:`1px solid ${VM.tealLight}33`,
         borderRadius:20,padding:"24px 24px",
-        maxWidth:420,width:"100%",
+        maxWidth:maxWidth,width:"100%",
         boxShadow:`0 24px 80px #000000cc, 0 0 40px ${VM.tealMid}1a`,
         fontFamily:FONT_UI,
         overflowY:"scroll",overflowX:"hidden",
@@ -5184,15 +5184,16 @@ function OptionsPanel({ onClose, onExit, soundOn, setSoundOn, deckTheme, setDeck
 // WELCOME MODAL
 // ============================================================
 function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
-  const p = { color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, lineHeight:1.75, marginBottom:14, margin:"0 0 14px" };
+  const isLandscape = typeof window !== 'undefined' && window.innerWidth > window.innerHeight;
+  const p = { color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, lineHeight:isLandscape ? 1.55 : 1.75, margin: isLandscape ? "0 0 8px" : "0 0 14px" };
   return (
-    <Modal onClose={onClose}>
-      <div style={{ padding:"6px 0 8px" }}>
-        <div style={{ textAlign:"center", marginBottom:18 }}>
-          <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin:"0 0 10px", fontSize:22 }}>
+    <Modal onClose={onClose} maxWidth={isLandscape ? 660 : 420}>
+      <div style={{ padding: isLandscape ? "2px 0 4px" : "6px 0 8px" }}>
+        <div style={{ textAlign:"center", marginBottom: isLandscape ? 10 : 18 }}>
+          <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin: isLandscape ? "0 0 4px" : "0 0 10px", fontSize: isLandscape ? 20 : 22 }}>
             Welcome to Dimonds!
           </h2>
-          <div style={{ fontSize:44 }}>💎</div>
+          {!isLandscape && <div style={{ fontSize:44 }}>💎</div>}
         </div>
 
         <p style={p}>
@@ -5214,11 +5215,11 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
           <span onClick={onOptions} style={{ color:VM.gold, cursor:"pointer", fontWeight:700 }}>[OPTIONS]</span>!
         </p>
 
-        <p style={{ color:VM.tealLight, fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, textAlign:"center", margin:"18px 0 22px", letterSpacing:0.5 }}>
+        <p style={{ color:VM.tealLight, fontFamily:FONT_DISPLAY, fontSize: isLandscape ? 14 : 15, fontWeight:800, textAlign:"center", margin: isLandscape ? "10px 0 14px" : "18px 0 22px", letterSpacing:0.5 }}>
           First player to {winScore} points wins!
         </p>
 
-        <div style={{ textAlign:"center", paddingBottom:14 }}>
+        <div style={{ textAlign:"center", paddingBottom: isLandscape ? 4 : 14 }}>
           <GoldBtn onClick={onClose}>Let's Play! ◆</GoldBtn>
         </div>
       </div>
