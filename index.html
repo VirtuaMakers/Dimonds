@@ -4204,9 +4204,16 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, f
 function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false }) {
   if (!result) return null;
 
+  const aceCard = result.plays?.find(p => isAceSpades(p.card))?.card;
+  const winningPlay = result.plays?.find(p => p.playerIdx === result.winnerIdx);
+  const rawPoints = result.diamondsCaptured?.reduce((s,c)=>s+diamondPoints(c),0) || 0;
+  const multiplier = isGoldenAge ? 2 : 1;
+  const pointsWon = rawPoints * multiplier;
+
   const runningTotals = allNames.map((_, i) => (totalScores[i]||0) + (scoresCommitted ? 0 : (roundScores[i]||0)));
   const maxRunning = Math.max(...runningTotals);
-  const scoreSummary = scoreTally === "trick" ? (
+  // Only show running totals when this trick actually scored points (diamonds captured)
+  const scoreSummary = (scoreTally === "trick" && pointsWon > 0) ? (
     <div style={{width:"100%", marginTop:8, borderTop:"1px solid rgba(75,195,175,0.2)", paddingTop:10, display:"flex", flexDirection:"column", gap:3}}>
       <div style={{fontSize:9, color:"rgba(75,195,175,0.55)", letterSpacing:2, textTransform:"uppercase", fontFamily:FONT_UI, marginBottom:3, textAlign:"center"}}>Running Totals</div>
       {allNames.map((n, i) => {
@@ -4222,12 +4229,6 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
       })}
     </div>
   ) : null;
-
-  const aceCard = result.plays?.find(p => isAceSpades(p.card))?.card;
-  const winningPlay = result.plays?.find(p => p.playerIdx === result.winnerIdx);
-  const rawPoints = result.diamondsCaptured?.reduce((s,c)=>s+diamondPoints(c),0) || 0;
-  const multiplier = isGoldenAge ? 2 : 1;
-  const pointsWon = rawPoints * multiplier;
   const btnLabel = isGameOver ? "END"
     : result.rule1Announced ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
