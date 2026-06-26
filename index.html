@@ -3812,7 +3812,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal
             {isRobbinJack ? "Rob This Card 🎴" : "Kidnap This Card 🃏"}
           </GoldBtn>
           {isRobbinJack && onSkip && (
-            <GoldBtn onClick={onSkip} secondary>⚖️ Don't Rob</GoldBtn>
+            <GoldBtn onClick={onSkip} secondary>⚖️ Don't Rob & Call Rescue</GoldBtn>
           )}
         </div>
       </div>
@@ -4038,8 +4038,8 @@ function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip,
 }
 
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
-function RescueModal({ hands, acePlayerIdx, allNames, playerEmojis=[], onRescue, deckTheme, jokerLockedUp, onPeek }) {
-  const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && hands[i].length>0);
+function RescueModal({ hands, acePlayerIdx, jackDPlayerIdx, allNames, playerEmojis=[], onRescue, deckTheme, jokerLockedUp, onPeek }) {
+  const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && i!==jackDPlayerIdx && hands[i].length>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
 
@@ -4067,6 +4067,12 @@ function RescueModal({ hands, acePlayerIdx, allNames, playerEmojis=[], onRescue,
           <div style={{background:"#4466ff18",border:"1px solid #4466ff55",borderRadius:10,padding:"8px 14px",marginBottom:14,textAlign:"center"}}>
             <span style={{color:"#8a9fe0",fontSize:13,fontWeight:700}}>🔒 The Joker has been Locked Up!</span>
             <div style={{color:"#8a9fe088",fontSize:11,marginTop:2}}>No kidnapping this trick.</div>
+          </div>
+        )}
+        {jackDPlayerIdx != null && (
+          <div style={{background:"#c9a84c18",border:"1px solid #c9a84c44",borderRadius:10,padding:"8px 14px",marginBottom:14,textAlign:"center"}}>
+            <span style={{color:"#c9a84c",fontSize:13,fontWeight:700}}>⚖️ {allNames[jackDPlayerIdx]} chose not to rob</span>
+            <div style={{color:"#c9a84c88",fontSize:11,marginTop:2}}>You cannot rescue from their hand.</div>
           </div>
         )}
 
@@ -7791,9 +7797,10 @@ function DiamondsGame() {
     const aceHolderIdx = savedHands.findIndex(h => h.some(c => isAceSpades(c)));
     setKidnapState(null);
     setPeekingModal(null);
-    if (aceHolderIdx >= 0) {
+    const hasRescueTargets = savedHands.some((h,i) => i !== aceHolderIdx && i !== jackPlayerIdx && h.length > 0);
+    if (aceHolderIdx >= 0 && hasRescueTargets) {
       soundAceSuccess();
-      setRescueState({ acePlayerIdx: aceHolderIdx, hands: savedHands, resultObj: passResultObj, jokerLockedUp: false });
+      setRescueState({ acePlayerIdx: aceHolderIdx, jackDPlayerIdx: jackPlayerIdx, hands: savedHands, resultObj: passResultObj, jokerLockedUp: false });
       setPhase("rescue");
     } else {
       setTrickResult(passResultObj);
@@ -7871,14 +7878,14 @@ function DiamondsGame() {
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
     };
-    // Rescue fires only when J♦ is in the trick and chose not to rob
-    const rescueFires = !jackRobbed;
+    // Rescue fires when J♦ passed AND no Joker/QC to block (block takes priority over rescue)
+    const rescueFires = !jackRobbed && !autoBlockedJoker && !autoBlockedQC;
     if (rescueFires && currentHands) {
-      const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && h.length > 0);
+      const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && i !== jackDIdx && h.length > 0);
       if (hasTargets) {
         setAceRobChoiceState(null);
         soundAceSuccess();
-        setRescueState({ acePlayerIdx: aceWinnerIdx, hands: currentHands, resultObj: finalResult, jokerLockedUp: autoBlockedJoker });
+        setRescueState({ acePlayerIdx: aceWinnerIdx, jackDPlayerIdx: jackDIdx, hands: currentHands, resultObj: finalResult, jokerLockedUp: autoBlockedJoker });
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
         setPhase("rescue");
         return;
@@ -7913,7 +7920,8 @@ function DiamondsGame() {
     const arc = aceRobChoiceStateRef.current;
     if (!arc) return;
     const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation = 1 } = arc;
-    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation);
+    const consolation = (aceBlockedJoker || aceBlockedQueenClubs) ? 5 : passConsolation;
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, consolation);
   }
 
   function handleTheStealEndRound() {
@@ -8556,10 +8564,10 @@ function DiamondsGame() {
     gateEventAdvance(() => setPhase("playing"));
   }
 
-  function aiChooseRescueTarget(currentHands, playerIdx, knowledge) {
+  function aiChooseRescueTarget(currentHands, playerIdx, knowledge, jackDPlayerIdx) {
     const opponents = [];
     for (let i = 0; i < currentHands.length; i++) {
-      if (i !== playerIdx && (currentHands[i]||[]).length > 0) opponents.push(i);
+      if (i !== playerIdx && i !== jackDPlayerIdx && (currentHands[i]||[]).length > 0) opponents.push(i);
     }
     if (opponents.length === 0) return null;
     // Use knowledge to target best known card
@@ -9456,7 +9464,7 @@ function DiamondsGame() {
 
     const timer = setTimeout(() => {
       snapshotKnowledge(acePlayer, rescueState.hands);
-      const target = aiChooseRescueTarget(rescueState.hands, acePlayer, aiKnowledgeRef.current[acePlayer]);
+      const target = aiChooseRescueTarget(rescueState.hands, acePlayer, aiKnowledgeRef.current[acePlayer], rescueState.jackDPlayerIdx);
       if (target) {
         handleRescue(target.fromPlayer, target.cardIdx);
       } else {
@@ -11067,16 +11075,26 @@ function DiamondsGame() {
             <div style={{fontSize:44,marginBottom:4}}>🎴♠</div>
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robbin Jack's Choice</div>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>The Ace of Spades is in this trick.</h2>
-            <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 4px"}}>
-              {(()=>{const GA=goldenAgeRef.current?2:1;const auto=(aceRobChoiceState.aceBlockedJoker?1:0)+(aceRobChoiceState.aceBlockedQueenClubs?1:0);const bonus=(auto+1===3?40:auto+1===2?35:30)*GA;return`If you rob, The Ace of Spades will block the attempt — and earn +${bonus} pts.`;})()}
-            </p>
-            <p style={{color:"#ffffff55",fontSize:12,margin:"0 0 20px"}}>
-              {`If you pass, you earn +${aceRobChoiceState.passConsolation ?? 1} pt${(aceRobChoiceState.passConsolation ?? 1) !== 1 ? "s" : ""} and walk away clean.`}
-            </p>
-            <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
-              <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
-              <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>{`Pass — +${aceRobChoiceState.passConsolation ?? 1} pt${(aceRobChoiceState.passConsolation ?? 1) !== 1 ? "s" : ""}`}</GoldBtn>
-            </div>
+            {(()=>{
+              const GA = goldenAgeRef.current ? 2 : 1;
+              const hasSpecials = aceRobChoiceState.aceBlockedJoker || aceRobChoiceState.aceBlockedQueenClubs;
+              const auto = (aceRobChoiceState.aceBlockedJoker ? 1 : 0) + (aceRobChoiceState.aceBlockedQueenClubs ? 1 : 0);
+              const blockBonus = (auto+1===3 ? 40 : auto+1===2 ? 35 : 30) * GA;
+              return (<>
+                <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 20px"}}>
+                  {`If you rob, The Ace of Spades blocks you — earning +${blockBonus} pts.`}
+                </p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+                  <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
+                  <div style={{opacity: hasSpecials ? 0.35 : 1, pointerEvents: hasSpecials ? "none" : "auto", width:"100%", display:"flex", justifyContent:"center"}}>
+                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>⚖️ Don't Rob & Call Rescue</GoldBtn>
+                  </div>
+                  <div style={{opacity: hasSpecials ? 1 : 0.35, pointerEvents: hasSpecials ? "auto" : "none", width:"100%", display:"flex", justifyContent:"center"}}>
+                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>♠ Call a Block +5</GoldBtn>
+                  </div>
+                </div>
+              </>);
+            })()}
           </div>
         </Modal>
       )}
@@ -11111,6 +11129,7 @@ function DiamondsGame() {
         <RescueModal
           hands={hands}
           acePlayerIdx={0}
+          jackDPlayerIdx={rescueState.jackDPlayerIdx}
           allNames={allNames}
           playerEmojis={playerEmojis}
           onRescue={handleRescue}
