@@ -5938,6 +5938,7 @@ function DiamondsGame() {
   const [currentTurn, setCurrentTurn] = useState(0); // index in turn order
   const [turnOrder, setTurnOrder] = useState([0,1,2,3]);
   const [selectedCards, setSelectedCards] = useState([]);
+  const [illegalTap, setIllegalTap] = useState(false);
   const [dealing, setDealing] = useState(false); // true briefly at round start for deal-out animation
   const [flyingCards, setFlyingCards] = useState([]); // overlay cards animating between points
   const [dragGhost, setDragGhost] = useState(null); // { card, x, y } during drag-to-play
@@ -6511,6 +6512,9 @@ function DiamondsGame() {
     if (hands[mySeatingIdx]?.some(c => c.suit==="♣" && !c.isJoker)) return "club";
     return null;
   })();
+
+  // Clear illegal-tap message when it's no longer the player's turn
+  useEffect(() => { if (!isPlayerTurn) setIllegalTap(false); }, [isPlayerTurn]);
 
   // Auto-skip human player if their hand is empty
   useEffect(() => {
@@ -10396,6 +10400,11 @@ function DiamondsGame() {
                       if (isSelected && legalAtDragStart && hasMouseInput && selectedCards.length === 1 && isDoubleClick) {
                         playCard(card);
                       } else {
+                        if (!legalAtDragStart) {
+                          setIllegalTap(true);
+                        } else {
+                          setIllegalTap(false);
+                        }
                         setSelectedCards(prev => {
                           if (isSelected) return prev.filter(c => c.id !== card.id);
                           const next = [...prev, card];
@@ -10834,6 +10843,13 @@ function DiamondsGame() {
                 <div style={{position:"absolute",left:0,right:0,bottom:182,display:"flex",justifyContent:"center"}}>
                   {playBtn}
                 </div>
+                {illegalTap && isPlayerTurn && (
+                  <div style={{position:"absolute",left:0,right:0,bottom:148,display:"flex",justifyContent:"center",pointerEvents:"none"}}>
+                    <div style={{color:"#FF8899",fontFamily:FONT_UI,fontSize:12,fontWeight:600,textAlign:"center",letterSpacing:0.3,padding:"2px 10px",textShadow:"0 1px 4px rgba(0,0,0,0.7)"}}>
+                      The player must play a highlighted card during their turn.
+                    </div>
+                  </div>
+                )}
               </div>
               <div style={{marginTop:8,width:"100%",flexShrink:0,minHeight:96}}>
                 {setsPanel}
