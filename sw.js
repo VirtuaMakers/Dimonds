@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v147';
+const CACHE_NAME = 'dimonds-v148';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
@@ -62,7 +62,7 @@ self.addEventListener('fetch', e => {
   // Cache-first for everything else (images, logos, manifest)
   e.respondWith(
     caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res.ok && e.request.method === 'GET') {
+      if (res.ok && res.status !== 206 && e.request.method === 'GET') {
         const clone = res.clone();
         caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
       }
