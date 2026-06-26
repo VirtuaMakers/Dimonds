@@ -9795,10 +9795,10 @@ function DiamondsGame() {
               <div style={{height:isTiny?40:isCompact?44:54}}><GoldBtn fill onClick={()=>setShowMpLobby(true)}>Human Multiplayer ◆</GoldBtn></div>
             </div>
             {cardSelector}
-            <div style={{display:"flex",flexDirection:"column",gap:isTiny?4:isCompact?6:8,marginTop:isTiny?1:isCompact?2:4,paddingBottom:10}}>
-              <div style={{height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
-              <div style={{height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
-              <div style={{height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
+            <div style={{display:"flex",flexDirection:(isTiny||isCompact)?"row":"column",gap:isTiny?4:isCompact?4:8,marginTop:isTiny?1:isCompact?2:4,paddingBottom:10}}>
+              <div style={{flex:(isTiny||isCompact)?1:undefined,height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+              <div style={{flex:(isTiny||isCompact)?1:undefined,height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+              <div style={{flex:(isTiny||isCompact)?1:undefined,height:isTiny?30:isCompact?36:48}}><GoldBtn fill secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
             </div>
           </div>
         )}
