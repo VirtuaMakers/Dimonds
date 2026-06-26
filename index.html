@@ -5193,7 +5193,7 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
           <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin: isLandscape ? "0 0 4px" : "0 0 10px", fontSize: isLandscape ? 20 : 22 }}>
             Welcome to Dimonds!
           </h2>
-          {!isLandscape && <div style={{ fontSize:44 }}>💎</div>}
+          <div style={{ fontSize: isLandscape ? 30 : 44 }}>💎</div>
         </div>
 
         <p style={p}>
