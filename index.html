@@ -5744,7 +5744,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {role:"Graphics", name:"Claude (Anthropic)\nChristopher Bruckmann\nCopilot (Microsoft)\nGemini (Alphabet)\nDesigner (Microsoft)\nGerardus Dunkel"},
                 {role:"Analysis", name:"Christopher Bruckmann"},
                 {role:"Music", name:"Suno (Suno)"},
-                {role:"Playtesting", name:"Christopher Bruckmann\nChristian Dalton\nThomas Bruckmann\nCal Mumpkin\nEric Sanderson\nDonnie Swing\nRob Vasseur"},
+                {role:"Playtesting", name:"Christopher Bruckmann\nChristian Dalton\nThomas Bruckmann\nCal Mumpkin\nEric Sanderson\nDonnie Swing\nRob Vasseur\nSamantha Slaven"},
               ].map(({role,name})=>(
                 <div key={role} style={{marginBottom:10, paddingLeft:8}}>
                   <div style={{color:"#c9a84c",fontSize:12,fontWeight:700,letterSpacing:1,textTransform:"uppercase",marginBottom:1}}>{role}</div>
@@ -10400,17 +10400,24 @@ function DiamondsGame() {
                       lastCardClickRef.current = { cardId: card.id, time: now };
                       if (isSelected && legalAtDragStart && hasMouseInput && selectedCards.length === 1 && isDoubleClick) {
                         playCard(card);
+                      } else if (isSelected) {
+                        // Deselecting — always allow, clear error
+                        setIllegalTap(false);
+                        setSelectedCards(selectedCards.filter(c => c.id !== card.id));
                       } else {
-                        if (!legalAtDragStart) {
+                        const nextMulti = [...selectedCards, card];
+                        if (selectedCards.length > 0 && couldBuildSet(nextMulti)) {
+                          // Continuing a multi-card set build — allow regardless of individual legality
+                          setIllegalTap(false);
+                          setSelectedCards(nextMulti);
+                        } else if (!legalAtDragStart) {
+                          // Non-legal card tapped as single selection — block it
                           setIllegalTap(true);
+                          setSelectedCards([]);
                         } else {
                           setIllegalTap(false);
+                          setSelectedCards([card]);
                         }
-                        setSelectedCards(prev => {
-                          if (isSelected) return prev.filter(c => c.id !== card.id);
-                          const next = [...prev, card];
-                          return couldBuildSet(next) ? next : [card];
-                        });
                       }
                     }
                   } : undefined}
