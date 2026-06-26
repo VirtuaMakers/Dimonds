@@ -1314,9 +1314,9 @@ const OPPONENT_OPTIONS = [
   { id:'qwen',    type:'llm', label:'Qwen',    emoji:'🐼', style:'Qwen AI',    desc:'powered by Alibaba Qwen',        logo:'assets/logo-qwen.jpg',    color:'#F87171', subtitle:'(Alibaba)' },
   { id:'grok',     type:'llm', label:'Grok',     emoji:'🤖', style:'Grok AI',    desc:'powered by xAI Grok',           logo:'assets/logo-grok.png',    color:'#94A3B8', subtitle:'(xAI)' },
   { id:'cohere',  type:'llm', label:'Command R',emoji:'🍁', style:'Command R', desc:'powered by Cohere Command R',   logo:'assets/logo-cohere.png',  color:'#60A5FA', subtitle:'(Cohere)' },
-  { id:'simp',       type:'gpt', label:'Simp',       emoji:'🦠', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'(ChatGPT)' },
-  { id:'opportunist',type:'gpt', label:'Luce',        emoji:'🦅', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'(ChatGPT)' },
-  { id:'perfect',    type:'gpt', label:'Perfect',    emoji:'♟️', style:'Optimal',   desc:'card-counting, score-aware',      logo:'assets/logo-chatgpt.png', color:'#A3E635', subtitle:'(ChatGPT)' },
+  { id:'simp',       type:'gpt', label:'Simp',       emoji:'🦠', style:'Passive',   desc:'throws tricks, burns value',      logo:'assets/logo-chatgpt.png', color:'#E879F9', subtitle:'by ChatGPT (OpenAI)' },
+  { id:'opportunist',type:'gpt', label:'Luce',        emoji:'🦅', style:'Tactical',  desc:'pounces when points are there',   logo:'assets/logo-chatgpt.png', color:'#FB923C', subtitle:'by ChatGPT (OpenAI)' },
+  { id:'perfect',    type:'gpt', label:'Perfect',    emoji:'♟️', style:'Optimal',   desc:'card-counting, score-aware',      logo:'assets/logo-chatgpt.png', color:'#A3E635', subtitle:'by ChatGPT (OpenAI)' },
 ];
 const LLM_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='llm').map(o=>o.id));
 const GPT_IDS = new Set(OPPONENT_OPTIONS.filter(o=>o.type==='gpt').map(o=>o.id));
