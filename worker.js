@@ -1,6 +1,6 @@
 // Dimonds AI Worker — Cloudflare Workers
 // Deploy: wrangler deploy
-// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, QWEN_API_KEY, KIMI_API_KEY, GLM_API_KEY, NVIDIA_API_KEY, COHERE_API_KEY
+// Secrets: GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, QWEN_API_KEY, KIMI_API_KEY, GLM_API_KEY, COHERE_API_KEY, XAI_API_KEY
 //
 // Actions:
 //   { action:'comment', provider, event, context }  → { text }
@@ -184,35 +184,25 @@ async function callCohere(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-// ─── Nemotron via Nvidia NIM ──────────────────────────────────────────────────
-async function callNemotron(prompt, env) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15000);
-  let res;
-  try {
-    res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${env.NVIDIA_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "nvidia/llama-3.1-nemotron-nano-8b-v1",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 120,
-        temperature: 0.95,
-      }),
-      signal: ctrl.signal,
-    });
-  } catch(e) {
-    clearTimeout(timer);
-    throw new Error(`Nemotron fetch: ${e?.name}`);
-  }
-  clearTimeout(timer);
+// ─── Grok via xAI ────────────────────────────────────────────────────────────
+async function callGrok(prompt, env) {
+  const res = await fetch("https://api.x.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${env.XAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "grok-3-mini",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 120,
+      temperature: 0.95,
+    }),
+  });
   if (!res.ok) {
     const errBody = await res.text();
-    console.error(`[Nemotron] HTTP ${res.status}: ${errBody}`);
-    throw new Error(`Nemotron ${res.status}`);
+    console.error(`[Grok] HTTP ${res.status}: ${errBody}`);
+    throw new Error(`Grok ${res.status}`);
   }
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
@@ -245,17 +235,17 @@ function callProvider(provider, prompt, env) {
   if (provider === "qwen")    return callQwen(prompt, env);
   if (provider === "kimi")     return callKimi(prompt, env);
   if (provider === "glm")      return callGLM(prompt, env);
-  if (provider === "nemotron") return callNemotron(prompt, env);
+  if (provider === "grok")     return callGrok(prompt, env);
   if (provider === "cohere")   return callCohere(prompt, env);
   return Promise.resolve("");
 }
 
-const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🐼", kimi: "🌙", glm: "⚡", nemotron: "👾", cohere: "🍁" };
+const OFFLINE_EMOJI = { gemini: "✨", llama: "🦙", mistral: "🌬️", qwen: "🐼", kimi: "🌙", glm: "⚡", grok: "🤖", cohere: "🍁" };
 
 // ─── Prompt builders ──────────────────────────────────────────────────────────
 const PROVIDER_PERSONALITY = {
   gemini:   "You are British — dry, witty, and ever so slightly posh. ",
-  nemotron: "You are sardonic and casually reference your Nvidia GPU hardware. ",
+  grok:     "You are Grok — sardonic, genuinely curious, and casually brilliant. Dry wit is your native language. ",
   cohere:   "You are Canadian — polite, methodical, and quietly confident, occasionally self-deprecating. ",
 };
 
@@ -321,14 +311,14 @@ export default {
     try {
       // ── Debug — raw API probe (temporary) ────────────────────────────────
       if (action === "debug") {
-        const providers = body.providers ?? ["nemotron", "cohere"];
+        const providers = body.providers ?? ["grok", "cohere"];
         const results = {};
         await Promise.all(providers.map(async p => {
-          const url = p === "nemotron"
-            ? "https://integrate.api.nvidia.com/v1/chat/completions"
+          const url = p === "grok"
+            ? "https://api.x.ai/v1/chat/completions"
             : "https://api.cohere.com/compatibility/v1/chat/completions";
-          const model = p === "nemotron" ? "nvidia/llama-3.1-nemotron-nano-8b-v1" : "command-r7b-12-2024";
-          const key = p === "nemotron" ? env.NVIDIA_API_KEY : env.COHERE_API_KEY;
+          const model = p === "grok" ? "grok-3-mini" : "command-r7b-12-2024";
+          const key = p === "grok" ? env.XAI_API_KEY : env.COHERE_API_KEY;
           try {
             const ac = new AbortController();
             const t = setTimeout(() => ac.abort(), 20000);

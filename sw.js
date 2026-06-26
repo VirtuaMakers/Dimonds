@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dimonds-v146';
+const CACHE_NAME = 'dimonds-v147';
 const ASSETS = [
   '/Dimonds/',
   '/Dimonds/index.html',
@@ -13,7 +13,7 @@ const ASSETS = [
   '/Dimonds/assets/logo-qwen.jpg',
   '/Dimonds/assets/logo-kimi.png',
   '/Dimonds/assets/logo-glm.png',
-  '/Dimonds/assets/logo-nemotron.png',
+  '/Dimonds/assets/logo-grok.png',
   '/Dimonds/assets/logo-cohere.png',
   '/Dimonds/assets/logo-chatgpt.png',
   '/Dimonds/images/dimonds-logo.png',
