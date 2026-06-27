@@ -4369,12 +4369,12 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
     const trickWinner = result.winnerIdx;
     const noTargets = result.jackDiamondNoTargets;
     return (
-      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack — No Rob" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
+      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack – Didn't Rob & Called Rescue" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {robbinIdx != null ? allNames[robbinIdx] : "?"}
         </div>
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-          {noTargets ? "No cards left to rob." : "Chose not to rob."}
+          {noTargets ? "No cards left to rob." : "Chose not to rob. +1 pt."}
         </div>
         {pointsWon > 0 && !result.pendingJokerKidnap && (
           <div style={{
