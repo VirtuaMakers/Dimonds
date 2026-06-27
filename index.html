@@ -2526,7 +2526,7 @@ function allNuclearFamilyCombos(hand) {
   return results;
 }
 
-// Rule of 6 (Blood Diamond) — 5-card cross-suit sequential run + 1 additional diamond
+// Rule of 6 (Blood Diamond) — 6-card cross-suit sequential run + 1 additional diamond
 function checkBloodDiamond(hand) {
   const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
   const nonJokers = hand.filter(c => !c.isJoker);
@@ -2539,12 +2539,12 @@ function checkBloodDiamond(hand) {
     if (!byRankIdx[ri] || (isDiamond(byRankIdx[ri]) && !isDiamond(c))) byRankIdx[ri] = c;
   }
   const rankIdxs = Object.keys(byRankIdx).map(Number).sort((a,b)=>a-b);
-  for (let i = 0; i <= rankIdxs.length - 5; i++) {
-    if (rankIdxs[i+4] - rankIdxs[i] !== 4) continue;
+  for (let i = 0; i <= rankIdxs.length - 6; i++) {
+    if (rankIdxs[i+5] - rankIdxs[i] !== 5) continue;
     let consecutive = true;
-    for (let j = 1; j < 5; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
+    for (let j = 1; j < 6; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
     if (!consecutive) continue;
-    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]]];
+    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]], byRankIdx[rankIdxs[i+5]]];
     const runIds = new Set(runCards.map(c => c.id));
     const extra = [...diamonds, ...hand.filter(c => c.isJoker)].find(d => !runIds.has(d.id));
     if (extra) return [...runCards, extra];
@@ -2552,7 +2552,7 @@ function checkBloodDiamond(hand) {
   return null;
 }
 
-// Returns ALL valid Blood Diamond combos: each is [run5..., extraDiamond]
+// Returns ALL valid Blood Diamond combos: each is [run6..., extraDiamond]
 function allBloodDiamondCombos(hand) {
   const RANK_ORDER = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
   const nonJokers = hand.filter(c => !c.isJoker);
@@ -2565,12 +2565,12 @@ function allBloodDiamondCombos(hand) {
   }
   const rankIdxs = Object.keys(byRankIdx).map(Number).sort((a,b)=>a-b);
   const results = [];
-  for (let i = 0; i <= rankIdxs.length - 5; i++) {
-    if (rankIdxs[i+4] - rankIdxs[i] !== 4) continue;
+  for (let i = 0; i <= rankIdxs.length - 6; i++) {
+    if (rankIdxs[i+5] - rankIdxs[i] !== 5) continue;
     let consecutive = true;
-    for (let j = 1; j < 5; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
+    for (let j = 1; j < 6; j++) { if (rankIdxs[i+j] !== rankIdxs[i+j-1]+1) { consecutive=false; break; } }
     if (!consecutive) continue;
-    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]]];
+    const runCards = [byRankIdx[rankIdxs[i]], byRankIdx[rankIdxs[i+1]], byRankIdx[rankIdxs[i+2]], byRankIdx[rankIdxs[i+3]], byRankIdx[rankIdxs[i+4]], byRankIdx[rankIdxs[i+5]]];
     const runIds = new Set(runCards.map(c => c.id));
     const extras = [...diamonds, ...hand.filter(c => c.isJoker)].filter(d => !runIds.has(d.id));
     extras.sort((a, b) => (a.isJoker ? 99 : RANK_ORDER.indexOf(a.rank)) - (b.isJoker ? 99 : RANK_ORDER.indexOf(b.rank)));
@@ -5767,7 +5767,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"c.",title:'🦅 Rule of 3 (Democracy)',text:(<>Any three of a kind (ex. three 7s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+16 pts.</strong></>),sub:true},
                 {num:"d.",title:'💎 Rule of 4 (Dimond in the Rough)',text:(<>Any four of a kind (ex. four 8s) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+18 pts.</strong></>),sub:true},
                 {num:"e.",title:"🏠 Rule of 5 (Nuclear Family)",text:(<>Any in-suit run of three consecutive cards (ex. A♣️, 2♣️, 3♣️) plus any two Dimond cards not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+21 pts.</strong> The Joker (being wild-suited) may count as a Dimond for one of the two required, but not as a member of the run.<div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> Runs begin at Ace (low) and end at King without wrapping around.</div></>),sub:true},
-                {num:"f.",title:"🩸 Rule of 6 (Blood Diamond)",text:(<>Any five cards of sequential rank (need not be the same suit, ex. 4♣️, 5♣️, 6♥️, 7♠️, 8♠️) plus one additional Dimond card not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> The Joker (being wild-suited) may count as a Dimond, but not as a member of the run.</>),sub:true},
+                {num:"f.",title:"🩸 Rule of 6 (Blood Diamond)",text:(<>Any six cards of sequential rank (need not be the same suit, ex. 3♣️, 4♣️, 5♥️, 6♠️, 7♠️, 8♠️) plus one additional Dimond card not in the run may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+25 pts.</strong> The Joker (being wild-suited) may count as a Dimond, but not as a member of the run.</>),sub:true},
                 {num:"g.",title:"🔥 Riot",text:(<>Any seven cards of the same suit (but not Dimonds until they're broken) may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+30 pts.</strong> This immediately ends the round. The Joker (being wild-suited) may count as one of the seven cards.</>),sub:true},
                 {divider:true,title:"Prestige Card Sets",note:"Built from Prestige Cards (A, J, Q, K, Joker) — always available, even before Dimonds are broken.",color:"#7ae8ff99"},
                 {num:"h.",title:"🌇 The Steal",text:(<><div>Any three of the four "steal" cards may be redeemed at the start of your turn for <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+35 pts.</strong> This may immediately end the round (the current trick is not counted), if you so choose.</div><div style={{marginTop:4}}>· 🃏 The Joker<br/>· 🔷/🔶 The Queen of Clubs<br/>· 🎴/⚖️ "Robbin Jack"<br/>· ♠️ The Ace of Spades</div></>),sub:true},
@@ -6983,7 +6983,7 @@ function DiamondsGame() {
       }
     }
 
-    // Rule of 6 (Blood Diamond) — 5-card cross-suit run + 1 diamond (only when diamonds broken)
+    // Rule of 6 (Blood Diamond) — 6-card cross-suit run + 1 diamond (only when diamonds broken)
     if (diamondsBroken && !cpIsSimp) {
       const bd6 = checkBloodDiamond(hands[cp] || []);
       if (bd6) {
@@ -10315,7 +10315,7 @@ function DiamondsGame() {
               { emoji:"🦅", name:"Rule of 3",    desc:"3 of a Kind",            pts:"+16" },
               { emoji:"💎", name:"Rule of 4",    desc:"4 of a Kind",            pts:"+18" },
               { emoji:"🏠", name:"Rule of 5",    desc:"Run-3 + 2 Dimonds",     pts:"+21" },
-              { emoji:"🩸", name:"Rule of 6",    desc:"Run-5 + 1 Dimond",      pts:"+25" },
+              { emoji:"🩸", name:"Rule of 6",    desc:"Run-6 + 1 Dimond",      pts:"+25" },
               { emoji:"🔥", name:"Riot",         desc:"7 of a Kind",            pts:"+30" },
               { emoji:"🌇", name:"The Steal",    desc:"3 of: A♠ Q♣ J♦ J🃏", pts:"+35", descFont:8 },
               { emoji:"🏛️", name:"1st Family",   desc:"A♦ J♦ Q♦ K♦",          pts:"+40" },
@@ -10728,9 +10728,9 @@ function DiamondsGame() {
             });
             bdCombos.forEach(combo => {
               const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
-              const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
+              const bdLabel = combo.slice(0,6).map(fmtCard).join("-") + " + " + fmtCard(combo[6]);
               setButtons.push(
-                <button key={`bd-${combo[5].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
+                <button key={`bd-${combo[0].id}-${combo[6].id}`} onClick={()=>{ setBloodDiamondState({playerIdx:mySeatingIdx, cards:combo}); setPhase("blooddiamond_offer"); }}
                   style={{...setBtnStyle, flexDirection:"column", gap:1}}>
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🩸 Rule of 6</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
@@ -10856,7 +10856,7 @@ function DiamondsGame() {
                           })}
                           {bdLockedCombos.map((combo, i) => {
                             const fmtCard = c => c.isJoker ? "🃏" : c.rank+c.suit;
-                            const bdLabel = combo.slice(0,5).map(fmtCard).join("-") + " + " + fmtCard(combo[5]);
+                            const bdLabel = combo.slice(0,6).map(fmtCard).join("-") + " + " + fmtCard(combo[6]);
                             return <div key={`bdl-${i}`} style={{...lockedBtnStyle,flexDirection:"column",gap:1}}>
                               <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}><span>🩸 Rule of 6</span><span style={{opacity:0.6}}>+{BLOOD_DIAMOND_BONUS*GA}</span></span>
                               <span style={{fontSize:lockedSubSize,opacity:0.6,width:"100%",textAlign:"center"}}>{bdLabel}</span>
