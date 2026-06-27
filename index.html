@@ -7012,6 +7012,10 @@ function DiamondsGame() {
       .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
       .filter(({ opt }) => opt);
     if (llmIds.length) {
+      // Reset per-round state before checking substitution so a single bad round
+      // doesn't permanently mark an LLM offline for the next round's opener
+      llmSubstitutedRef.current = {};
+      llmFailCountRef.current = {};
       setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
       if (openerAbortRef.current) openerAbortRef.current.abort();
       const openerCtrl = new AbortController();
@@ -7062,8 +7066,6 @@ function DiamondsGame() {
     commentSlotRef.current = 0;
     { const s=[0,1,2]; for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[s[i],s[j]]=[s[j],s[i]];} commentSlotOrderRef.current=s; }
     silentTricksRef.current = 0;
-    llmSubstitutedRef.current = {};
-    llmFailCountRef.current = {};
     roundTrickCountRef.current = 0;
     subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
@@ -7157,6 +7159,8 @@ function DiamondsGame() {
         .map(id => ({ id, opt: OPPONENT_OPTIONS.find(o => o.id === id) }))
         .filter(({ opt }) => opt);
       if (llmIds.length) {
+        llmSubstitutedRef.current = {};
+        llmFailCountRef.current = {};
         setLlmComments([{ name:'', text:'Pressure Makes Champions', color:'#4bc3af' }]);
         if (openerAbortRef.current) openerAbortRef.current.abort();
         const openerCtrl = new AbortController();
@@ -7208,8 +7212,6 @@ function DiamondsGame() {
     commentSlotRef.current = 0;
     { const s=[0,1,2]; for(let i=2;i>0;i--){const j=Math.floor(Math.random()*(i+1));[s[i],s[j]]=[s[j],s[i]];} commentSlotOrderRef.current=s; }
     silentTricksRef.current = 0;
-    llmSubstitutedRef.current = {};
-    llmFailCountRef.current = {};
     roundTrickCountRef.current = 0;
     subTrick10FiredRef.current = {};
     setCurrentLeader(leader);
