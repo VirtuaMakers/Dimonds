@@ -3812,7 +3812,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal
             {isRobbinJack ? "Rob This Card 🎴" : "Kidnap This Card 🃏"}
           </GoldBtn>
           {isRobbinJack && onSkip && (
-            <GoldBtn onClick={onSkip} secondary>⚖️ Don't Rob & Call Rescue</GoldBtn>
+            <GoldBtn onClick={onSkip} secondary>Don't Rob & Call a Rescue +1 pt. ⚖️</GoldBtn>
           )}
         </div>
       </div>
@@ -11094,7 +11094,7 @@ function DiamondsGame() {
                 <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
                   <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
                   <div style={{opacity: hasSpecials ? 0.35 : 1, pointerEvents: hasSpecials ? "none" : "auto", width:"100%", display:"flex", justifyContent:"center"}}>
-                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>⚖️ Don't Rob & Call Rescue</GoldBtn>
+                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>Don't Rob & Call a Rescue +1 pt. ⚖️</GoldBtn>
                   </div>
                   <div style={{opacity: hasSpecials ? 1 : 0.35, pointerEvents: hasSpecials ? "auto" : "none", width:"100%", display:"flex", justifyContent:"center"}}>
                     <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>♠ Call a Block +5</GoldBtn>
