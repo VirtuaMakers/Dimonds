@@ -4257,6 +4257,55 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
     );
   }
 
+  // ===== JACK OF DIMONDS CALLS FOR A BLOCK! (JD chose block via acerobchoice) =====
+  if (result.jackDCalledBlock && result.aceBlocked) {
+    const jdIdx = result.jackDiamondPlayerIdx;
+    const aceIdx = result.winnerIdx;
+    const blockedJoker = !!result.aceBlockedJoker;
+    const blockedQC = !!result.aceBlockedQueenClubs;
+    const blockedCount = [blockedJoker, blockedQC].filter(Boolean).length;
+    const aceBlockBonus = (blockedCount === 1 ? 30 : 35) * multiplier;
+    const blockDesc = blockedJoker && blockedQC
+      ? "The Joker and Queen of Clubs are both blocked!"
+      : blockedJoker ? "The Joker is Locked Up — no kidnapping this trick!"
+      : "The Queen of Clubs is Blocked — no Thievin' this trick!";
+    const blockedCards = (result.plays||[]).filter(p => p.card.isJoker || isQueenClubs(p.card)).map(p=>p.card);
+    return (
+      <EventBox borderColor="#1a3ab8" emoji="⚖️" title={<>Jack of Dimonds<br/>Calls for a Block!</>} btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
+        <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
+          {jdIdx != null ? allNames[jdIdx] : "?"}{" "}
+          <span style={{color:"#8a9fe0",fontWeight:500,fontSize:14}}>calls on</span>{" "}
+          {allNames[aceIdx]}
+        </div>
+        {blockedCards.length > 0 && (
+          <div style={{display:"flex",gap:6,justifyContent:"center",alignItems:"center",flexWrap:"wrap"}}>
+            {blockedCards.map(c=><CardComp key={c.id} card={c} tiny/>)}
+            <span style={{color:"#4466ff",fontSize:20,fontWeight:900,padding:"0 2px"}}>⛔</span>
+          </div>
+        )}
+        <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{blockDesc}</div>
+        <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"10px 20px",minWidth:210,display:"flex",flexDirection:"column",gap:4}}>
+          {jdIdx != null && (
+            <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>JD calls block:</span>
+              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+5 pts</span>
+            </div>
+          )}
+          <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+            <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus{isGoldenAge?" 🤖 2×":""}:</span>
+            <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{aceBlockBonus} pts</span>
+          </div>
+          {pointsWon > 0 && (
+            <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
+              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Trick diamonds:</span>
+              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{pointsWon} pts 💎</span>
+            </div>
+          )}
+        </div>
+      </EventBox>
+    );
+  }
+
   // ===== THE ACE OF SPADES BLOCKS! (Joker, Robbin Jack, Queen of Clubs, or any combo) =====
   if (result.aceBlocked) {
     const blockedJoker  = !!result.aceBlockedJoker;
@@ -4357,6 +4406,40 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
             <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>
               +{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""}{!robbinWonTrick ? ` (to ${allNames[trickWinner]})` : ""}
             </span>
+          </div>
+        )}
+      </EventBox>
+    );
+  }
+
+  // ===== ACE RESCUE after JD passed — rescue takes priority over "Didn't Rob" modal =====
+  if (result.aceRescued && result.jackDiamondPassed) {
+    const rescuerIdx = result.aceRescuerIdx ?? result.winnerIdx;
+    const rescuedIsJoker = result.rescuedCard?.isJoker;
+    const isJDRescue = !!result.jackDCalledRescue;
+    const title = isJDRescue ? (<>Jack of Dimonds<br/>Calls for a Rescue!</>)
+      : result.jokerLockedUp ? "Joker Locked Up + Rescue!"
+      : rescuedIsJoker ? (<>Ace of Spades<br/>Snatches The Joker!</>)
+      : "Ace of Spades Rescues!";
+    return (
+      <EventBox borderColor="#1a3ab8" emoji={isJDRescue ? "⚖️" : "🗡️"} title={title} btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
+        {result.jokerLockedUp && <div style={{color:"#8a9fe0",fontSize:12,fontWeight:700,marginBottom:6}}>🔒 The Joker is Locked Up — no kidnapping this trick!</div>}
+        <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>{allNames[rescuerIdx]}</div>
+        {result.rescuedCard && (
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
+            {rescuedIsJoker ? "snatches" : "rescues"}{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
+              {rescuedIsJoker ? "The Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
+            </strong>{" "}from{" "}
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
+          </div>
+        )}
+        {isJDRescue && result.jackDiamondPlayerIdx != null && (
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>+1 pt to {allNames[result.jackDiamondPlayerIdx]}</div>
+        )}
+        {pointsWon > 0 && (
+          <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""} (to {allNames[result.winnerIdx]})</span>
           </div>
         )}
       </EventBox>
@@ -6498,6 +6581,10 @@ function DiamondsGame() {
         setTimeout(() => handleAceRobChoiceRob(), 0);
       } else if (type === 'aceRobChoiceNoRob') {
         setTimeout(() => handleAceRobChoiceNoRob(), 0);
+      } else if (type === 'aceRobChoiceCallRescue') {
+        setTimeout(() => handleAceRobChoiceCallRescue(), 0);
+      } else if (type === 'aceRobChoiceCallBlock') {
+        setTimeout(() => handleAceRobChoiceCallBlock(), 0);
       }
     };
     pendingRef.on('child_added', handler);
@@ -7738,7 +7825,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(stolenCard, fromPlayer, jokerPlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...ks.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : undefined, stolenCard, stolenFrom: fromPlayer, pendingRobbinKidnap: undefined };
+    const resultObj = { ...ks.resultObj, jokerWin: !isRobbin, jackDiamondRob: isRobbin, jackDiamondPlayerIdx: isRobbin ? jokerPlayerIdx : ks.resultObj?.jackDiamondPlayerIdx, stolenCard, stolenFrom: fromPlayer, pendingRobbinKidnap: undefined };
 
     // If Joker kidnapped AND J♦ was also in same trick, show Joker event first, then PROCEED → J♦ rob
     const pendingRobbinRob = !isRobbin && ks.resultObj?.jackDiamondRob;
@@ -7850,7 +7937,7 @@ function DiamondsGame() {
   }
 
   // Shared resolution for J♦ rob/pass choice when A♠ is in the trick
-  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj, currentHands, passConsolation = 1) {
+  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj, currentHands, passConsolation = 1, jackDCalledBlock = false) {
     const GA = goldenAgeRef.current ? 2 : 1;
     const finalRound = [...baseRoundScores];
     if (!jackRobbed) {
@@ -7876,6 +7963,7 @@ function DiamondsGame() {
     setRoundScores(finalRound);
     const newTotal = totalScores.map((s,i) => s + finalRound[i]);
     const gameWon = newTotal.some(s => s >= winScoreRef.current);
+    const rescueFires = !jackRobbed && !autoBlockedJoker && !autoBlockedQC;
     const finalResult = {
       ...baseResultObj,
       aceBlocked: totalBlocked > 0,
@@ -7884,9 +7972,10 @@ function DiamondsGame() {
       aceBlockedQueenClubs: autoBlockedQC,
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
+      ...(jackDCalledBlock && { jackDCalledBlock: true }),
+      ...(rescueFires && !jackRobbed && { jackDCalledRescue: true }),
     };
     // Rescue fires when J♦ passed AND no Joker/QC to block (block takes priority over rescue)
-    const rescueFires = !jackRobbed && !autoBlockedJoker && !autoBlockedQC;
     if (rescueFires && currentHands) {
       const hasTargets = currentHands.some((h,i) => i !== aceWinnerIdx && i !== jackDIdx && h.length > 0);
       if (hasTargets) {
@@ -7906,9 +7995,7 @@ function DiamondsGame() {
       setPhase("trickresult");
       return;
     }
-    const hasLockUpTargets = currentHands?.some((h, i) => i !== aceWinnerIdx && h.length > 0);
-    const lockUpPayload = (currentHands && hasLockUpTargets) ? { pendingAceLockUp: { acePlayerIdx: aceWinnerIdx, hands: currentHands } } : {};
-    setTrickResult({ ...finalResult, ...lockUpPayload });
+    setTrickResult({ ...finalResult });
     setAceRobChoiceState(null);
     if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
     setPhase("trickresult");
@@ -7922,13 +8009,30 @@ function DiamondsGame() {
     finalizeAceRobResolution(true, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands);
   }
 
+  function handleAceRobChoiceCallRescue() {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('aceRobChoiceCallRescue', {}); return; }
+    const arc = aceRobChoiceStateRef.current;
+    if (!arc) return;
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = arc;
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, 1, false);
+  }
+
+  function handleAceRobChoiceCallBlock() {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('aceRobChoiceCallBlock', {}); return; }
+    const arc = aceRobChoiceStateRef.current;
+    if (!arc) return;
+    const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = arc;
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, 5, true);
+  }
+
   function handleAceRobChoiceNoRob() {
     if (isMultiplayer() && !isHost()) { guestSubmitMove('aceRobChoiceNoRob', {}); return; }
     const arc = aceRobChoiceStateRef.current;
     if (!arc) return;
     const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation = 1 } = arc;
-    const consolation = (aceBlockedJoker || aceBlockedQueenClubs) ? 5 : passConsolation;
-    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, consolation);
+    const hasSpecials = aceBlockedJoker || aceBlockedQueenClubs;
+    const consolation = hasSpecials ? 5 : passConsolation;
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, consolation, hasSpecials);
   }
 
   function handleTheStealEndRound() {
@@ -8152,7 +8256,7 @@ function DiamondsGame() {
 
     const newHands = currentHands.map((h,i) => {
       if (i === fromPlayer) return h.filter((_,ci)=>ci!==cardIdx);
-      if (i === acePlayerIdx) return [...h, rescuedCard];
+      if (i === acePlayerIdx) return [...h.filter(c=>!isAceSpades(c)), rescuedCard]; // discard A♠ (noop if already played), gain rescued card
       return h;
     });
 
@@ -11094,10 +11198,10 @@ function DiamondsGame() {
                 <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
                   <GoldBtn onClick={handleAceRobChoiceRob}>Rob Anyway 🎴</GoldBtn>
                   <div style={{opacity: hasSpecials ? 0.35 : 1, pointerEvents: hasSpecials ? "none" : "auto", width:"100%", display:"flex", justifyContent:"center"}}>
-                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>Don't Rob & Call a Rescue +1 pt. ⚖️</GoldBtn>
+                    <GoldBtn onClick={handleAceRobChoiceCallRescue} secondary>Don't Rob & Call a Rescue +1 pt. ⚖️</GoldBtn>
                   </div>
                   <div style={{opacity: hasSpecials ? 1 : 0.35, pointerEvents: hasSpecials ? "auto" : "none", width:"100%", display:"flex", justifyContent:"center"}}>
-                    <GoldBtn onClick={handleAceRobChoiceNoRob} secondary>♠ Call a Block +5</GoldBtn>
+                    <GoldBtn onClick={handleAceRobChoiceCallBlock} secondary>Don't Rob & Call a Block +5 pts. ⚖️</GoldBtn>
                   </div>
                 </div>
               </>);
