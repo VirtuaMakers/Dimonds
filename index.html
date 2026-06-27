@@ -5188,7 +5188,7 @@ function WelcomeModal({ onClose, winScore, onRules, onOptions }) {
   const isLandscape = typeof window !== 'undefined' && window.innerWidth > window.innerHeight;
   const p = { color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, lineHeight:isLandscape ? 1.55 : 1.75, margin: isLandscape ? "0 0 8px" : "0 0 14px" };
   return (
-    <Modal onClose={onClose} maxWidth={isLandscape ? 330 : 420} centered={isLandscape}>
+    <Modal onClose={onClose} maxWidth={isLandscape ? 380 : 420} centered={isLandscape}>
       <div style={{ padding: isLandscape ? "2px 0 4px" : "6px 0 8px" }}>
         <div style={{ textAlign:"center", marginBottom: isLandscape ? 10 : 18 }}>
           <h2 style={{ color:VM.gold, fontFamily:FONT_DISPLAY, fontWeight:800, letterSpacing:1, margin: isLandscape ? "0 0 4px" : "0 0 10px", fontSize: isLandscape ? 20 : 22 }}>
