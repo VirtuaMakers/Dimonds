@@ -10517,7 +10517,7 @@ function DiamondsGame() {
                           // Continuing a multi-card set build — allow regardless of individual legality
                           setIllegalTap(false);
                           setSelectedCards(nextMulti);
-                        } else if (!legalAtDragStart) {
+                        } else if (!legalAtDragStart && !availableSetCardIds.has(card.id)) {
                           // Non-legal card tapped as single selection — block it
                           setIllegalTap(true);
                           setSelectedCards([]);
