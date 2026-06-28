@@ -2437,7 +2437,7 @@ function checkRuleOfThree(hand) {
   }
   return null;
 }
-// Returns every valid three-of-a-kind combo in the hand (one per qualifying rank)
+// Returns every valid three-of-a-kind combo in the hand (all C(n,3) combos per qualifying rank)
 function allRuleOfThreeCombos(hand) {
   const byRank = {};
   for (const c of hand) {
@@ -2445,7 +2445,15 @@ function allRuleOfThreeCombos(hand) {
     if (!byRank[c.rank]) byRank[c.rank] = [];
     byRank[c.rank].push(c);
   }
-  return Object.values(byRank).filter(cards => cards.length >= 3).map(cards => cards.slice(0, 3));
+  const results = [];
+  for (const cards of Object.values(byRank)) {
+    if (cards.length < 3) continue;
+    for (let i = 0; i < cards.length - 2; i++)
+      for (let j = i + 1; j < cards.length - 1; j++)
+        for (let k = j + 1; k < cards.length; k++)
+          results.push([cards[i], cards[j], cards[k]]);
+  }
+  return results;
 }
 
 function checkRuleFour(hand) {
