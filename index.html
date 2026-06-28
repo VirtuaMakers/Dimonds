@@ -4447,17 +4447,17 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
   }
 
   // ===== ROBBIN JACK — NO ROB =====
-  if (result.jackDiamondPassed) {
+  if (result.jackDiamondPassed && !result.aceRescueAttempted) {
     const robbinIdx = result.jackDiamondPlayerIdx;
     const trickWinner = result.winnerIdx;
     const noTargets = result.jackDiamondNoTargets;
     return (
-      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack – Didn't Rob & Called Rescue" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
+      <EventBox borderColor="#1a6b30" emoji="⚖️" title="Robbin Jack – Didn't Rob" btnLabel={btnLabel} onContinue={onContinue} footer={scoreSummary}>
         <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_UI}}>
           {robbinIdx != null ? allNames[robbinIdx] : "?"}
         </div>
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
-          {noTargets ? "No cards left to rob." : "Chose not to rob. +1 pt."}
+          {noTargets ? "No cards left to rob." : `Chose not to rob. +${(result.aceBlockedJoker||result.aceBlockedQueenClubs) ? 5 : 1} pt${(result.aceBlockedJoker||result.aceBlockedQueenClubs) ? "s" : ""}.`}
         </div>
         {pointsWon > 0 && !result.pendingJokerKidnap && (
           <div style={{
@@ -6202,7 +6202,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (!isMultiplayer()) return;
     const eventPhases = ['ruleofthree_event','swingingparadox_event','rulefour_event',
-      'nuclearfamily_event','blooddiamond_event','showdown_event','riot_event',
+      'nuclearfamily_event','blooddiamond_event','showdown_event','riot_event','thesteal_event',
       'aceslow_event','trickresult','roundover','gameover'];
     if (isHost()) {
       if (!eventPhases.includes(phase)) return;
@@ -6245,7 +6245,7 @@ function DiamondsGame() {
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
       showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
       ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
-      riotState, showdownState, acesLowState,
+      riotState, showdownState, acesLowState, theStealState,
       ruleOfThreeState: ruleOfThreeState ? { ...ruleOfThreeState, cards:(ruleOfThreeState.cards||[]).map(toCardFB) } : null,
       ruleFourState: ruleFourState ? { ...ruleFourState, cards:(ruleFourState.cards||[]).map(toCardFB) } : null,
       nuclearFamilyState: nuclearFamilyState ? { ...nuclearFamilyState, cards:(nuclearFamilyState.cards||[]).map(toCardFB) } : null,
@@ -6258,7 +6258,7 @@ function DiamondsGame() {
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
-      riotState, showdownState, acesLowState, ruleOfThreeState, ruleFourState, swingingParadoxState,
+      riotState, showdownState, acesLowState, theStealState, ruleOfThreeState, ruleFourState, swingingParadoxState,
       nuclearFamilyState, bloodDiamondState,
       showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
       ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
@@ -6481,8 +6481,11 @@ function DiamondsGame() {
         const hand = handsRef.current[seatIdx] || [];
         const familyCards = hand.filter(c=>famIds.has(c.id));
         setHands(prev => prev.map((h,i) => i===seatIdx ? h.filter(c=>!famIds.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
-        setTotalScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const curRound = roundScoresRef.current;
+        const newRound = [...curRound]; newRound[seatIdx] += pts;
+        const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
+        setRoundScores(newRound);
+        setTotalScores(newTotal);
         addLog(`🏛️ ${allNames[seatIdx]} redeems The First Family! +${pts} pts`);
         setAmericanFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=false; return n; });
         setTrickResult({ winnerIdx:seatIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
@@ -7063,10 +7066,9 @@ function DiamondsGame() {
       setRoundScores(newRS);
       setTotalScores(newTotal);
       addLog(`🏛️ ${allNames[cp]} redeems The First Family! +${pts} pts`);
-      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:[] });
-      soundAmericanFamily();
       const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
+      logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:familyCards });
       setHands(hands.map((h,i) => i===cp ? h.filter(c=>!famIds.has(c.id)) : h));
       setTimeout(() => {
         setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
@@ -7555,11 +7557,11 @@ function DiamondsGame() {
     setRoundScores(newRoundScores);
     setTotalScores(newTotal);
     addLog(`🏛️ ${allNames[playerIdx]} redeems The First Family! +${pts} pts`);
-    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:[] });
     soundAmericanFamily();
     setAmericanFamilyOffered(prev => { const n=[...prev]; n[playerIdx]=false; return n; });
     const famIds = new Set(["A♦","J♦","Q♦","K♦"]);
     const familyCards = (hands[playerIdx]||[]).filter(c=>famIds.has(c.id));
+    logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:familyCards });
     setHands(hands.map((h,i) => i===playerIdx ? h.filter(c=>!famIds.has(c.id)) : h));
     setTrickResult({ winnerIdx:playerIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
     setPhase("trickresult");
@@ -7937,7 +7939,7 @@ function DiamondsGame() {
   }
 
   // Shared resolution for J♦ rob/pass choice when A♠ is in the trick
-  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj, currentHands, passConsolation = 1, jackDCalledBlock = false) {
+  function finalizeAceRobResolution(jackRobbed, jackDIdx, aceWinnerIdx, autoBlockedJoker, autoBlockedQC, baseRoundScores, baseResultObj, currentHands, passConsolation = 1, jackDCalledBlock = false, jackDCalledRescue = false) {
     const GA = goldenAgeRef.current ? 2 : 1;
     const finalRound = [...baseRoundScores];
     if (!jackRobbed) {
@@ -7961,7 +7963,7 @@ function DiamondsGame() {
       addLog(`♠ ${allNames[aceWinnerIdx]} (Ace of Spades) wins the trick.`);
     }
     setRoundScores(finalRound);
-    const newTotal = totalScores.map((s,i) => s + finalRound[i]);
+    const newTotal = totalScoresRef.current.map((s,i) => s + finalRound[i]);
     const gameWon = newTotal.some(s => s >= winScoreRef.current);
     const rescueFires = !jackRobbed && !autoBlockedJoker && !autoBlockedQC;
     const finalResult = {
@@ -7973,7 +7975,7 @@ function DiamondsGame() {
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
       ...(jackDCalledBlock && { jackDCalledBlock: true }),
-      ...(rescueFires && !jackRobbed && { jackDCalledRescue: true }),
+      ...(jackDCalledRescue && { jackDCalledRescue: true }),
     };
     // Rescue fires when J♦ passed AND no Joker/QC to block (block takes priority over rescue)
     if (rescueFires && currentHands) {
@@ -8014,7 +8016,7 @@ function DiamondsGame() {
     const arc = aceRobChoiceStateRef.current;
     if (!arc) return;
     const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands } = arc;
-    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, 1, false);
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, 1, false, true);
   }
 
   function handleAceRobChoiceCallBlock() {
@@ -8032,7 +8034,7 @@ function DiamondsGame() {
     const { acePlayerIdx, jackDPlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, passConsolation = 1 } = arc;
     const hasSpecials = aceBlockedJoker || aceBlockedQueenClubs;
     const consolation = hasSpecials ? 5 : passConsolation;
-    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, consolation, hasSpecials);
+    finalizeAceRobResolution(false, jackDPlayerIdx, acePlayerIdx, aceBlockedJoker, aceBlockedQueenClubs, baseRoundScores, baseResultObj, currentHands, consolation, hasSpecials, false);
   }
 
   function handleTheStealEndRound() {
@@ -8178,6 +8180,7 @@ function DiamondsGame() {
   }
   function dismissTheStealEvent() {
     if (!theStealState) return;
+    if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
     if (theStealState.aiEndsRound) {
       const { pendingRound, pendingTotal } = theStealState;
       setTheStealState(null);
@@ -8896,6 +8899,7 @@ function DiamondsGame() {
     setBloodDiamondOffered([null,null,null,null]);
     setAcesLowOffered([false,false,false,false]);
     setTheStealOffered([false,false,false,false]);
+    setShowdownOffered([false,false,false,false]);
     setRiotOffered([false,false,false,false]);
     setAmericanFamilyOffered([false,false,false,false]);
     setTrickResult(null);
@@ -9416,6 +9420,7 @@ function DiamondsGame() {
 
   // AI kidnap
   useEffect(() => {
+    if (isMultiplayer() && !isHost()) return;
     if (phase !== "kidnap" || !kidnapState) return;
     const jokerPlayer = kidnapState.jokerPlayerIdx;
     if (jokerPlayer === mySeatingIdx) return; // human handles it via KidnapModal
@@ -9454,13 +9459,14 @@ function DiamondsGame() {
 
   // AI Queen of Clubs
   useEffect(() => {
+    if (isMultiplayer() && !isHost()) return;
     if (phase !== "queenclubs" || !queenClubsState) return;
-    if (queenClubsState.playerIdx === 0) return; // human handles via QueenClubsModal
+    if (queenClubsState.playerIdx === mySeatingIdx) return; // human handles via QueenClubsModal
 
     const timer = setTimeout(() => {
       // Read from ref to get the guaranteed-current state, avoiding stale closures
       const state = queenClubsStateRef.current;
-      if (!state || state.playerIdx === 0) return;
+      if (!state || state.playerIdx === mySeatingIdx) return;
       const { playerIdx, hands: currentHands, resultObj, gameWon, newTotal } = state;
       snapshotKnowledge(playerIdx, currentHands);
 
@@ -9550,6 +9556,7 @@ function DiamondsGame() {
 
   // AI rescue (Ace of Spades wins trick without a Joker)
   useEffect(() => {
+    if (isMultiplayer() && !isHost()) return;
     if (phase !== "rescue" || !rescueState) return;
     const acePlayer = rescueState.acePlayerIdx;
     if (acePlayer === mySeatingIdx) return; // human handles it via RescueModal
@@ -9571,7 +9578,13 @@ function DiamondsGame() {
 
   // AI J♦ rob/pass choice when A♠ is in the trick — AI always passes
   useEffect(() => {
-    if (phase !== "acerobchoice" || !aceRobChoiceState) return;
+    if (isMultiplayer() && !isHost()) return;
+    if (phase !== "acerobchoice") return;
+    if (!aceRobChoiceState) {
+      // Safety: state cleared while phase is still acerobchoice — reset to avoid lock
+      const t = setTimeout(() => { if (!aceRobChoiceStateRef.current) setPhase("playing"); }, 2000);
+      return () => clearTimeout(t);
+    }
     if (aceRobChoiceState.jackDPlayerIdx === mySeatingIdx) return; // human handles via modal
     const timer = setTimeout(() => { handleAceRobChoiceNoRob(); }, 900);
     return () => clearTimeout(timer);
@@ -9996,7 +10009,7 @@ function DiamondsGame() {
     }
     return true;
   }
-  function isValidRule4sel(cards) {
+  function isValidRule2sel(cards) {
     if (cards.length !== 4) return false;
     const byRank = {};
     for (const c of cards) { if (!byRank[c.rank]) byRank[c.rank]=[]; byRank[c.rank].push(c); }
@@ -10007,12 +10020,12 @@ function DiamondsGame() {
     return cards.length === 4 && cards.every(c => AF_IDS.includes(c.id));
   }
   const selectedSetType = isValidRule3sel(selectedCards) ? "r3"
-    : isValidRule4sel(selectedCards) ? "r4"
+    : isValidRule2sel(selectedCards) ? "r2"
     : isValidAFsel(selectedCards) ? "af"
     : null;
   const selectedSetBonus = selectedSetType === "r3"
     ? RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1)
-    : selectedSetType === "r4"
+    : selectedSetType === "r2"
     ? SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1)
     : selectedSetType === "af"
     ? AMERICAN_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1)
@@ -10430,7 +10443,7 @@ function DiamondsGame() {
             const selIdx = selectedCards.length === 1 ? playerHand.findIndex(c => c.id === selectedCards[0]?.id) : -1;
             return playerHand.map((card, ci) => {
               const isLegal = openingConstraint
-                ? (openingConstraint === "2c" ? (card.rank==="2" && card.suit==="♣") : (card.suit==="♣" && !card.isJoker))
+                ? (openingConstraint === "2c" ? (card.rank==="2" && card.suit==="♣") : (card.suit==="♣" || card.isJoker))
                 : card.isJoker
                 ? true
                 : trickPlays.length === 0
@@ -10575,7 +10588,7 @@ function DiamondsGame() {
             if (selectedSetType === "af") {
               setSelectedCards([]);
               setPhase("americanfamily_offer");
-            } else if (selectedSetType === "r3" || selectedSetType === "r4") {
+            } else if (selectedSetType === "r3" || selectedSetType === "r2") {
               const cards = selectedCards;
               const pts = selectedSetBonus;
               const cardIds = new Set(cards.map(c=>c.id));
@@ -10735,7 +10748,7 @@ function DiamondsGame() {
                   <span style={{display:"flex",alignItems:"center",justifyContent:"space-between",letterSpacing:"-0.5px",width:"100%"}}>
                     <span>🩸 Rule of 6</span><span style={{opacity:0.75}}>+{BLOOD_DIAMOND_BONUS*GA}</span>
                   </span>
-                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center"}}>{bdLabel}</span>
+                  <span style={{fontWeight:400,fontSize:subLabelSize,letterSpacing:0,textTransform:"none",opacity:0.85,width:"100%",textAlign:"center",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block"}}>{bdLabel}</span>
                 </button>
               );
             });
@@ -11170,7 +11183,7 @@ function DiamondsGame() {
               Block the Joker and win this trick yourself.
             </p>
             <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
-              {allNames[robbinSummonState.aceHolderIdx]} receives +30 pts and wins the trick. You then choose to rob or pass.
+              {allNames[robbinSummonState.aceHolderIdx]} receives +{35 * (goldenAgeRef.current ? 2 : 1)} pts and wins the trick. You then choose to rob or pass.
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
