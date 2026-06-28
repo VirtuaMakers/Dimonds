@@ -6086,6 +6086,7 @@ function DiamondsGame() {
   const playedCardsRef = useRef([]); // cards from completed tricks this round
   const roundEventLogRef = useRef([]); // accumulates events during the round
   const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
+  const redeemingSetRef = useRef(false); // prevents double-tap on Redeem buttons
   const [roundEventLog, setRoundEventLog] = useState([]);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
   const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, aceHolderIdx, hands, resultObj, gameWon, newTotal }
@@ -7553,6 +7554,7 @@ function DiamondsGame() {
   }
 
   function handleAmericanFamily(playerIdx) {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('americanFamilyAccept', {});
       setPhase('playing');
@@ -8355,6 +8357,7 @@ function DiamondsGame() {
 
   // ---- Aces Low: human chose CASH IT ----
   function acceptAcesLow() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!acesLowState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('acesLowAccept', {});
@@ -8409,6 +8412,7 @@ function DiamondsGame() {
 
   // ---- Rule of 3: human accepts ----
   function acceptRuleOfThree() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!ruleOfThreeState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('ruleOfThreeAccept', { cardIds: (ruleOfThreeState.cards||[]).map(c=>c.id) });
@@ -8462,6 +8466,7 @@ function DiamondsGame() {
 
   // ---- Rule of 4 (Swinging Paradox): human accepts ----
   function acceptSwingingParadox() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!swingingParadoxState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('swingingParadoxAccept', { cardIds: (swingingParadoxState.cards||[]).map(c=>c.id) });
@@ -8515,6 +8520,7 @@ function DiamondsGame() {
 
   // ---- Rule of 4 (Dimond in the Rough): human accepts ----
   function acceptRuleFour() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!ruleFourState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('ruleFourAccept', { cardIds: (ruleFourState.cards||[]).map(c=>c.id) });
@@ -8610,6 +8616,7 @@ function DiamondsGame() {
     setPhase("playing");
   }
   function acceptNuclearFamily() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!nuclearFamilyState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('nuclearFamilyAccept', { cardIds: (nuclearFamilyState.cards||[]).map(c=>c.id) });
@@ -8651,6 +8658,7 @@ function DiamondsGame() {
     setPhase("playing");
   }
   function acceptBloodDiamond() {
+    if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
     if (!bloodDiamondState) return;
     if (isMultiplayer() && !isHost()) {
       guestSubmitMove('bloodDiamondAccept', { cardIds: (bloodDiamondState.cards||[]).map(c=>c.id) });
@@ -10594,6 +10602,9 @@ function DiamondsGame() {
             : "Play Card";
           function handlePlayBtn() {
             if (!btnEnabled) return;
+            if (selectedSetType && selectedSetType !== "af") {
+              if (redeemingSetRef.current) return; redeemingSetRef.current = true; setTimeout(() => { redeemingSetRef.current = false; }, 500);
+            }
             if (selectedSetType === "af") {
               setSelectedCards([]);
               setPhase("americanfamily_offer");
