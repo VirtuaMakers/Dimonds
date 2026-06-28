@@ -4442,7 +4442,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
           </div>
         )}
-        {isJDRescue && result.jackDiamondPlayerIdx != null && (
+        {result.jackDiamondPlayerIdx != null && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>+1 pt to {allNames[result.jackDiamondPlayerIdx]}</div>
         )}
         {pointsWon > 0 && (
@@ -7982,6 +7982,7 @@ function DiamondsGame() {
       aceBlockedQueenClubs: autoBlockedQC,
       jackDiamondPassed: !jackRobbed,
       jackDiamondRob: false,
+      jackDiamondPlayerIdx: jackDIdx,
       ...(jackDCalledBlock && { jackDCalledBlock: true }),
       ...(jackDCalledRescue && { jackDCalledRescue: true }),
     };
@@ -8277,7 +8278,7 @@ function DiamondsGame() {
     flyCardBetweenPlayers(rescuedCard, fromPlayer, acePlayerIdx);
 
     setHands(newHands);
-    const resultObj = { ...rs.resultObj, aceBlocked: false, aceBlockedJoker: false, aceBlockedQueenClubs: false, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer };
+    const resultObj = { ...rs.resultObj, aceBlocked: false, aceBlockedJoker: false, aceBlockedQueenClubs: false, aceRescued: true, aceRescuerIdx: acePlayerIdx, rescuedCard, rescuedFrom: fromPlayer, ...(rs.resultObj?.jackDCalledRescue && { jackDCalledRescue: true }) };
     setTrickResult(resultObj);
     setRescueState(null);
     setPeekingModal(null);
