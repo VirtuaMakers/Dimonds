@@ -9265,6 +9265,26 @@ function DiamondsGame() {
       // set fired on the same render and updated hands before this timer fired.
       const hand = handsRef.current[currentPlayer];
 
+      // Simp uses Rule of 1 before every play (even when following mid-trick).
+      // The leading case is already handled by the set-detection effect; the ref
+      // guard prevents double-fire if that already ran.
+      if (slotId === 'simp' && !rule1UsedThisTurnRef.current[currentPlayer]) {
+        const simpDimonds = (handsRef.current[currentPlayer] || []).filter(c => isDiamond(c) && !c.isJoker);
+        if (simpDimonds.length > 0) {
+          const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
+          let bestTarget = -1, highestScore = -Infinity;
+          for (let i = 0; i < 4; i++) {
+            if (i === currentPlayer) continue;
+            if (combined[i] > highestScore) { highestScore = combined[i]; bestTarget = i; }
+          }
+          if (bestTarget !== -1) {
+            const giftCard = simpDimonds.reduce((b, c) => diamondPoints(c) > diamondPoints(b) ? c : b, simpDimonds[0]);
+            handleRule1Give(bestTarget, giftCard, currentPlayer);
+            return;
+          }
+        }
+      }
+
       // If AI has no cards, skip their turn — advance to next player with cards
       if (!hand || hand.length === 0) {
         // Find next player in turn order who has cards
