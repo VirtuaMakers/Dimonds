@@ -6293,6 +6293,7 @@ function DiamondsGame() {
         // and guestEventDismissed won't auto-reset — do it explicitly here.
         if ((st.phase ?? "playing") === "playing" && phaseRef.current === "playing") {
           setGuestEventDismissed(false);
+          setCyttGuestDismissed(false);
         }
       }
       if (st.phase && st.phase !== "menu") { setScreen(st.phase === "gameover" ? "gameover" : "game"); setShowMpLobby(false); }
