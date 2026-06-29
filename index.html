@@ -6179,6 +6179,7 @@ function DiamondsGame() {
     mpEventPendingDismissalsRef.current = next;
     if (next === 0) {
       setMpWaitingForDismissals(false);
+      pendingEventContinuationRef.current = null;
       fn();
     } else {
       pendingEventContinuationRef.current = fn;
@@ -11039,12 +11040,18 @@ function DiamondsGame() {
         <div style={{
           position:"fixed", inset:0, zIndex:250,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-          background:"rgba(0,0,0,0.55)", pointerEvents:"all",
+          background:"rgba(0,0,0,0.55)",
+          pointerEvents: isHost() ? "none" : "all",
         }}>
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:90, height:90, opacity:0.8, marginBottom:14}} />
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
             {isHost() ? "Waiting for all players to continue…" : `Waiting for ${allNames[0]}…`}
           </div>
+          {isHost() && (
+            <div style={{color:"#ffffff66", fontFamily:FONT_UI, fontSize:11, letterSpacing:1, textAlign:"center", marginTop:8}}>
+              Tap the button below to continue without them
+            </div>
+          )}
         </div>
       )}
 
