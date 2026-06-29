@@ -6255,8 +6255,16 @@ function DiamondsGame() {
     if (!ref) return;
     const toCardFB = c => ({ rank:c.rank, suit:c.suit, id:c.id, ...(c.isJoker?{isJoker:true}:{}) });
     const toPlay = p => ({ playerIdx:p.playerIdx, card:toCardFB(p.card) });
-    // Firebase rejects undefined values — strip them before writing
-    const stripUndef = obj => Object.fromEntries(Object.entries(obj).filter(([,v]) => v !== undefined));
+    // Firebase rejects undefined values — recursively strip them before writing
+    const stripUndef = obj => {
+      if (obj === null || typeof obj !== 'object') return obj;
+      if (Array.isArray(obj)) return obj.map(stripUndef);
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v !== undefined) out[k] = stripUndef(v);
+      }
+      return out;
+    };
     const snap = {
       phase,
       hands: hands.map(h => (h||[]).map(toCardFB)),
@@ -6264,12 +6272,12 @@ function DiamondsGame() {
       turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       allNames, playerEmojis, opponentSlots,
-      trickResult: trickResult ? stripUndef({
+      trickResult: trickResult ? {
         ...trickResult,
         plays: (trickResult.plays||[]).map(toPlay),
         diamondsCaptured: (trickResult.diamondsCaptured||[]).map(toCardFB),
         familyCards: (trickResult.familyCards||[]).map(toCardFB),
-      }) : null,
+      } : null,
       pendingPlayContinuation: pendingPlayContinuation ? {
         playerIdx: pendingPlayContinuation.playerIdx,
         card: toCardFB(pendingPlayContinuation.card),
@@ -6287,7 +6295,7 @@ function DiamondsGame() {
       swingingParadoxState: swingingParadoxState ? { ...swingingParadoxState, cards:(swingingParadoxState.cards||[]).map(toCardFB) } : null,
       rule1State, rule1UsedThisTurn,
     };
-    ref.child('state').set(snap).catch(e => console.error('[FB write]', e));
+    ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
   }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
