@@ -4974,7 +4974,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0, llmTaunts={}, onSpeakTaunt }) {
+function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0, llmTaunts={}, onSpeakTaunt, restartDisabled=false, hostLeft=false }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -5076,8 +5076,15 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
             </div>
           </div>
         )}
+        {hostLeft && (
+          <div style={{background:"rgba(255,68,34,0.12)",border:"1px solid rgba(255,100,68,0.35)",borderRadius:10,padding:"10px 14px",marginBottom:4,color:"#ffaa88",fontSize:13,fontFamily:FONT_UI,textAlign:"center"}}>
+            The host has left. Game over.
+          </div>
+        )}
         <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:8,width:200,margin:"14px auto 0"}}>
-          <GoldBtn onClick={onRestart} small>New Game</GoldBtn>
+          {restartDisabled
+            ? <GoldBtn disabled small title="Only the host can start a New Game.">New Game</GoldBtn>
+            : <GoldBtn onClick={onRestart} small>New Game</GoldBtn>}
           {onMainMenu && <GoldBtn onClick={onMainMenu} secondary small>Main Menu</GoldBtn>}
           <GoldBtn onClick={onShowCredits} secondary small>Credits</GoldBtn>
           <GoldBtn onClick={()=>setShowBreakdown(true)} secondary small>Round Tally</GoldBtn>
@@ -6187,6 +6194,7 @@ function DiamondsGame() {
   const [showMpLobby, setShowMpLobby] = useState(false);
   const [mpDisconnected, setMpDisconnected] = useState(false);
   const [mpJoinAttempt, setMpJoinAttempt] = useState(0);
+  const [hostLeftGame, setHostLeftGame] = useState(false);
 
   function guestSubmitMove(type, payload) {
     if (!mpRoomRef.current) return;
@@ -6392,6 +6400,7 @@ function DiamondsGame() {
       syncEv('swingingParadox',setSwingingParadoxState,st.swingingParadoxState,s => ({...s, cards:fbArr(s.cards||[])}));
       setRule1State(st.rule1State ?? null);
       if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
+      if (st.hostLeft) setHostLeftGame(true);
     };
     ref.child('state').on('value', handler);
     return () => ref.child('state').off('value', handler);
@@ -8304,20 +8313,18 @@ function DiamondsGame() {
     fireTrickComment();
     logRoundEvent({ type:"set", playerIdx:riotState.playerIdx, trickNum:tricksPlayed+1, points:RIOT_BONUS*(goldenAgeRef.current?2:1), setEmoji:"🔥", setName:"Riot", cards:riotState.cards||[] });
     soundRiot();
-    setRiotState(null);
     const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
+      setRiotState(null);
       setRoundScores(newRound);
       setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
     } else {
-      setRoundScores(newRound);
-      setTotalScores(newTotal);
-      soundRoundWin();
-      setPhase("roundover");
-      setRoundNum(r=>r+1);
+      // Show event box so all human players acknowledge before roundover
+      setRiotState(prev => ({ ...prev, _id: prev?._id ?? Math.random(), points: pts, pendingRound: newRound, pendingTotal: newTotal }));
+      setPhase("riot_event");
     }
   }
   function handleRiotPlayOn() {
@@ -8331,9 +8338,10 @@ function DiamondsGame() {
     if (!riotState) return;
     if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
-    setRiotState(null);
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
+    if (!isMultiplayer()) setRiotState(null);
     gateEventAdvance(() => {
+      setRiotState(null);
       setRoundScores(pendingRound);
       setTotalScores(pendingTotal);
       soundRoundWin();
@@ -11272,8 +11280,10 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {riotState && phase !== "riot" && (
-        <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot" btnLabel="PROCEED" onContinue={dismissRiotEvent}>
+      {riotState && riotState.pendingRound && phase !== "riot" && (
+        <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot"
+          btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
+          onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissRiotEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[riotState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{riotState.cards?.length ?? 7} {riotState.suit} cards redeemed — Round over!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -11727,16 +11737,14 @@ function DiamondsGame() {
           scores={totalScores}
           allNames={allNames}
           playerEmojis={playerEmojis}
-          onRestart={isMultiplayer()
-            ? (isHost()
-              ? () => gateEventAdvance(startGame)
-              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
-            : () => startGame()}
+          onRestart={isMultiplayer() && !isHost() ? undefined : (isMultiplayer() ? () => gateEventAdvance(startGame) : () => startGame())}
+          restartDisabled={isMultiplayer() && !isHost()}
           onMainMenu={isMultiplayer()
             ? (isHost()
-              ? () => gateEventAdvance(() => setScreen("menu"))
+              ? () => { if (mpRoomRef.current) mpRoomRef.current.child('state').update({ hostLeft: true }); setScreen("menu"); }
               : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
             : () => setScreen("menu")}
+          hostLeft={hostLeftGame}
           onShowCredits={()=>setShowCredits(true)}
           gameTricksPerPlayer={gameTricksPerPlayer}
           gameSetsPerPlayer={gameSetsPerPlayer}
