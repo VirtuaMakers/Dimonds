@@ -2652,7 +2652,7 @@ function resolveTrick(plays, trumpBroken=true) {
       jackDiamondPlayerIdx: jackDPlay?.playerIdx,
     };
   }
-  // Joker wins (no Ace of Spades) — Q♣ silenced (Joker is dominant action this trick)
+  // Joker wins (no Ace of Spades) — Q♣ chains after the kidnap (like J♦ does)
   if (jokerPlay && !acePlay) {
     return {
       winnerIdx: jokerPlay.playerIdx,
@@ -2660,6 +2660,8 @@ function resolveTrick(plays, trumpBroken=true) {
       jokerPlayerIdx: jokerPlay.playerIdx,
       jackDiamondRob: !!jackDPlay,
       jackDiamondPlayerIdx: jackDPlay?.playerIdx,
+      queenClubsThieve: !!queenClubsPlay,
+      queenClubsPlayerIdx: queenClubsPlay?.playerIdx,
     };
   }
   // Jack of Dimonds in trick (no Ace of Spades) — J♦ robs first; Q♣ fires independently after
@@ -7762,11 +7764,18 @@ function DiamondsGame() {
 
     if (result.jokerWin) {
       setTimeout(() => {
+        // Q♣ also in trick — chain her move after Joker kidnap (like J♦ does)
+        const pendingQC = result.queenClubsThieve ? {
+          playerIdx: result.queenClubsPlayerIdx,
+          hands: currentHands,
+          gameWon,
+          newTotal,
+        } : null;
         const hasTargets = currentHands.some((h, i) => i !== winner && h.length > 0);
         if (!hasTargets) {
           addLog(`🃏 ${allNames[winner]} wins with the Joker (no cards left to kidnap)`);
           soundJokerKidnaps();
-          setTrickResult({ ...resultObj, jokerWin: true, jokerNoTargets: true });
+          setTrickResult(pendingQC ? { ...resultObj, jokerWin: true, jokerNoTargets: true, pendingQueenClubs: pendingQC } : { ...resultObj, jokerWin: true, jokerNoTargets: true });
           if (gameWon) {
             setTotalScores(newTotal);
             setPendingFireworks(true);
@@ -7804,7 +7813,7 @@ function DiamondsGame() {
           return;
         }
         if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-        setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj });
+        setKidnapState({ jokerPlayerIdx: winner, hands: currentHands, resultObj, pendingQueenClubs: pendingQC || undefined });
         setPhase("kidnap");
       }, 600);
     } else if (jackDRobTriggered) {
@@ -7918,8 +7927,8 @@ function DiamondsGame() {
       addLog(`🎴 ${allNames[pendingRobbinIdx]} (Robbin Jack) — no cards left to rob`);
     }
 
-    // If Q♣ was also in this trick, chain her move after J♦'s rob
-    const pendingQC = isRobbin && ks.pendingQueenClubs ? {
+    // If Q♣ was also in this trick, chain her move after J♦'s rob OR Joker's kidnap
+    const pendingQC = ks.pendingQueenClubs ? {
       ...ks.pendingQueenClubs,
       hands: newHands,
     } : null;
@@ -7945,7 +7954,8 @@ function DiamondsGame() {
     if (!isRobbin) {
       soundJokerRelease();
       addLog(`🃏 ${allNames[jackPlayerIdx]} releases their kidnap.`);
-      setTrickResult({ ...ks.resultObj, jokerWin: true, jackDiamondRob: false, pendingRobbinKidnap: undefined });
+      const skipQC = ks.pendingQueenClubs || null;
+      setTrickResult({ ...ks.resultObj, jokerWin: true, jackDiamondRob: false, pendingRobbinKidnap: undefined, ...(skipQC && { pendingQueenClubs: skipQC }) });
       setKidnapState(null);
       setPhase("trickresult");
       return;
