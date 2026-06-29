@@ -5428,6 +5428,8 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     return `${m}:${String(sec).padStart(2,'0')}`;
   }
 
+  const AI_SEL_COLORS = [VM.tealLight, VM.gold, '#cc44aa'];
+
   function AIPicker() {
     return (
       <div style={{marginBottom:16}}>
@@ -5437,27 +5439,40 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
         </div>
         <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6}}>
           {OPPONENT_OPTIONS.map(opt => {
-            const sel = selectedAIs.includes(opt.id);
+            const selIdx = selectedAIs.indexOf(opt.id);
+            const sel = selIdx >= 0;
             const maxed = !sel && selectedAIs.length >= 3;
+            const selColor = sel ? AI_SEL_COLORS[selIdx] : null;
             return (
               <div key={opt.id} onClick={maxed ? undefined : ()=>toggleAI(opt.id)} style={{
                 borderRadius:10, cursor:maxed?'default':'pointer',
-                border:`2px solid ${sel?(opt.color||VM.tealLight):'rgba(255,255,255,0.13)'}`,
-                background: sel?(opt.color?opt.color+'18':VM.tealLight+'18'):'rgba(255,255,255,0.04)',
+                border:`2px solid ${sel ? selColor : 'rgba(255,255,255,0.13)'}`,
+                background: sel ? selColor+'18' : 'rgba(255,255,255,0.04)',
                 opacity: maxed ? 0.4 : 1,
                 padding:'6px 4px 7px',
                 display:'flex',flexDirection:'column',alignItems:'center',gap:3,
                 transition:'all 0.12s',
-                boxShadow: sel?`0 0 8px ${opt.color||VM.tealLight}44`:'none',
+                boxShadow: sel ? `0 0 8px ${selColor}44` : 'none',
                 touchAction:'manipulation',
+                position:'relative',
               }}>
+                {sel && (
+                  <div style={{
+                    position:'absolute', top:4, left:5,
+                    width:16, height:16, borderRadius:'50%',
+                    background: selColor, color:'#000',
+                    fontSize:10, fontWeight:900, fontFamily:FONT_DISPLAY,
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    lineHeight:1, zIndex:1,
+                  }}>{selIdx + 1}</div>
+                )}
                 <div style={{height:52,width:'100%',background:'#fff',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:2}}>
                   {opt.logo
                     ? <img src={opt.logo} alt={opt.label} style={{maxWidth:'98%',maxHeight:46,objectFit:'contain'}}/>
                     : <span style={{fontSize:22}}>{opt.emoji}</span>
                   }
                 </div>
-                <div style={{color:sel?(opt.color||VM.tealLight):'#ffffffcc',fontSize:10,fontWeight:800,fontFamily:FONT_DISPLAY,textAlign:'center',letterSpacing:0.3}}>{opt.label}</div>
+                <div style={{color:sel ? selColor : '#ffffffcc',fontSize:10,fontWeight:800,fontFamily:FONT_DISPLAY,textAlign:'center',letterSpacing:0.3}}>{opt.label}</div>
               </div>
             );
           })}
@@ -5531,10 +5546,18 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       <div>
         <div style={{color:'#ffffff88',fontSize:12,fontFamily:FONT_UI,marginBottom:16,lineHeight:1.6,textAlign:'center'}}>
           Create a room and share the 4-letter code.<br/>
-          <span style={{color:VM.tealLight+'88'}}>Up to 3 friends can join. You have 5 minutes.</span>
+          <span style={{color:VM.tealLight+'88'}}>Up to 3 friends can join. You have 5 minutes.</span><br/>
+          <span style={{color:'#ffffff55'}}>Select up to 3 AI as substitutes or opponents.</span>
         </div>
         <AIPicker/>
-        <div style={{display:'flex',justifyContent:'center'}}><GoldBtn onClick={handleCreateRoom}>Create Room ◆</GoldBtn></div>
+        <div style={{display:'flex',justifyContent:'center'}}>
+          <GoldBtn onClick={handleCreateRoom}>
+            {selectedAIs.length === 0 ? 'Create Room ◆'
+              : selectedAIs.length === 1 ? 'Pick 2 More'
+              : selectedAIs.length === 2 ? 'Pick a Substitute'
+              : 'Create Room ◆'}
+          </GoldBtn>
+        </div>
       </div>
     );
     return (
@@ -7410,8 +7433,9 @@ function DiamondsGame() {
     guestPlayers.forEach(p => {
       if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||`Player ${seats.length + 1}`, type:'human' });
     });
-    // Fill remaining seats: pre-selected AIs first, then random from unselected
-    const selectedQueue = [...preSelectedAIs];
+    // Fill remaining seats: pre-selected AIs in reverse order (3rd pick → seat 1 = replaced first),
+    // then random from unselected
+    const selectedQueue = [...preSelectedAIs].reverse();
     const unselectedPool = OPPONENT_OPTIONS
       .filter(o => !preSelectedAIs.includes(o.id))
       .sort(() => Math.random() - 0.5)
