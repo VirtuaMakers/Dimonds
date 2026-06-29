@@ -6686,6 +6686,8 @@ function DiamondsGame() {
       return; // Human notified via buttons in action area
     } else if (_sdRel !== 0 && opponentSlotsRef.current[_sdRel - 1] === 'simp') {
       return; // Simp never cashes sets
+    } else if (_sdRel !== 0 && opponentSlotsRef.current[_sdRel - 1] === 'human') {
+      return; // Human guest handles their own sets
     } else {
       const pts = SHOWDOWN_BONUS * (goldenAgeRef.current ? 2 : 1);
       const stealIds = new Set((hands[cp]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)).map(c=>c.id));
@@ -6730,6 +6732,8 @@ function DiamondsGame() {
       return; // Human player notified via buttons in action area
     } else if (_tsRel !== 0 && opponentSlotsRef.current[_tsRel - 1] === 'simp') {
       return; // Simp never cashes sets
+    } else if (_tsRel !== 0 && opponentSlotsRef.current[_tsRel - 1] === 'human') {
+      return; // Human guest handles their own sets
     } else {
       // AI player — cash in, then show event box so human sees it
       const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
@@ -6780,6 +6784,8 @@ function DiamondsGame() {
       return; // Human player notified via buttons in action area
     } else if (_rtRel !== 0 && opponentSlotsRef.current[_rtRel - 1] === 'simp') {
       return; // Simp never cashes sets
+    } else if (_rtRel !== 0 && opponentSlotsRef.current[_rtRel - 1] === 'human') {
+      return; // Human guest handles their own sets
     } else {
       const cardIds = new Set(riotCards.map(c=>c.id));
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
@@ -6819,6 +6825,8 @@ function DiamondsGame() {
       return; // Human player notified via buttons in action area
     } else if (_gaRel !== 0 && opponentSlotsRef.current[_gaRel - 1] === 'simp') {
       return; // Simp never cashes sets
+    } else if (_gaRel !== 0 && opponentSlotsRef.current[_gaRel - 1] === 'human') {
+      return; // Human guest handles their own sets
     } else if (_gaRel !== 0 && opponentSlotsRef.current[_gaRel - 1] === 'guy') {
       return; // Guy inexplicably prefers Rule of 4 with 4 aces over Golden Age — let it fall through
     } else {
