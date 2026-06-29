@@ -6311,7 +6311,7 @@ function DiamondsGame() {
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
-      if (!GUEST_LOCAL_PHASES.has(phaseRef.current)) {
+      if (!GUEST_LOCAL_PHASES.has(phaseRef.current) && !GUEST_LOCAL_PHASES.has(st.phase ?? "playing")) {
         setPhase(st.phase ?? "playing");
         // If phase stays "playing" (React no-ops the setState), useEffect([phase]) won't fire
         // and guestEventDismissed won't auto-reset — do it explicitly here.
@@ -11145,7 +11145,7 @@ function DiamondsGame() {
         </div>
       )}
 
-      {phase==="thesteal" && theStealState && (
+      {phase==="thesteal" && theStealState && theStealState.playerIdx === mySeatingIdx && (
         <Modal>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:4}}>🌇</div>
@@ -11182,7 +11182,7 @@ function DiamondsGame() {
         </EventBox>
       )}
 
-      {phase==="showdown" && showdownState && (
+      {phase==="showdown" && showdownState && showdownState.playerIdx === mySeatingIdx && (
         <Modal>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:4}}>🌆</div>
@@ -11219,7 +11219,7 @@ function DiamondsGame() {
         </EventBox>
       )}
 
-      {phase==="riot" && riotState && (
+      {phase==="riot" && riotState && riotState.playerIdx === mySeatingIdx && (
         <Modal>
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:48,marginBottom:4}}>🔥</div>
@@ -11416,7 +11416,7 @@ function DiamondsGame() {
       )}
 
       {/* American Family — offer modal (only human player) */}
-      {phase==="americanfamily_offer" && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
+      {phase==="americanfamily_offer" && checkAmericanFamily(hands[mySeatingIdx] || []) && dealRevealIdx >= (hands[mySeatingIdx]?.length ?? 0) && (
         <div style={{
           position:"fixed", top:0, left:0, right:0, height:"58%",
           background:"rgba(4,18,15,0.72)",
