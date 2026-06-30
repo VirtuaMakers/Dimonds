@@ -7642,7 +7642,8 @@ function DiamondsGame() {
     setTrickPlays(newPlays);
 
     // Cutting Your Teeth — INTERRUPT the trick immediately on first diamond played
-    const justBrokeDimonds = !diamondsBroken && isDiamond(card);
+    // Use ref (not state) — submitPlay may be called from a stale Firebase closure
+    const justBrokeDimonds = !diamondsBrokenRef.current && isDiamond(card);
     if (justBrokeDimonds) {
       setDiamondsBroken(true);
       soundCuttingYourTeeth();
