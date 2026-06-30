@@ -6450,6 +6450,11 @@ function DiamondsGame() {
     if (isMultiplayer() && isHost()) {
       setCyttPending(opponentSlots.filter(id => id === 'human').length);
     }
+    // Guest: host's addLog doesn't sync — write the communiqué entry locally so the
+    // guest's ribbon also records when diamonds were broken.
+    if (isMultiplayer() && !isHost()) {
+      addLog("♦ Cutting Your Teeth — Dimonds are now in play!");
+    }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Firebase: host processes guest pendingMoves ───────────────────────────────
