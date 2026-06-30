@@ -5796,7 +5796,7 @@ function RulesPanel({ onClose, initialView = "rules" }) {
                 {num:"e.",title:"📝 Scoring",text:(<>Each dimond captured scores points!<br/><strong style={{fontStyle:"normal",color:"#e2c97e",fontSize:13,display:"block",lineHeight:1.8}}>K♦️ +5 pts.<br/>Q♦️ +4 pts.<br/>J♦️ +3 pts.<br/>A♦️ +2 pts.<br/>#s♦️ +1 pt.</strong></>),sub:true},
                 {num:"f.",title:"🗂️ Held Cards",text:'Only cards remaining in a player\'s hand are considered "held". Cards played to tricks are out of play for the rest of the round — they cannot be targeted, stolen, or counted toward sets.',sub:true},
                 {num:"4.",title:"Special Cards",text:"",sub:false},
-                {num:"a.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em style={{fontStyle:"italic"}}>Kidnaps</em> any one card from any opponent's hand.</>),sub:true},
+                {num:"a.",title:"🃏 The Joker",text:(<>The Joker is wild-suited and wins any trick. <em>Kidnaps</em> any one card from any opponent's hand. <span style={{color:"#e2c97ecc"}}>Note: Unlike The Queen of Clubs, The Jack of Dimonds, and The Ace of Spades; The Joker does not have the ability to browse through other players' cards when he Kidnaps — he must first choose a player to Kidnap from.</span></>),sub:true},
                 {num:"b.",title:"🔷/🔶 The Queen of Clubs",text:(<><div>• The Queen of Clubs has a stealing capability of her own — <em>Thievin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal and instead <em>Reallocate</em> any one card from any other player to another (not from or to herself).</div></>),sub:true},
                 {num:"c.",title:"🎴/⚖️ The Jack of Dimonds (Robbin Jack)",text:(<><div>• The Jack of Dimonds has a stealing capability of his own — <em>Robbin'</em> any one card from any opponent's hand!</div><div style={{marginTop:3}}>• Or choose not to steal… The Jack of Dimonds earns <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+1 pt.</strong> for the attempt.</div><div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> If the Jack of Dimonds summons The Ace of Spades for a Rescue during its play and thereby blocks The Joker and/or The Queen of Clubs, they'll earn <strong style={{fontStyle:"normal",color:"#e2c97e",whiteSpace:"nowrap"}}>+5 pts.</strong> for not Robbin'!</div></>),sub:true},
                 {num:"d.",title:"♠️ The Ace of Spades",text:(<><div>• ...unless The Ace of Spades is played in any one, two, or three of the other special cards' (The Joker, The Queen of Clubs, and The Jack of Dimonds) trick, which <em>Blocks</em> any or all of them (in the same trick)! Doing so wins that trick and awards <strong style={{fontStyle:"normal",color:"#e2c97e"}}>+30/35/40 bonus pts</strong> for one, two, or all three blocked.</div><div style={{marginTop:3}}>• The Ace of Spades also <em>Locks Up</em> any one card from any opponent's hand — and does so even in the same trick where he <em>Blocks</em>.</div><div style={{marginTop:6,paddingLeft:8,borderLeft:"2px solid #c9a84c44",color:"#e2c97ecc",fontSize:"0.93em"}}><em>Note:</em> The Jack of Dimonds may still choose to rob or pass even when The Ace of Spades is present. If he robs, The Ace of Spades blocks the attempt. If he passes (+1 pt), The Ace of Spades locks up instead.</div></>),sub:true},
@@ -6083,7 +6083,8 @@ function DiamondsGame() {
   // Shared peek state for other steal/action modals
   const [peekingModal, setPeekingModal] = useState(null); // "kidnap"|"rescue"|"rule1"|null
   const [robbinJackChoseRob, setRobbinJackChoseRob] = useState(false); // true once J♦ player taps "Rob a Card"
-  useEffect(() => { setRobbinJackChoseRob(false); }, [kidnapState]); // reset each time a new J♦ situation starts
+  const [jokerKidnapTarget, setJokerKidnapTarget] = useState(null); // seat index chosen by Joker before seeing their hand
+  useEffect(() => { setRobbinJackChoseRob(false); setJokerKidnapTarget(null); }, [kidnapState]); // reset each time a new kidnap situation starts
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -11283,6 +11284,7 @@ function DiamondsGame() {
 
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===mySeatingIdx&&peekingModal!=="kidnap"&&(
         kidnapState.isRobbinJack && !robbinJackChoseRob ? (
+          /* J♦ step 1: decide to rob or not (no hands shown) */
           <Modal>
             <div style={{textAlign:"center"}}>
               <div style={{fontSize:44,marginBottom:4}}>🎴</div>
@@ -11297,9 +11299,34 @@ function DiamondsGame() {
               </div>
             </div>
           </Modal>
+        ) : !kidnapState.isRobbinJack && jokerKidnapTarget === null ? (
+          /* Joker step 1: pick a player (no cards shown until committed) */
+          <Modal>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:44,marginBottom:4}}>🃏</div>
+              <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>The Joker Strikes</div>
+              <h2 style={{color:"#fff",margin:"0 0 12px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Choose a player to Kidnap from.</h2>
+              <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 20px",fontFamily:FONT_UI,lineHeight:1.6}}>
+                Pick your target — you'll see their hand once you commit.
+              </p>
+              <div style={{display:"flex",flexDirection:"column",gap:8,width:"100%"}}>
+                {allNames.map((name, i) => {
+                  if (i === mySeatingIdx) return null;
+                  const cardCount = hands[i]?.length ?? 0;
+                  if (cardCount === 0) return null;
+                  return (
+                    <GoldBtn key={i} onClick={()=>setJokerKidnapTarget(i)}>
+                      {playerEmojis[i] ? playerEmojis[i]+" " : ""}{name} — {cardCount} card{cardCount!==1?"s":""}
+                    </GoldBtn>
+                  );
+                })}
+              </div>
+            </div>
+          </Modal>
         ) : (
+          /* J♦ step 2 (all hands) or Joker step 2 (target's hand only) */
           <KidnapModal
-            hands={hands}
+            hands={kidnapState.isRobbinJack ? hands : hands.map((h, i) => i === jokerKidnapTarget ? h : [])}
             jokerPlayerIdx={0}
             allNames={allNames}
             playerEmojis={playerEmojis}
