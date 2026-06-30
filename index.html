@@ -6082,6 +6082,8 @@ function DiamondsGame() {
   const [queenClubsPeeking, setQueenClubsPeeking] = useState(false);
   // Shared peek state for other steal/action modals
   const [peekingModal, setPeekingModal] = useState(null); // "kidnap"|"rescue"|"rule1"|null
+  const [robbinJackChoseRob, setRobbinJackChoseRob] = useState(false); // true once J♦ player taps "Rob a Card"
+  useEffect(() => { setRobbinJackChoseRob(false); }, [kidnapState]); // reset each time a new J♦ situation starts
   const [acesLowState, setAcesLowState] = useState(null); // { playerIdx, hands, plays, returnPhase, return* }
   const [acesLowOffered, setAcesLowOffered] = useState([false, false, false, false]);
   const [americanFamilyOffered, setAmericanFamilyOffered] = useState([false,false,false,false]);
@@ -11280,17 +11282,34 @@ function DiamondsGame() {
       )}
 
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===mySeatingIdx&&peekingModal!=="kidnap"&&(
-        <KidnapModal
-          hands={hands}
-          jokerPlayerIdx={0}
-          allNames={allNames}
-          playerEmojis={playerEmojis}
-          onSteal={handleKidnap}
-          onSkip={kidnapState.isRobbinJack ? handleKidnapSkip : undefined}
-          deckTheme={deckTheme}
-          isRobbinJack={!!kidnapState.isRobbinJack}
-          onPeek={()=>setPeekingModal("kidnap")}
-        />
+        kidnapState.isRobbinJack && !robbinJackChoseRob ? (
+          <Modal>
+            <div style={{textAlign:"center"}}>
+              <div style={{fontSize:44,marginBottom:4}}>🎴</div>
+              <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robbin Jack Strikes</div>
+              <h2 style={{color:"#fff",margin:"0 0 12px",fontSize:22,fontFamily:FONT_DISPLAY,fontWeight:800}}>Rob a card?</h2>
+              <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 24px",fontFamily:FONT_UI,lineHeight:1.6}}>
+                J♦ lets you steal one card from any opponent's hand.
+              </p>
+              <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+                <GoldBtn onClick={()=>setRobbinJackChoseRob(true)}>Rob a Card 🎴</GoldBtn>
+                <GoldBtn onClick={handleKidnapSkip} secondary>Don't Rob & Call a Rescue ⚖️</GoldBtn>
+              </div>
+            </div>
+          </Modal>
+        ) : (
+          <KidnapModal
+            hands={hands}
+            jokerPlayerIdx={0}
+            allNames={allNames}
+            playerEmojis={playerEmojis}
+            onSteal={handleKidnap}
+            onSkip={kidnapState.isRobbinJack ? handleKidnapSkip : undefined}
+            deckTheme={deckTheme}
+            isRobbinJack={!!kidnapState.isRobbinJack}
+            onPeek={()=>setPeekingModal("kidnap")}
+          />
+        )
       )}
       {phase==="kidnap"&&kidnapState&&kidnapState.jokerPlayerIdx===mySeatingIdx&&peekingModal==="kidnap"&&(
         <div onClick={()=>setPeekingModal(null)} style={{position:"fixed",bottom:28,left:"50%",transform:"translateX(-50%)",background:kidnapState.isRobbinJack?"#0d2018":"#1a1a2a",border:`1.5px solid ${kidnapState.isRobbinJack?"#1a6b30":"#8833cc"}`,borderRadius:24,padding:"10px 22px",cursor:"pointer",zIndex:9999,display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 18px #000a"}}>
