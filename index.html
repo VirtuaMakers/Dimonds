@@ -9999,8 +9999,8 @@ function DiamondsGame() {
       </button>
     );
     const modeSelector = (
-      <div style={{display:"flex",alignItems:"center",gap:isWide?10:7,marginBottom:isWide?8:6}}>
-        <div style={{flex:1,color:"#ffffff77",fontSize:isWide?12:10,fontFamily:FONT_UI,lineHeight:1.5,textAlign:"left",fontStyle:"italic",whiteSpace:"pre-line"}}>
+      <div style={{display:"flex",alignItems:"center",gap:isWide?10:7,marginBottom:isWide?8:isTiny?4:isCompact?8:12}}>
+        <div style={{flex:1,color:"#ffffff77",fontSize:isWide?12:10,fontFamily:FONT_UI,lineHeight:1.5,textAlign:"center",fontStyle:"italic",whiteSpace:"pre-line"}}>
           {"Enter your name and\nchoose one to play!"}
         </div>
         <div style={{display:"flex",flexDirection:"column",gap:5,width:isWide?"62%":"63%",flexShrink:0}}>
@@ -10017,7 +10017,7 @@ function DiamondsGame() {
           if (menuMode === 'single') setShowOpponentModal(true);
           else setShowMpLobby(true);
         }}>
-          {menuReady ? "Play Dimonds ◆" : "Choose Single or Multiplayer!"}
+          {menuReady ? "Play Dimonds ◆" : !nameInput.trim() ? "Enter Your Name" : "Choose Single or Multiplayer!"}
         </GoldBtn>
       </div>
     );
@@ -10095,7 +10095,7 @@ function DiamondsGame() {
               Pressure Makes Champions · 4 Players
             </p>
             {nameBox}
-            <div style={{marginTop:isTiny?2:isCompact?4:6,marginBottom:isTiny?4:isCompact?6:8}}>
+            <div style={{marginTop:0,marginBottom:isTiny?4:isCompact?6:8}}>
               {modeSelector}
               {playDimondsBtn(isTiny?40:isCompact?44:54)}
             </div>
