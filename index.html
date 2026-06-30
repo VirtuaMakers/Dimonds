@@ -7490,9 +7490,9 @@ function DiamondsGame() {
     guestPlayers.forEach(p => {
       if (seats.length < 4) seats.push({ playerId: p.playerId, name: p.name||`Player ${seats.length + 1}`, type:'human' });
     });
-    // Fill remaining seats: pre-selected AIs in reverse order (3rd pick → seat 1 = replaced first),
+    // Fill remaining seats: pre-selected AIs in order (1st pick is first to appear),
     // then random from unselected
-    const selectedQueue = [...preSelectedAIs].reverse();
+    const selectedQueue = [...preSelectedAIs];
     const unselectedPool = OPPONENT_OPTIONS
       .filter(o => !preSelectedAIs.includes(o.id))
       .sort(() => Math.random() - 0.5)
