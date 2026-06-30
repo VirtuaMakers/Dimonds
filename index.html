@@ -6195,6 +6195,7 @@ function DiamondsGame() {
   const [mpDisconnected, setMpDisconnected] = useState(false);
   const [mpJoinAttempt, setMpJoinAttempt] = useState(0);
   const [hostLeftGame, setHostLeftGame] = useState(false);
+  const [disconnectedSeat, setDisconnectedSeat] = useState(null);
 
   function guestSubmitMove(type, payload) {
     if (!mpRoomRef.current) return;
@@ -6241,6 +6242,28 @@ function DiamondsGame() {
     }, 60000);
     return () => clearTimeout(timer);
   }, [mpDisconnected]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Presence: write this seat, detect remote player disconnects ───────────
+  useEffect(() => {
+    if (!isMultiplayer()) return;
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const mySeat = mySeatingIdxRef.current;
+    const myPresRef = ref.child('presence').child(String(mySeat));
+    myPresRef.set(true);
+    myPresRef.onDisconnect().remove();
+    const presRootRef = ref.child('presence');
+    const onRemoved = snap => {
+      const seat = parseInt(snap.key);
+      if (seat === mySeatingIdxRef.current) return; // my own disconnect handled by mpDisconnected overlay
+      setDisconnectedSeat(seat);
+    };
+    presRootRef.on('child_removed', onRemoved);
+    return () => {
+      presRootRef.off('child_removed', onRemoved);
+      myPresRef.onDisconnect().cancel();
+    };
+  }, [mpRole, mpJoinAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!isMultiplayer()) return;
@@ -11099,17 +11122,37 @@ function DiamondsGame() {
           position:"fixed", inset:0, zIndex:250,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
           background:"rgba(0,0,0,0.55)",
-          pointerEvents: isHost() ? "none" : "all",
+          pointerEvents: "all",
         }}>
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:90, height:90, opacity:0.8, marginBottom:14}} />
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
             {isHost() ? "Waiting for all players to continue…" : `Waiting for ${allNames[0]}…`}
           </div>
-          {isHost() && (
-            <div style={{color:"#ffffff66", fontFamily:FONT_UI, fontSize:11, letterSpacing:1, textAlign:"center", marginTop:8}}>
-              Tap the button below to continue without them
-            </div>
-          )}
+        </div>
+      )}
+
+      {/* REMOTE PLAYER DISCONNECTED */}
+      {isMultiplayer() && disconnectedSeat !== null && !mpDisconnected && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:550,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          background:"rgba(10,20,16,0.97)", gap:12,
+        }}>
+          <div style={{fontSize:36}}>⚠️</div>
+          <div style={{color:"#ff9966", fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, letterSpacing:1}}>Player Disconnected</div>
+          <div style={{color:"#fff", fontFamily:FONT_DISPLAY, fontSize:22, fontWeight:800}}>
+            {allNames[disconnectedSeat] ?? `Player ${disconnectedSeat + 1}`}
+          </div>
+          <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:260, lineHeight:1.7}}>
+            A player has lost connection. The game cannot continue.
+          </div>
+          <GoldBtn secondary small onClick={() => {
+            setDisconnectedSeat(null);
+            if (mpRoomRef.current) { mpRoomRef.current.child('presence').child(String(mySeatingIdxRef.current)).remove(); mpRoomRef.current = null; }
+            setMpRole('none');
+            setShowMpLobby(false);
+            setScreen("menu");
+          }}>Return to Main Menu</GoldBtn>
         </div>
       )}
 
