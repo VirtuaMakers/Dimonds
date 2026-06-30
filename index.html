@@ -9569,6 +9569,7 @@ function DiamondsGame() {
     if (phase !== "kidnap" || !kidnapState) return;
     const jokerPlayer = kidnapState.jokerPlayerIdx;
     if (jokerPlayer === mySeatingIdx) return; // human handles it via KidnapModal
+    if (isMultiplayer() && jokerPlayer >= 1 && opponentSlotsRef.current[jokerPlayer - 1] === 'human') return; // guest handles on their device
 
     const timer = setTimeout(() => {
       const currentHands = kidnapState.hands;
@@ -9607,6 +9608,7 @@ function DiamondsGame() {
     if (isMultiplayer() && !isHost()) return;
     if (phase !== "queenclubs" || !queenClubsState) return;
     if (queenClubsState.playerIdx === mySeatingIdx) return; // human handles via QueenClubsModal
+    if (isMultiplayer() && queenClubsState.playerIdx >= 1 && opponentSlotsRef.current[queenClubsState.playerIdx - 1] === 'human') return; // guest handles on their device
 
     const timer = setTimeout(() => {
       // Read from ref to get the guaranteed-current state, avoiding stale closures
@@ -9705,6 +9707,7 @@ function DiamondsGame() {
     if (phase !== "rescue" || !rescueState) return;
     const acePlayer = rescueState.acePlayerIdx;
     if (acePlayer === mySeatingIdx) return; // human handles it via RescueModal
+    if (isMultiplayer() && acePlayer >= 1 && opponentSlotsRef.current[acePlayer - 1] === 'human') return; // guest handles on their device
 
     const timer = setTimeout(() => {
       snapshotKnowledge(acePlayer, rescueState.hands);
@@ -9731,6 +9734,8 @@ function DiamondsGame() {
       return () => clearTimeout(t);
     }
     if (aceRobChoiceState.jackDPlayerIdx === mySeatingIdx) return; // human handles via modal
+    const _arcJdIdx = aceRobChoiceState.jackDPlayerIdx;
+    if (isMultiplayer() && _arcJdIdx >= 1 && opponentSlotsRef.current[_arcJdIdx - 1] === 'human') return; // guest handles on their device
     const timer = setTimeout(() => { handleAceRobChoiceNoRob(); }, 900);
     return () => clearTimeout(timer);
   }, [phase, aceRobChoiceState]);
