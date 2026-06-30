@@ -11682,7 +11682,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 3 event box */}
-      {ruleOfThreeState && phase !== 'ruleofthree_offer' && (
+      {ruleOfThreeState && ruleOfThreeState.cashed && phase !== 'ruleofthree_offer' && (
         <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
@@ -11713,7 +11713,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 2 event box */}
-      {swingingParadoxState && phase !== 'swingingparadox_offer' && (
+      {swingingParadoxState && swingingParadoxState.cashed && phase !== 'swingingparadox_offer' && (
         <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
@@ -11744,7 +11744,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Rule of 4 event box */}
-      {ruleFourState && phase !== 'rulefour_offer' && (
+      {ruleFourState && ruleFourState.cashed && phase !== 'rulefour_offer' && (
         <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
