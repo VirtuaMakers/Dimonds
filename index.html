@@ -6163,6 +6163,11 @@ function DiamondsGame() {
   robbinSummonStateRef.current = robbinSummonState;
   const aceRobChoiceStateRef = useRef(aceRobChoiceState);
   aceRobChoiceStateRef.current = aceRobChoiceState;
+  // Always-current ref to submitPlay — the Firebase pendingMoves handler is a stale closure
+  // (registered once on room join) so calling submitPlay directly from it would use stale
+  // roundScores/totalScores/diamondsBroken captured at join time, causing score resets and
+  // false game-end conditions when guests play cards.
+  const submitPlayRef = useRef(null);
   useEffect(() => {
     if (screen !== "gameover" && phase !== "gameover") return;
     if (sessionWinRecordedGame.current === gameNum) return;
@@ -6488,7 +6493,7 @@ function DiamondsGame() {
       if (type === 'playCard') {
         const hand = handsRef.current[seatIdx] || [];
         const card = hand.find(c => c.id === payload.cardId);
-        if (card) setTimeout(() => submitPlay(seatIdx, card), 0);
+        if (card) setTimeout(() => submitPlayRef.current(seatIdx, card), 0);
       } else if (type === 'tutorialDone') {
         setMpPendingTutorials(n => Math.max(0, n - 1));
       } else if (type === 'cyttAck') {
@@ -7629,6 +7634,7 @@ function DiamondsGame() {
     submitPlay(mySeatingIdx, card);
   }
 
+  submitPlayRef.current = submitPlay; // keep ref current on every render
   function submitPlay(playerIdx, card) {
     soundCardPlay();
     if (card.rank === '2' && card.suit === '♣') {
