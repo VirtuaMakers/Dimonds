@@ -4296,19 +4296,19 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
         <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>{blockDesc}</div>
         <div style={{background:"#4466ff11",border:"1px solid #4466ff44",borderRadius:10,padding:"10px 20px",minWidth:210,display:"flex",flexDirection:"column",gap:4}}>
           {jdIdx != null && (
-            <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
-              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>JD calls block:</span>
-              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+5 pts</span>
+            <div style={{display:"flex",justifyContent:"space-between",gap:12}}>
+              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>J♦ calls block <span style={{color:"#ffffffaa",fontSize:11}}>({allNames[jdIdx]})</span>:</span>
+              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13,flexShrink:0}}>+5 pts</span>
             </div>
           )}
-          <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
-            <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus{isGoldenAge?" 🤖 2×":""}:</span>
-            <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{aceBlockBonus} pts</span>
+          <div style={{display:"flex",justifyContent:"space-between",gap:12}}>
+            <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Block bonus <span style={{color:"#ffffffaa",fontSize:11}}>({allNames[aceIdx]})</span>{isGoldenAge?" 🤖 2×":""}:</span>
+            <span style={{color:"#e2c97e",fontWeight:800,fontSize:13,flexShrink:0}}>+{aceBlockBonus} pts</span>
           </div>
           {pointsWon > 0 && (
-            <div style={{display:"flex",justifyContent:"space-between",gap:24}}>
-              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Trick diamonds:</span>
-              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13}}>+{pointsWon} pts 💎</span>
+            <div style={{display:"flex",justifyContent:"space-between",gap:12}}>
+              <span style={{color:"#ffffff88",fontSize:13,fontFamily:FONT_UI}}>Trick diamonds <span style={{color:"#ffffffaa",fontSize:11}}>({allNames[aceIdx]})</span>:</span>
+              <span style={{color:"#e2c97e",fontWeight:800,fontSize:13,flexShrink:0}}>+{pointsWon} pts 💎</span>
             </div>
           )}
         </div>
