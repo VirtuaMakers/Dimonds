@@ -6568,25 +6568,29 @@ function DiamondsGame() {
         setTrickResult({ winnerIdx:seatIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
         setPhase("trickresult");
       } else if (type === 'riotEndRound') {
-        const rs = riotStateRef.current;
-        if (!rs) return;
-        const cardIds = new Set((rs.cards||[]).map(c=>c.id));
+        const cardIdSet = new Set(payload.cardIds || []);
+        const riotCards = (handsRef.current[seatIdx] || []).filter(c => cardIdSet.has(c.id));
+        if (!riotCards.length) return;
+        const suit = payload.suit || riotCards[0]?.suit;
         const pts = RIOT_BONUS * (goldenAgeRef.current ? 2 : 1);
         const curRound = roundScoresRef.current;
         const curTotal = totalScoresRef.current;
-        const newHands = handsRef.current.map((h,i) => i===seatIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
+        const newHands = handsRef.current.map((h,i) => i===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
         addLog(`🔥 RIOT — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
-        setRiotState(null);
+        soundRiot();
         setHands(newHands);
-        setRoundScores(newRound);
-        setTotalScores(newTotal);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
+          setRoundScores(newRound);
+          setTotalScores(newTotal);
           const place = 1 + newTotal.filter((s,i)=>s>newTotal[0]||(s===newTotal[0]&&i!==0)).length;
           setFireworksPlace(Math.max(1,Math.min(4,place)));
           setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
-        } else { soundRoundWin(); setPhase("roundover"); setRoundNum(r=>r+1); }
+        } else {
+          setRiotState({ _id:Math.random(), playerIdx:seatIdx, cards:riotCards, points:pts, suit, pendingRound:newRound, pendingTotal:newTotal });
+          setPhase("riot_event");
+        }
       } else if (type === 'theStealEndRound') {
         const ts = theStealStateRef.current;
         if (!ts) return;
@@ -8323,7 +8327,7 @@ function DiamondsGame() {
 
   function handleRiotEndRound() {
     if (!riotState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('riotEndRound', {}); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('riotEndRound', { cardIds: (riotState.cards||[]).map(c=>c.id), suit: riotState.suit }); setRiotState(null); setPhase("playing"); return; }
     const { playerIdx, cards } = riotState;
     const cardIds = new Set(cards.map(c=>c.id));
     const newHands = hands.map((h,i) => i===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
@@ -8352,7 +8356,7 @@ function DiamondsGame() {
   }
   function handleRiotPlayOn() {
     if (!riotState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('riotPlayOn', {}); setRiotState(null); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('riotPlayOn', {}); setRiotState(null); setPhase("playing"); return; }
     addLog(`🔥 RIOT — ${allNames[riotState.playerIdx]} holds the cards, plays on.`);
     setRiotState(null);
     setPhase("playing");
