@@ -4211,7 +4211,7 @@ function EventBox({ borderColor, emoji, title, children, btnLabel, onContinue, f
   );
 }
 
-function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false }) {
+function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGameOver, isHandOver, isGoldenAge=false, roundScores=[], totalScores=[], scoreTally="round", scoresCommitted=false, continueBtnLabel }) {
   if (!result) return null;
 
   const aceCard = result.plays?.find(p => isAceSpades(p.card))?.card;
@@ -4239,13 +4239,13 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
       })}
     </div>
   ) : null;
-  const btnLabel = isGameOver ? "END"
+  const btnLabel = continueBtnLabel ?? (isGameOver ? "END"
     : result.rule1Announced ? "PROCEED"
     : result.pendingRobbinKidnap ? "PROCEED"
     : result.pendingJokerKidnap ? "PROCEED"
     : result.pendingAceLockUp ? "PROCEED"
     : isHandOver ? "PROCEED"
-    : "NEXT TRICK";
+    : "NEXT TRICK");
 
   // ===== AMERICAN FAMILY =====
   if (result.americanFamily) {
@@ -11765,6 +11765,7 @@ function DiamondsGame() {
           totalScores={totalScores}
           scoreTally={scoreTally}
           scoresCommitted={pendingFireworks}
+          continueBtnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : undefined}
         />
       )}
 
