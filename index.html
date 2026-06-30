@@ -6092,6 +6092,8 @@ function DiamondsGame() {
   const [gameLog, setGameLog] = useState(["Dimonds: Pressure makes champions!"]);
   const [pendingAF, setPendingAF] = useState(false); // american family detected
   const [showFireworks, setShowFireworks] = useState(false);
+  const showFireworksRef = useRef(false);
+  useEffect(() => { showFireworksRef.current = showFireworks; }, [showFireworks]);
   const [fireworksPlace, setFireworksPlace] = useState(1);
   const [theStealState, setTheStealState] = useState(null); // { playerIdx, hands }
   const [theStealOffered, setTheStealOffered] = useState([false,false,false,false]);
@@ -6353,6 +6355,17 @@ function DiamondsGame() {
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
+      // Guest victory animation: intercept gameover before setPhase so animation plays first
+      const newPhase = st.phase ?? "playing";
+      if (newPhase === "gameover" && phaseRef.current !== "gameover" && !showFireworksRef.current) {
+        const scores = fbArr(st.totalScores || []);
+        const myIdx = mySeatingIdxRef.current;
+        const myScore = scores[myIdx] ?? 0;
+        const myPlace = Math.max(1, Math.min(4, 1 + scores.filter((s, i) => s > myScore || (s === myScore && i !== myIdx)).length));
+        setFireworksPlace(myPlace);
+        soundRoundWin();
+        setShowFireworks(true);
+      }
       if (!GUEST_LOCAL_PHASES.has(phaseRef.current) && !GUEST_LOCAL_PHASES.has(st.phase ?? "playing")) {
         setPhase(st.phase ?? "playing");
         // If phase stays "playing" (React no-ops the setState), useEffect([phase]) won't fire
