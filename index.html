@@ -6348,7 +6348,7 @@ function DiamondsGame() {
     const toHand = h => fbArr(h).map(c => ({...c}));
     const toPlay = p => p ? ({ playerIdx:p.playerIdx, card:{...p.card} }) : null;
     // Phases the guest manages locally (offer modals) — don't let host "playing" override them
-    const GUEST_LOCAL_PHASES = new Set(['ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal']);
+    const GUEST_LOCAL_PHASES = new Set(['ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
@@ -6414,6 +6414,7 @@ function DiamondsGame() {
         }
       };
       syncEv('riot',           setRiotState,           st.riotState);
+      syncEv('theSteal',       setTheStealState,       st.theStealState);
       syncEv('showdown',       setShowdownState,       st.showdownState);
       syncEv('acesLow',        setAcesLowState,        st.acesLowState);
       syncEv('ruleOfThree',    setRuleOfThreeState,    st.ruleOfThreeState,    s => ({...s, cards:fbArr(s.cards||[])}));
@@ -6592,8 +6593,6 @@ function DiamondsGame() {
           setPhase("riot_event");
         }
       } else if (type === 'theStealEndRound') {
-        const ts = theStealStateRef.current;
-        if (!ts) return;
         const GA = goldenAgeRef.current ? 2 : 1;
         const pts = THE_STEAL_BONUS * GA;
         const curRound = roundScoresRef.current;
@@ -6602,18 +6601,19 @@ function DiamondsGame() {
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
         addLog(`🌇 THE STEAL — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
-        setTheStealState(null);
+        soundTheSteal();
         setHands(newHands);
-        setRoundScores(newRound);
-        setTotalScores(newTotal);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
+          setRoundScores(newRound);
+          setTotalScores(newTotal);
           const place = 1 + newTotal.filter((s,i)=>s>newTotal[0]||(s===newTotal[0]&&i!==0)).length;
           setFireworksPlace(Math.max(1,Math.min(4,place)));
           setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
-        } else { soundRoundWin(); setPhase("roundover"); setRoundNum(r=>r+1); }
+        } else {
+          setTheStealState({ _id:Math.random(), playerIdx:seatIdx, points:pts, aiEndsRound:true, pendingRound:newRound, pendingTotal:newTotal });
+          setPhase("thesteal_event");
+        }
       } else if (type === 'showdownEndRound') {
-        const ss = showdownStateRef.current;
-        if (!ss) return;
         const GA = goldenAgeRef.current ? 2 : 1;
         const pts = SHOWDOWN_BONUS * GA;
         const curRound = roundScoresRef.current;
@@ -6624,15 +6624,18 @@ function DiamondsGame() {
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
         addLog(`🌆 SHOWDOWN — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
-        setShowdownState(null);
+        soundTheSteal();
         setHands(newHands);
-        setRoundScores(newRound);
-        setTotalScores(newTotal);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
+          setRoundScores(newRound);
+          setTotalScores(newTotal);
           const place = 1 + newTotal.filter((s,i)=>s>newTotal[0]||(s===newTotal[0]&&i!==0)).length;
           setFireworksPlace(Math.max(1,Math.min(4,place)));
           setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
-        } else { soundRoundWin(); setPhase("roundover"); setRoundNum(r=>r+1); }
+        } else {
+          setShowdownState({ _id:Math.random(), playerIdx:seatIdx, points:pts, pendingRound:newRound, pendingTotal:newTotal });
+          setPhase("showdown_event");
+        }
       } else if (type === 'riotPlayOn') {
         addLog(`🔥 RIOT — ${allNames[seatIdx]} holds the cards, plays on.`);
         setRiotState(null);
@@ -6795,7 +6798,7 @@ function DiamondsGame() {
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌇", setName:"The Steal", cards:[] });
       soundTheSteal();
       flagTrickInstance(`${allNames[cp]} triggered The Steal combo — ${outcome}`);
-      setTheStealState({ playerIdx: cp, points: pts, aiEvent: true, aiEndsRound, pendingRound: newRS, pendingTotal: newTotal });
+      setTheStealState({ _id: Math.random(), playerIdx: cp, points: pts, aiEvent: true, aiEndsRound, pendingRound: newRS, pendingTotal: newTotal });
       setPhase("thesteal_event");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
@@ -8169,7 +8172,7 @@ function DiamondsGame() {
 
   function handleTheStealEndRound() {
     if (!theStealState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('theStealEndRound', {}); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('theStealEndRound', {}); setPhase("playing"); return; }
     const pi = theStealState.playerIdx;
     const GA = goldenAgeRef.current ? 2 : 1;
     const bonus = THE_STEAL_BONUS * GA;
@@ -8181,26 +8184,25 @@ function DiamondsGame() {
     soundTheSteal();
     flagTrickInstance(`${allNames[pi]} ended the round with The Steal combo`);
     fireTrickComment();
-    setTheStealState(null);
     const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isAceSpades(c)) : h);
     setHands(newHands);
-    setRoundScores(newRound);
-    setTotalScores(newTotal);
     const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
+      setTheStealState(null);
+      setRoundScores(newRound);
+      setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
     } else {
-      soundRoundWin();
-      setPhase("roundover");
-      setRoundNum(r=>r+1);
+      setTheStealState(prev => ({ ...prev, _id: prev?._id ?? Math.random(), points: bonus, aiEndsRound: true, pendingRound: newRound, pendingTotal: newTotal }));
+      setPhase("thesteal_event");
     }
   }
 
   function handleShowdownEndRound() {
     if (!showdownState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('showdownEndRound', {}); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('showdownEndRound', {}); setPhase("playing"); return; }
     const pi = showdownState.playerIdx;
     const GA = goldenAgeRef.current ? 2 : 1;
     const bonus = SHOWDOWN_BONUS * GA;
@@ -8212,27 +8214,26 @@ function DiamondsGame() {
     soundTheSteal();
     flagTrickInstance(`${allNames[pi]} ended the round with the SHOWDOWN combo`);
     fireTrickComment();
-    setShowdownState(null);
     const stealIds = new Set((hands[pi]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)).map(c=>c.id));
     const newHands = hands.map((h,j) => j===pi ? h.filter(c=>!stealIds.has(c.id)) : h);
     setHands(newHands);
-    setRoundScores(newRound);
-    setTotalScores(newTotal);
     const gameOver = newTotal.some(s=>s>=winScoreRef.current);
     if (gameOver) {
+      setShowdownState(null);
+      setRoundScores(newRound);
+      setTotalScores(newTotal);
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 600);
     } else {
-      soundRoundWin();
-      setPhase("roundover");
-      setRoundNum(r=>r+1);
+      setShowdownState(prev => ({ ...prev, _id: prev?._id ?? Math.random(), points: bonus, pendingRound: newRound, pendingTotal: newTotal }));
+      setPhase("showdown_event");
     }
   }
 
   function handleShowdownPlayOn() {
     if (!showdownState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('showdownPlayOn', {}); setShowdownState(null); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('showdownPlayOn', {}); setShowdownState(null); setPhase("playing"); return; }
     const pi = showdownState.playerIdx;
     addLog(`🌆 SHOWDOWN — ${allNames[pi]} plays on. All four steal cards stay in hand.`);
     setShowdownState(null);
@@ -8302,7 +8303,7 @@ function DiamondsGame() {
 
   function handleTheStealPlayOn() {
     if (!theStealState) return;
-    if (isMultiplayer() && !isHost()) { guestSubmitMove('theStealPlayOn', {}); setTheStealState(null); return; }
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('theStealPlayOn', {}); setTheStealState(null); setPhase("playing"); return; }
     const pi = theStealState.playerIdx;
     addLog(`🌇 THE STEAL — ${allNames[pi]} plays on. The trio stays in hand.`);
     setTheStealState(null);
@@ -8310,18 +8311,21 @@ function DiamondsGame() {
   }
   function dismissTheStealEvent() {
     if (!theStealState) return;
+    if (theStealState._id) { dismissedEventIdsRef.current.add(theStealState._id); delete guestActiveEventIdsRef.current.theSteal; }
+    const { pendingRound, pendingTotal, aiEndsRound } = theStealState;
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
-    if (theStealState.aiEndsRound) {
-      const { pendingRound, pendingTotal } = theStealState;
-      setTheStealState(null);
-      setRoundScores(pendingRound);
-      setTotalScores(pendingTotal);
-      soundRoundWin();
-      setPhase("roundover");
-      setRoundNum(r=>r+1);
+    if (!isMultiplayer()) setTheStealState(null);
+    if (aiEndsRound === false) {
+      gateEventAdvance(() => { setTheStealState(null); setPhase("playing"); });
     } else {
-      setTheStealState(null);
-      setPhase("playing");
+      gateEventAdvance(() => {
+        setTheStealState(null);
+        setRoundScores(pendingRound);
+        setTotalScores(pendingTotal);
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r=>r+1);
+      });
     }
   }
 
@@ -11254,9 +11258,11 @@ function DiamondsGame() {
       )}
 
       {phase==="thesteal_event" && theStealState && (
-        <EventBox borderColor="#cc5500" emoji="🌇" title="The Steal" btnLabel="PROCEED" onContinue={dismissTheStealEvent}>
+        <EventBox key={theStealState._id} borderColor="#cc5500" emoji="🌇" title="The Steal"
+          btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
+          onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissTheStealEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[theStealState.playerIdx]}</div>
-          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 steal cards redeemed — {theStealState.aiEndsRound ? "Round over!" : "Playing on…"}</div>
+          <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>3 steal cards redeemed — {theStealState.aiEndsRound === false ? "Playing on…" : "Round over!"}</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
             <span style={{color:VM.gold,fontSize:16,fontWeight:800,fontFamily:FONT_DISPLAY}}>+{theStealState.points} pts 🌇</span>
           </div>
@@ -11290,8 +11296,10 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {showdownState && phase !== "showdown" && (
-        <EventBox key={showdownState._id} borderColor="#55cc77" emoji="🌆" title="Showdown" btnLabel="PROCEED" onContinue={dismissShowdownEvent}>
+      {showdownState && showdownState.pendingRound && phase !== "showdown" && (
+        <EventBox key={showdownState._id} borderColor="#55cc77" emoji="🌆" title="Showdown"
+          btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
+          onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissShowdownEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[showdownState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>All 4 steal cards — cashed in!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
