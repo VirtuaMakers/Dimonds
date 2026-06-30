@@ -10182,8 +10182,8 @@ function DiamondsGame() {
     allRuleOfFourCombos(h0).filter(combo => !combo.some(c => c.suit==="♦") || diamondsBroken).forEach(combo => combo.forEach(c => ids.add(c.id)));
     if (diamondsBroken) allSwingingParadoxCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
     const riot = checkRiot(h0, diamondsBroken); if (riot) riot.forEach(c => ids.add(c.id));
-    if (diamondsBroken) { const nf = checkNuclearFamily(h0); if (nf) nf.forEach(c => ids.add(c.id)); }
-    if (diamondsBroken) { const bd = checkBloodDiamond(h0); if (bd) bd.forEach(c => ids.add(c.id)); }
+    if (diamondsBroken) { allNuclearFamilyCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id))); }
+    if (diamondsBroken) { allBloodDiamondCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id))); }
     // Golden Age aces stay undimmed even when following suit (set can be activated before playing)
     if (checkAcesLow(h0)) ["A♠","A♥","A♣","A♦"].forEach(id => ids.add(id));
     return ids;
@@ -10212,8 +10212,8 @@ function DiamondsGame() {
     allRuleOfFourCombos(h0).filter(combo => combo.some(c => c.suit==="♦")).forEach(combo => combo.forEach(c => ids.add(c.id)));
     // SP combos are always diamond-locked and the locked button already communicates them — no card glow needed
     const lockedRiot = checkRiot(h0, true); if (lockedRiot) lockedRiot.forEach(c => { if (c.suit==="♦") ids.add(c.id); });
-    const lockedNF = checkNuclearFamily(h0); if (lockedNF) lockedNF.forEach(c => ids.add(c.id));
-    const lockedBD = checkBloodDiamond(h0); if (lockedBD) lockedBD.forEach(c => ids.add(c.id));
+    allNuclearFamilyCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
+    allBloodDiamondCombos(h0).forEach(combo => combo.forEach(c => ids.add(c.id)));
     return ids;
   })();
 
