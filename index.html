@@ -9982,12 +9982,12 @@ function DiamondsGame() {
     );
     const modeSelector = (
       <div style={{display:"flex",alignItems:"center",gap:isWide?10:7,marginBottom:isWide?8:6}}>
-        <div style={{flex:1,color:"#ffffff77",fontSize:isWide?12:10,fontFamily:FONT_UI,lineHeight:1.5,textAlign:"left",fontStyle:"italic"}}>
-          Enter your name and choose one to Play Dimonds!
+        <div style={{flex:1,color:"#ffffff77",fontSize:isWide?12:10,fontFamily:FONT_UI,lineHeight:1.5,textAlign:"left",fontStyle:"italic",whiteSpace:"pre-line"}}>
+          {"Enter your name and\nchoose one to play!"}
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:5,width:isWide?"54%":"55%",flexShrink:0}}>
-          {modeBtn('single','Single Human Player')}
-          {modeBtn('multi','Human Multiplayer ◆')}
+        <div style={{display:"flex",flexDirection:"column",gap:5,width:isWide?"62%":"63%",flexShrink:0}}>
+          {modeBtn('single','Human Single Player')}
+          {modeBtn('multi','Human Multiplayer')}
         </div>
       </div>
     );
