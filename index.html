@@ -6282,7 +6282,16 @@ function DiamondsGame() {
       'nuclearfamily_event','blooddiamond_event','showdown_event','riot_event','thesteal_event',
       'aceslow_event','trickresult','roundover','gameover'];
     if (isHost()) {
-      if (!eventPhases.includes(phase)) return;
+      if (!eventPhases.includes(phase)) {
+        // Safety net: if game advanced to a non-event phase while a dismissal was still pending,
+        // clear the stuck waiting state so the host isn't permanently blocked.
+        if (pendingEventContinuationRef.current || mpEventPendingDismissalsRef.current > 0) {
+          pendingEventContinuationRef.current = null;
+          mpEventPendingDismissalsRef.current = 0;
+          setMpWaitingForDismissals(false);
+        }
+        return;
+      }
       mpEventPendingDismissalsRef.current = 1 + opponentSlotsRef.current.filter(id => id === 'human').length;
       pendingEventContinuationRef.current = null;
       setMpWaitingForDismissals(false);
@@ -8886,8 +8895,16 @@ function DiamondsGame() {
       if (!hasTargets) {
         addLog(`🃏 ${allNames[jokerPlayerIdx]} wins with the Joker (no cards left to kidnap)`);
         soundJokerKidnaps();
-        setTrickResult({ ...cleanResult, jokerWin: true });
-        setPhase("trickresult");
+        const jokerWinResult = { ...cleanResult, jokerWin: true };
+        // If already in trickresult, setPhase("trickresult") would be a React no-op —
+        // guests wouldn't get a phase-change reset and their guestEventDismissed stays true.
+        // Cycle through "playing" first so the phase change is real.
+        if (phaseRef.current === 'trickresult') {
+          setTrickResult(null); setPhase('playing');
+          setTimeout(() => { setTrickResult(jokerWinResult); setPhase('trickresult'); }, 0);
+        } else {
+          setTrickResult(jokerWinResult); setPhase('trickresult');
+        }
         return;
       }
       setKidnapState({ jokerPlayerIdx, hands, resultObj: { ...cleanResult, jokerWin: false } });
@@ -11690,7 +11707,7 @@ function DiamondsGame() {
       )}
 
       {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
-      {acesLowState && (
+      {acesLowState?.cashed && (
         <EventBox
           key={acesLowState._id}
           borderColor="#a8a8a8"
