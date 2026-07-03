@@ -3742,7 +3742,7 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary, fill }) 
 // KIDNAP MODAL — full hand inspection, pick best card
 // ============================================================
 function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal, onSkip, deckTheme, isRobbinJack=false, onPeek }) {
-  const targets = [0,1,2,3].filter(i => i!==jokerPlayerIdx && hands[i].length>0);
+  const targets = [0,1,2,3].filter(i => i!==jokerPlayerIdx && (hands[i]?.length??0)>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
 
@@ -11349,8 +11349,8 @@ function DiamondsGame() {
         ) : (
           /* J♦ step 2 (all hands) or Joker step 2 (target's hand only) */
           <KidnapModal
-            hands={kidnapState.isRobbinJack ? hands : hands.map((h, i) => i === jokerKidnapTarget ? h : [])}
-            jokerPlayerIdx={0}
+            hands={kidnapState.isRobbinJack ? kidnapState.hands : kidnapState.hands.map((h, i) => i === jokerKidnapTarget ? h : [])}
+            jokerPlayerIdx={mySeatingIdx}
             allNames={allNames}
             playerEmojis={playerEmojis}
             onSteal={handleKidnap}
