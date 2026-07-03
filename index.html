@@ -6322,7 +6322,7 @@ function DiamondsGame() {
       phase,
       hands: hands.map(h => (h||[]).map(toCardFB)),
       trickPlays: trickPlays.map(toPlay),
-      turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
+      turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       allNames, playerEmojis, opponentSlots,
       trickResult: trickResult ? {
@@ -6349,7 +6349,7 @@ function DiamondsGame() {
       rule1State, rule1UsedThisTurn,
     };
     ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
-  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed,
+  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
@@ -6401,6 +6401,7 @@ function DiamondsGame() {
       setTotalScores(fbArr(st.totalScores));
       setRoundNum(st.roundNum ?? 1);
       setTricksPlayed(st.tricksPlayed ?? 0);
+      setIsFirstTrick(st.isFirstTrick ?? (st.tricksPlayed ?? 0) === 0);
       setDiamondsBroken(st.diamondsBroken ?? false);
       goldenAgeRef.current = st.goldenAgeActive ?? false;
       setGoldenAgeActive(st.goldenAgeActive ?? false);
