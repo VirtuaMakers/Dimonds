@@ -6125,6 +6125,7 @@ function DiamondsGame() {
   const roundEventLogRef = useRef([]); // accumulates events during the round
   const lastCardClickRef = useRef({ cardId: null, time: 0 }); // tracks last card click for double-click detection
   const redeemingSetRef = useRef(false); // prevents double-tap on Redeem buttons
+  const eventDismissLockRef = useRef(false); // prevents double-fire of any event dismiss
   const [roundEventLog, setRoundEventLog] = useState([]);
   const [dealRevealIdx, setDealRevealIdx] = useState(13); // cards at index < this are face-up
   const [robbinSummonState, setRobbinSummonState] = useState(null); // { jackPlayerIdx, jokerPlayerIdx, aceHolderIdx, hands, resultObj, gameWon, newTotal }
@@ -6295,9 +6296,11 @@ function DiamondsGame() {
       mpEventPendingDismissalsRef.current = 1 + opponentSlotsRef.current.filter(id => id === 'human').length;
       pendingEventContinuationRef.current = null;
       setMpWaitingForDismissals(false);
+      eventDismissLockRef.current = false;
     } else {
       setGuestEventDismissed(false);
       setCyttGuestDismissed(false);
+      eventDismissLockRef.current = false;
     }
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -7886,7 +7889,7 @@ function DiamondsGame() {
               return;
             }
             if (gameWon) { setTotalScores(newTotal); setPendingFireworks(true); }
-            setKidnapState({ jokerPlayerIdx: jackDIdx, isRobbinJack: true, hands: currentHands, resultObj: jackFirstResultObj });
+            setKidnapState({ jokerPlayerIdx: jackDIdx, isRobbinJack: true, hands: currentHands, resultObj: jackFirstResultObj, pendingQueenClubs: pendingQC || undefined });
             setPhase("kidnap");
             return;
           }
@@ -8006,7 +8009,7 @@ function DiamondsGame() {
     if (pendingRobbinRob && pendingRobbinIdx !== undefined) {
       const hasTargets = newHands.some((h,i) => i !== pendingRobbinIdx && h.length > 0);
       if (hasTargets) {
-        setTrickResult({ ...resultObj, pendingRobbinKidnap: { jackPlayerIdx: pendingRobbinIdx, hands: newHands } });
+        setTrickResult({ ...resultObj, pendingRobbinKidnap: { jackPlayerIdx: pendingRobbinIdx, hands: newHands }, ...(ks.pendingQueenClubs && { pendingQueenClubs: { ...ks.pendingQueenClubs, hands: newHands } }) });
         setKidnapState(null);
         setPhase("trickresult");
         return;
@@ -8281,6 +8284,7 @@ function DiamondsGame() {
   }
   function dismissShowdownEvent() {
     if (!showdownState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (showdownState._id) { dismissedEventIdsRef.current.add(showdownState._id); delete guestActiveEventIdsRef.current.showdown; }
     const { pendingRound, pendingTotal } = showdownState;
     setShowdownState(null);
@@ -8351,6 +8355,7 @@ function DiamondsGame() {
   }
   function dismissTheStealEvent() {
     if (!theStealState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (theStealState._id) { dismissedEventIdsRef.current.add(theStealState._id); delete guestActiveEventIdsRef.current.theSteal; }
     const { pendingRound, pendingTotal, aiEndsRound } = theStealState;
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
@@ -8407,6 +8412,7 @@ function DiamondsGame() {
   }
   function dismissRiotEvent() {
     if (!riotState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (riotState._id) { dismissedEventIdsRef.current.add(riotState._id); delete guestActiveEventIdsRef.current.riot; }
     const { pendingRound, pendingTotal } = riotState;
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
@@ -8562,6 +8568,7 @@ function DiamondsGame() {
   // ---- Aces Low: dismiss the event box (cash-in completed), resume play ----
   function dismissAcesLowEvent() {
     if (!acesLowState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (acesLowState._id) { dismissedEventIdsRef.current.add(acesLowState._id); delete guestActiveEventIdsRef.current.acesLow; }
     const { continuation } = acesLowState;
     setAcesLowState(null);
@@ -8616,6 +8623,7 @@ function DiamondsGame() {
   }
   function dismissRuleOfThreeEvent() {
     if (!ruleOfThreeState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (ruleOfThreeState._id) { dismissedEventIdsRef.current.add(ruleOfThreeState._id); delete guestActiveEventIdsRef.current.ruleOfThree; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
@@ -8670,6 +8678,7 @@ function DiamondsGame() {
   }
   function dismissSwingingParadoxEvent() {
     if (!swingingParadoxState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (swingingParadoxState._id) { dismissedEventIdsRef.current.add(swingingParadoxState._id); delete guestActiveEventIdsRef.current.swingingParadox; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
@@ -8763,6 +8772,7 @@ function DiamondsGame() {
 
   function dismissRuleFourEvent() {
     if (!ruleFourState) return;
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (ruleFourState._id) { dismissedEventIdsRef.current.add(ruleFourState._id); delete guestActiveEventIdsRef.current.ruleFour; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
@@ -8809,6 +8819,7 @@ function DiamondsGame() {
     setPhase("nuclearfamily_event");
   }
   function dismissNuclearFamilyEvent() {
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (nuclearFamilyState?._id) { dismissedEventIdsRef.current.add(nuclearFamilyState._id); delete guestActiveEventIdsRef.current.nuclearFamily; }
     setNuclearFamilyState(null);
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
@@ -8851,6 +8862,7 @@ function DiamondsGame() {
     setPhase("blooddiamond_event");
   }
   function dismissBloodDiamondEvent() {
+    if (eventDismissLockRef.current) return; eventDismissLockRef.current = true;
     if (bloodDiamondState?._id) { dismissedEventIdsRef.current.add(bloodDiamondState._id); delete guestActiveEventIdsRef.current.bloodDiamond; }
     setBloodDiamondState(null);
     if (isMultiplayer() && !isHost()) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); return; }
@@ -11715,8 +11727,8 @@ function DiamondsGame() {
           borderColor="#a8a8a8"
           emoji="🤖"
           title="The Golden Age"
-          btnLabel="PROCEED"
-          onContinue={dismissAcesLowEvent}
+          btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
+          onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissAcesLowEvent}
         >
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>
             {allNames[acesLowState.playerIdx]}
@@ -11755,7 +11767,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 3 event box */}
       {ruleOfThreeState && ruleOfThreeState.cashed && phase !== 'ruleofthree_offer' && (
-        <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleOfThreeEvent}>
+        <EventBox key={ruleOfThreeState._id} borderColor="#8b5e30" emoji="🦅" title="Rule of 3 — Democracy" btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : ruleOfThreeState.isEnding ? "END" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissRuleOfThreeEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleOfThreeState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Three of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -11786,7 +11798,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 2 event box */}
       {swingingParadoxState && swingingParadoxState.cashed && phase !== 'swingingparadox_offer' && (
-        <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={dismissSwingingParadoxEvent}>
+        <EventBox key={swingingParadoxState._id} borderColor="#dddd66" emoji="💍" title="Rule of 2 — Swinging Paradox" btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : swingingParadoxState.isEnding ? "END" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissSwingingParadoxEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[swingingParadoxState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Two dimonded pairs redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -11817,7 +11829,7 @@ function DiamondsGame() {
       )}
       {/* Rule of 4 event box */}
       {ruleFourState && ruleFourState.cashed && phase !== 'rulefour_offer' && (
-        <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={dismissRuleFourEvent}>
+        <EventBox key={ruleFourState._id} borderColor="#dd77aa" emoji="💎" title={"Rule of 4\n— Dimond in the Rough"} btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : ruleFourState.isEnding ? "END" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissRuleFourEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[ruleFourState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Four of a kind redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -11848,7 +11860,7 @@ function DiamondsGame() {
       )}
       {/* Nuclear Family event box */}
       {nuclearFamilyState?.cashed && (
-        <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel="PROCEED" onContinue={dismissNuclearFamilyEvent}>
+        <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissNuclearFamilyEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
@@ -11879,7 +11891,7 @@ function DiamondsGame() {
       )}
       {/* Blood Diamond event box */}
       {bloodDiamondState?.cashed && (
-        <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel="PROCEED" onContinue={dismissBloodDiamondEvent}>
+        <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissBloodDiamondEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[bloodDiamondState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Rainbow run + 1 dimond redeemed!</div>
           <div style={{background:"rgba(10,10,10,0.4)",border:"1px solid #ffffff22",borderRadius:10,padding:"8px 20px",display:"inline-block"}}>
