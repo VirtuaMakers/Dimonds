@@ -6187,6 +6187,8 @@ function DiamondsGame() {
   const [remoteEmojis, setRemoteEmojis] = useState(null);
   const [mpSeatNames, setMpSeatNames] = useState(null); // host-computed names from actual seats (fixes 'human' slot label)
   const allNames = remoteNames || mpSeatNames || [playerName || "You", ...effectivePersonas.map(p => p.label)];
+  const allNamesRef = useRef(allNames);
+  allNamesRef.current = allNames;
   const playerEmojis = remoteEmojis || [
     SEAT_EMOJIS[0],
     ...opponentSlots.map((id, i) =>
@@ -6349,7 +6351,8 @@ function DiamondsGame() {
       nuclearFamilyState: nuclearFamilyState ? { ...nuclearFamilyState, cards:(nuclearFamilyState.cards||[]).map(toCardFB) } : null,
       bloodDiamondState: bloodDiamondState ? { ...bloodDiamondState, cards:(bloodDiamondState.cards||[]).map(toCardFB) } : null,
       swingingParadoxState: swingingParadoxState ? { ...swingingParadoxState, cards:(swingingParadoxState.cards||[]).map(toCardFB) } : null,
-      rule1State, rule1UsedThisTurn,
+      rule1State, rule1UsedThisTurn, gameTricksPerPlayer, gameSetsPerPlayer,
+      roundEventLog: roundEventLog.map(ev => ({ ...ev, cards:(ev.cards||[]).map(toCardFB), plays:ev.plays?ev.plays.map(toPlay):null, diamondsCaptured:ev.diamondsCaptured?ev.diamondsCaptured.map(toCardFB):null })),
     };
     ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
   }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
@@ -6361,7 +6364,7 @@ function DiamondsGame() {
       showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
       ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
       opponentSlots,
-      rule1State, rule1UsedThisTurn]);
+      rule1State, rule1UsedThisTurn, gameTricksPerPlayer, gameSetsPerPlayer, roundEventLog]);
 
   // ── Firebase: guest reads full game state snapshot ───────────────────────────
   useEffect(() => {
@@ -6460,6 +6463,9 @@ function DiamondsGame() {
       syncEv('swingingParadox',setSwingingParadoxState,st.swingingParadoxState,s => ({...s, cards:fbArr(s.cards||[])}));
       setRule1State(st.rule1State ?? null);
       if (st.rule1UsedThisTurn) setRule1UsedThisTurn(fbArr(st.rule1UsedThisTurn));
+      if (st.gameTricksPerPlayer != null) setGameTricksPerPlayer(fbArr(st.gameTricksPerPlayer));
+      if (st.gameSetsPerPlayer != null) setGameSetsPerPlayer(fbArr(st.gameSetsPerPlayer));
+      if (st.roundEventLog) setRoundEventLog(fbArr(st.roundEventLog).map(ev => ({ ...ev, cards:fbArr(ev.cards||[]), plays:ev.plays?fbArr(ev.plays).map(p=>p?{playerIdx:p.playerIdx,card:{...p.card}}:null).filter(Boolean):null, diamondsCaptured:ev.diamondsCaptured?fbArr(ev.diamondsCaptured):null })));
       if (st.hostLeft) setHostLeftGame(true);
     };
     ref.child('state').on('value', handler);
@@ -6540,7 +6546,7 @@ function DiamondsGame() {
         const newRR3 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTR3 = totalScoresRef.current.map((s,i) => s+newRR3[i]);
         setHands(newHR3); setRoundScores(newRR3);
-        addLog(`🦅 ${allNames[seatIdx]} cashes in Rule of 3! +${pts} pts`);
+        addLog(`🦅 ${allNamesRef.current[seatIdx]} cashes in Rule of 3! +${pts} pts`);
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR3.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR3); setFireworksPlace(Math.max(1,Math.min(4,1+newTR3.filter((s,i)=>s>newTR3[seatIdx]||(s===newTR3[seatIdx]&&i!==seatIdx)).length)));
@@ -6557,7 +6563,7 @@ function DiamondsGame() {
         const newRSP = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTSP = totalScoresRef.current.map((s,i) => s+newRSP[i]);
         setHands(newHSP); setRoundScores(newRSP);
-        addLog(`💍 ${allNames[seatIdx]} cashes in Rule of 2! +${pts} pts`);
+        addLog(`💍 ${allNamesRef.current[seatIdx]} cashes in Rule of 2! +${pts} pts`);
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTSP.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTSP); setFireworksPlace(Math.max(1,Math.min(4,1+newTSP.filter((s,i)=>s>newTSP[seatIdx]||(s===newTSP[seatIdx]&&i!==seatIdx)).length)));
@@ -6574,7 +6580,7 @@ function DiamondsGame() {
         const newRR4 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTR4 = totalScoresRef.current.map((s,i) => s+newRR4[i]);
         setHands(newHR4); setRoundScores(newRR4);
-        addLog(`💎 ${allNames[seatIdx]} cashes in Rule of 4! +${pts} pts`);
+        addLog(`💎 ${allNamesRef.current[seatIdx]} cashes in Rule of 4! +${pts} pts`);
         setRuleFourOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR4.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR4); setFireworksPlace(Math.max(1,Math.min(4,1+newTR4.filter((s,i)=>s>newTR4[seatIdx]||(s===newTR4[seatIdx]&&i!==seatIdx)).length)));
@@ -6591,7 +6597,7 @@ function DiamondsGame() {
         const newRNF = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTNF = totalScoresRef.current.map((s,i) => s+newRNF[i]);
         setHands(newHNF); setRoundScores(newRNF);
-        addLog(`🏠 ${allNames[seatIdx]} cashes in Nuclear Family! +${pts} pts`);
+        addLog(`🏠 ${allNamesRef.current[seatIdx]} cashes in Nuclear Family! +${pts} pts`);
         setNuclearFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTNF.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTNF); setFireworksPlace(Math.max(1,Math.min(4,1+newTNF.filter((s,i)=>s>newTNF[seatIdx]||(s===newTNF[seatIdx]&&i!==seatIdx)).length)));
@@ -6608,7 +6614,7 @@ function DiamondsGame() {
         const newRBD = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTBD = totalScoresRef.current.map((s,i) => s+newRBD[i]);
         setHands(newHBD); setRoundScores(newRBD);
-        addLog(`🩸 ${allNames[seatIdx]} cashes in Blood Diamond! +${pts} pts`);
+        addLog(`🩸 ${allNamesRef.current[seatIdx]} cashes in Blood Diamond! +${pts} pts`);
         setBloodDiamondOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTBD.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTBD); setFireworksPlace(Math.max(1,Math.min(4,1+newTBD.filter((s,i)=>s>newTBD[seatIdx]||(s===newTBD[seatIdx]&&i!==seatIdx)).length)));
@@ -6625,8 +6631,10 @@ function DiamondsGame() {
         const newRAL = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTAL = totalScoresRef.current.map((s,i) => s+newRAL[i]);
         setHands(newHAL); setRoundScores(newRAL);
-        addLog(`🤖 ${allNames[seatIdx]} triggers The Golden Age! +${pts} pts — all points doubled for rest of round!`);
+        addLog(`🤖 ${allNamesRef.current[seatIdx]} triggers The Golden Age! +${pts} pts — all points doubled for rest of round!`);
         soundAcesLow();
+        logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🤖", setName:"Golden Age", cards:[] });
+        flagTrickInstance(`${allNamesRef.current[seatIdx]} triggered The Golden Age — all points doubled for the rest of the round`);
         if (newTAL.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTAL); setFireworksPlace(Math.max(1,Math.min(4,1+newTAL.filter((s,i)=>s>newTAL[seatIdx]||(s===newTAL[seatIdx]&&i!==seatIdx)).length)));
           setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
@@ -6657,7 +6665,7 @@ function DiamondsGame() {
         const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
         setRoundScores(newRound);
         setTotalScores(newTotal);
-        addLog(`🏛️ ${allNames[seatIdx]} redeems The First Family! +${pts} pts`);
+        addLog(`🏛️ ${allNamesRef.current[seatIdx]} redeems The First Family! +${pts} pts`);
         setAmericanFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=false; return n; });
         setTrickResult({ winnerIdx:seatIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
         setPhase("trickresult");
@@ -6672,7 +6680,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,i) => i===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🔥 RIOT — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🔥 RIOT — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
         soundRiot();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -6693,7 +6701,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isAceSpades(c)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🌇 THE STEAL — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🌇 THE STEAL — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
         soundTheSteal();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -6716,7 +6724,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!stealIds.has(c.id)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🌆 SHOWDOWN — ${allNames[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🌆 SHOWDOWN — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
         soundTheSteal();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -7304,6 +7312,8 @@ function DiamondsGame() {
   function startRound(existingScores) {
     const nextDealer = (dealerIdx + 1) % 4;
     roundEventLogRef.current = [];
+    dismissedEventIdsRef.current = new Set();
+    guestActiveEventIdsRef.current = {};
     setDealerIdx(nextDealer);
     const newHands = dealCards(nextDealer);
     const leader = findLeader(newHands);
@@ -7443,6 +7453,8 @@ function DiamondsGame() {
     }
     const initDealer = Math.floor(Math.random() * 4);
     roundEventLogRef.current = [];
+    dismissedEventIdsRef.current = new Set();
+    guestActiveEventIdsRef.current = {};
     setDealerIdx(initDealer);
     setTotalScores([0,0,0,0]);
     setRoundNum(1);
@@ -11506,7 +11518,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {showdownState && showdownState.pendingRound && phase !== "showdown" && (
+      {showdownState && showdownState.pendingRound && phase === "showdown_event" && (
         <EventBox key={showdownState._id} borderColor="#55cc77" emoji="🌆" title="Showdown"
           btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
           onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissShowdownEvent}>
@@ -11545,7 +11557,7 @@ function DiamondsGame() {
         </Modal>
       )}
 
-      {riotState && riotState.pendingRound && phase !== "riot" && (
+      {riotState && riotState.pendingRound && phase === "riot_event" && (
         <EventBox key={riotState._id} borderColor="#ff9944" emoji="🔥" title="Riot"
           btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"}
           onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissRiotEvent}>
@@ -11966,7 +11978,7 @@ function DiamondsGame() {
           onContinue={isMultiplayer()
             ? (isHost()
               ? () => gateEventAdvance(afterTrickResult)
-              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+              : () => { if (eventDismissLockRef.current) return; eventDismissLockRef.current = true; setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); })
             : afterTrickResult}
           isGameOver={pendingFireworks || totalScores.some(s=>s>=winScoreRef.current)}
           isHandOver={trickResult?.americanFamily || hands.every(h=>h.length===0) || (autoCompleteTricks && hands.filter(h=>h.length>0).length===1 && !hands.some(h=>h.some(c=>isDiamond(c))))}
@@ -11988,7 +12000,7 @@ function DiamondsGame() {
           onContinue={isMultiplayer()
             ? (isHost()
               ? () => gateEventAdvance(startNextRound)
-              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+              : () => { if (eventDismissLockRef.current) return; eventDismissLockRef.current = true; setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); })
             : startNextRound}
           continueLabel={isMultiplayer() && (mpWaitingForDismissals || guestEventDismissed) ? "Waiting for players…" : "Deal Next Round"}
           eventLog={roundEventLog}
@@ -12008,7 +12020,7 @@ function DiamondsGame() {
           onMainMenu={isMultiplayer()
             ? (isHost()
               ? () => { if (mpRoomRef.current) mpRoomRef.current.child('state').update({ hostLeft: true }); setScreen("menu"); }
-              : () => { if (!guestEventDismissed) { setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); } })
+              : () => { if (eventDismissLockRef.current) return; eventDismissLockRef.current = true; setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); })
             : () => setScreen("menu")}
           hostLeft={hostLeftGame}
           onShowCredits={()=>setShowCredits(true)}
