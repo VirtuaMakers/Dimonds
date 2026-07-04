@@ -6322,7 +6322,7 @@ function DiamondsGame() {
       phase,
       hands: hands.map(h => (h||[]).map(toCardFB)),
       trickPlays: trickPlays.map(toPlay),
-      turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick,
+      turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       allNames, playerEmojis, opponentSlots,
       trickResult: trickResult ? {
@@ -6349,7 +6349,7 @@ function DiamondsGame() {
       rule1State, rule1UsedThisTurn,
     };
     ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
-  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick,
+  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
@@ -6368,7 +6368,7 @@ function DiamondsGame() {
     const toHand = h => fbArr(h).map(c => ({...c}));
     const toPlay = p => p ? ({ playerIdx:p.playerIdx, card:{...p.card} }) : null;
     // Phases the guest manages locally (offer modals) — don't let host "playing" override them
-    const GUEST_LOCAL_PHASES = new Set(['ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
+    const GUEST_LOCAL_PHASES = new Set(['aceslow_offer','ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
@@ -6402,6 +6402,7 @@ function DiamondsGame() {
       setRoundNum(st.roundNum ?? 1);
       setTricksPlayed(st.tricksPlayed ?? 0);
       setIsFirstTrick(st.isFirstTrick ?? (st.tricksPlayed ?? 0) === 0);
+      if (st.winScore != null) setWinScore(st.winScore);
       setDiamondsBroken(st.diamondsBroken ?? false);
       goldenAgeRef.current = st.goldenAgeActive ?? false;
       setGoldenAgeActive(st.goldenAgeActive ?? false);
@@ -7829,7 +7830,7 @@ function DiamondsGame() {
     if (aceBlocked && jackDPendingRobChoice) {
       const jdIdx = result.jackDiamondPlayerIdx;
       setTimeout(() => {
-        if (jdIdx === 0) {
+        if (jdIdx === mySeatingIdx) {
           setAceRobChoiceState({
             acePlayerIdx: winner,
             jackDPlayerIdx: jdIdx,
@@ -7893,7 +7894,7 @@ function DiamondsGame() {
         // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
         const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
         const aceHolderForSummon = currentHands.findIndex(h => h.some(c => isAceSpades(c)));
-        if (jackDPlayerForSummon === 0 && aceHolderForSummon !== -1) {
+        if (jackDPlayerForSummon === mySeatingIdx && aceHolderForSummon !== -1) {
           setRobbinSummonState({ jackPlayerIdx: jackDPlayerForSummon, jokerPlayerIdx: winner, aceHolderIdx: aceHolderForSummon, hands: currentHands, resultObj, gameWon, newTotal });
           setPhase("robbinsummon");
           return;
@@ -11565,7 +11566,7 @@ function DiamondsGame() {
       {phase==="rescue"&&rescueState&&rescueState.acePlayerIdx===mySeatingIdx&&peekingModal!=="rescue"&&(
         <RescueModal
           hands={hands}
-          acePlayerIdx={0}
+          acePlayerIdx={rescueState.acePlayerIdx}
           jackDPlayerIdx={rescueState.jackDPlayerIdx}
           allNames={allNames}
           playerEmojis={playerEmojis}
