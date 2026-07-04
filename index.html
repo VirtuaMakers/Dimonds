@@ -6536,41 +6536,67 @@ function DiamondsGame() {
         const cards = hand.filter(c => cardIdSet.has(c.id));
         if (cards.length !== 3) return;
         const pts = RULE_OF_THREE_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHR3 = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
+        const newRR3 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTR3 = totalScoresRef.current.map((s,i) => s+newRR3[i]);
+        setHands(newHR3); setRoundScores(newRR3);
         addLog(`🦅 ${allNames[seatIdx]} cashes in Rule of 3! +${pts} pts`);
-        setRuleOfThreeState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:false, continuation:null });
+        setRuleOfThreeOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
+        if (newTR3.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTR3); setFireworksPlace(Math.max(1,Math.min(4,1+newTR3.filter((s,i)=>s>newTR3[seatIdx]||(s===newTR3[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
+        setRuleOfThreeState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHR3.every(h=>h.length===0), continuation:null });
         setPhase('ruleofthree_event');
       } else if (type === 'swingingParadoxAccept') {
         const hand = handsRef.current[seatIdx] || [];
         const cardIdSet = new Set(payload.cardIds || []);
         const cards = hand.filter(c => cardIdSet.has(c.id));
         const pts = SWINGING_PARADOX_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHSP = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
+        const newRSP = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTSP = totalScoresRef.current.map((s,i) => s+newRSP[i]);
+        setHands(newHSP); setRoundScores(newRSP);
         addLog(`💍 ${allNames[seatIdx]} cashes in Rule of 2! +${pts} pts`);
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
-        setSwingingParadoxState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:false, continuation:null });
+        if (newTSP.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTSP); setFireworksPlace(Math.max(1,Math.min(4,1+newTSP.filter((s,i)=>s>newTSP[seatIdx]||(s===newTSP[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
+        setSwingingParadoxState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHSP.every(h=>h.length===0), continuation:null });
         setPhase('swingingparadox_event');
       } else if (type === 'ruleFourAccept') {
         const hand = handsRef.current[seatIdx] || [];
         const cardIdSet = new Set(payload.cardIds || []);
         const cards = hand.filter(c => cardIdSet.has(c.id));
         const pts = RULE_OF_FOUR_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHR4 = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
+        const newRR4 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTR4 = totalScoresRef.current.map((s,i) => s+newRR4[i]);
+        setHands(newHR4); setRoundScores(newRR4);
         addLog(`💎 ${allNames[seatIdx]} cashes in Rule of 4! +${pts} pts`);
         setRuleFourOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
-        setRuleFourState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:false, continuation:null });
+        if (newTR4.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTR4); setFireworksPlace(Math.max(1,Math.min(4,1+newTR4.filter((s,i)=>s>newTR4[seatIdx]||(s===newTR4[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
+        setRuleFourState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHR4.every(h=>h.length===0), continuation:null });
         setPhase('rulefour_event');
       } else if (type === 'nuclearFamilyAccept') {
         const hand = handsRef.current[seatIdx] || [];
         const cardIdSet = new Set(payload.cardIds || []);
         const cards = hand.filter(c => cardIdSet.has(c.id));
         const pts = NUCLEAR_FAMILY_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHNF = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
+        const newRNF = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTNF = totalScoresRef.current.map((s,i) => s+newRNF[i]);
+        setHands(newHNF); setRoundScores(newRNF);
         addLog(`🏠 ${allNames[seatIdx]} cashes in Nuclear Family! +${pts} pts`);
+        setNuclearFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
+        if (newTNF.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTNF); setFireworksPlace(Math.max(1,Math.min(4,1+newTNF.filter((s,i)=>s>newTNF[seatIdx]||(s===newTNF[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
         setNuclearFamilyState({ _id:Math.random(), playerIdx:seatIdx, cashed:true, points:pts });
         setPhase('nuclearfamily_event');
       } else if (type === 'bloodDiamondAccept') {
@@ -6578,9 +6604,16 @@ function DiamondsGame() {
         const cardIdSet = new Set(payload.cardIds || []);
         const cards = hand.filter(c => cardIdSet.has(c.id));
         const pts = BLOOD_DIAMOND_BONUS * (goldenAgeRef.current ? 2 : 1);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHBD = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
+        const newRBD = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTBD = totalScoresRef.current.map((s,i) => s+newRBD[i]);
+        setHands(newHBD); setRoundScores(newRBD);
         addLog(`🩸 ${allNames[seatIdx]} cashes in Blood Diamond! +${pts} pts`);
+        setBloodDiamondOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
+        if (newTBD.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTBD); setFireworksPlace(Math.max(1,Math.min(4,1+newTBD.filter((s,i)=>s>newTBD[seatIdx]||(s===newTBD[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
         setBloodDiamondState({ _id:Math.random(), playerIdx:seatIdx, cashed:true, points:pts });
         setPhase('blooddiamond_event');
       } else if (type === 'acesLowAccept') {
@@ -6588,11 +6621,30 @@ function DiamondsGame() {
         const aceIds = new Set(["A♠","A♥","A♣","A♦"]);
         goldenAgeRef.current = true;
         setGoldenAgeActive(true);
-        setHands(prev => prev.map((h,j) => j===seatIdx ? h.filter(c=>!aceIds.has(c.id)) : h));
-        setRoundScores(prev => { const n=[...prev]; n[seatIdx]+=pts; return n; });
+        const newHAL = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!aceIds.has(c.id)) : h);
+        const newRAL = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
+        const newTAL = totalScoresRef.current.map((s,i) => s+newRAL[i]);
+        setHands(newHAL); setRoundScores(newRAL);
         addLog(`🤖 ${allNames[seatIdx]} triggers The Golden Age! +${pts} pts — all points doubled for rest of round!`);
-        setAcesLowState({ _id:Math.random(), playerIdx:seatIdx, hands:handsRef.current, cashed:true, points:pts, continuation:null });
+        soundAcesLow();
+        if (newTAL.some(s => s >= winScoreRef.current)) {
+          setTotalScores(newTAL); setFireworksPlace(Math.max(1,Math.min(4,1+newTAL.filter((s,i)=>s>newTAL[seatIdx]||(s===newTAL[seatIdx]&&i!==seatIdx)).length)));
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+        }
+        setAcesLowState({ _id:Math.random(), playerIdx:seatIdx, hands:newHAL, cashed:true, points:pts, continuation:null });
         setPhase('aceslow_event');
+      } else if (type === 'ruleOfThreeDecline') {
+        setRuleOfThreeState(null); setRuleOfThreeOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; }); setPhase('playing');
+      } else if (type === 'swingingParadoxDecline') {
+        setSwingingParadoxState(null); setSwingingParadoxOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; }); setPhase('playing');
+      } else if (type === 'ruleFourDecline') {
+        setRuleFourState(null); setRuleFourOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; }); setPhase('playing');
+      } else if (type === 'nuclearFamilyDecline') {
+        setNuclearFamilyState(null); setNuclearFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; }); setPhase('playing');
+      } else if (type === 'bloodDiamondDecline') {
+        setBloodDiamondState(null); setBloodDiamondOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; }); setPhase('playing');
+      } else if (type === 'acesLowDecline') {
+        setAcesLowState(null); setPhase('playing');
       } else if (type === 'americanFamilyAccept') {
         const GA = goldenAgeRef.current ? 2 : 1;
         const pts = AMERICAN_FAMILY_BONUS * GA;
@@ -7833,7 +7885,7 @@ function DiamondsGame() {
     if (aceBlocked && jackDPendingRobChoice) {
       const jdIdx = result.jackDiamondPlayerIdx;
       setTimeout(() => {
-        if (jdIdx === mySeatingIdx) {
+        if (jdIdx === mySeatingIdx || (isMultiplayer() && jdIdx >= 1 && opponentSlotsRef.current[jdIdx - 1] === 'human')) {
           setAceRobChoiceState({
             acePlayerIdx: winner,
             jackDPlayerIdx: jdIdx,
@@ -7897,7 +7949,7 @@ function DiamondsGame() {
         // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
         const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
         const aceHolderForSummon = currentHands.findIndex(h => h.some(c => isAceSpades(c)));
-        if (jackDPlayerForSummon === mySeatingIdx && aceHolderForSummon !== -1) {
+        if (aceHolderForSummon !== -1 && (jackDPlayerForSummon === mySeatingIdx || (isMultiplayer() && jackDPlayerForSummon >= 1 && opponentSlotsRef.current[jackDPlayerForSummon - 1] === 'human'))) {
           setRobbinSummonState({ jackPlayerIdx: jackDPlayerForSummon, jokerPlayerIdx: winner, aceHolderIdx: aceHolderForSummon, hands: currentHands, resultObj, gameWon, newTotal });
           setPhase("robbinsummon");
           return;
@@ -8555,6 +8607,7 @@ function DiamondsGame() {
   // ---- Aces Low: human chose HOLD ----
   function declineAcesLow() {
     if (!acesLowState) return;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('acesLowDecline', {}); setAcesLowState(null); setPhase("playing"); return; }
     const { playerIdx, continuation } = acesLowState;
     addLog(`✈️ ${allNames[playerIdx]} HOLDS Aces Low — pushing for bigger sets`);
     setAcesLowState(null);
@@ -8616,6 +8669,7 @@ function DiamondsGame() {
   }
   function declineRuleOfThree() {
     if (!ruleOfThreeState) return;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('ruleOfThreeDecline', {}); setRuleOfThreeState(null); setPhase("playing"); return; }
     const { continuation } = ruleOfThreeState;
     setRuleOfThreeState(null);
     setPhase("playing");
@@ -8671,6 +8725,7 @@ function DiamondsGame() {
   }
   function declineSwingingParadox() {
     if (!swingingParadoxState) return;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('swingingParadoxDecline', {}); setSwingingParadoxState(null); setPhase("playing"); return; }
     const { continuation } = swingingParadoxState;
     setSwingingParadoxState(null);
     setPhase("playing");
@@ -8726,6 +8781,7 @@ function DiamondsGame() {
   }
   function declineRuleFour() {
     if (!ruleFourState) return;
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('ruleFourDecline', {}); setRuleFourState(null); setPhase("playing"); return; }
     const { continuation } = ruleFourState;
     setRuleFourState(null);
     setPhase("playing");
@@ -8784,6 +8840,7 @@ function DiamondsGame() {
   }
 
   function declineNuclearFamily() {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('nuclearFamilyDecline', {}); setNuclearFamilyState(null); setPhase("playing"); return; }
     setNuclearFamilyState(null);
     setPhase("playing");
   }
@@ -8827,6 +8884,7 @@ function DiamondsGame() {
   }
 
   function declineBloodDiamond() {
+    if (isMultiplayer() && !isHost()) { guestSubmitMove('bloodDiamondDecline', {}); setBloodDiamondState(null); setPhase("playing"); return; }
     setBloodDiamondState(null);
     setPhase("playing");
   }
@@ -11552,7 +11610,7 @@ function DiamondsGame() {
       {phase==="queenclubs"&&queenClubsState&&queenClubsState.playerIdx===mySeatingIdx&&!queenClubsPeeking&&(
         <QueenClubsModal
           hands={queenClubsState.hands}
-          playerIdx={0}
+          playerIdx={queenClubsState.playerIdx}
           allNames={allNames}
           playerEmojis={playerEmojis}
           onThieve={handleQueenClubsThieve}
