@@ -11290,7 +11290,7 @@ function DiamondsGame() {
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* WAITING GIF — shows in multiplayer when it's not the player's turn */}
-      {isMultiplayer() && !isPlayerTurn && phase === "playing" && (
+      {isMultiplayer() && !isPlayerTurn && (phase === "playing" || phase === "rule1") && (
         <div style={{
           position:"fixed", inset:0, zIndex:50,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
