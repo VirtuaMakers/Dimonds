@@ -6796,6 +6796,9 @@ function DiamondsGame() {
   // Auto-skip human player if their hand is empty
   useEffect(() => {
     if (!isPlayerTurn || hands[mySeatingIdx]?.length > 0) return;
+    // In multiplayer, only the host should advance currentTurn for an empty guest.
+    // Guests locally advancing creates a desync with Firebase.
+    if (isMultiplayer() && !isHost()) return;
     const timer = setTimeout(() => {
       const currentHands = handsRef.current;
       const currentPlays = trickPlaysRef.current;
@@ -9510,7 +9513,9 @@ function DiamondsGame() {
     if (currentPlayer === undefined || currentPlayer === mySeatingIdx) return; // human's turn or out of bounds
     if (isMultiplayer() && !isHost()) return; // guests don't run AI
     const slotId = opponentSlotsRef.current[currentPlayer - 1];
-    if (slotId === 'human') return; // wait for pendingMoves from this guest
+    // Only wait for a pendingMove if the guest actually has cards to play.
+    // If their hand is empty, fall through to the timer — it will auto-skip them.
+    if (slotId === 'human' && (handsRef.current[currentPlayer]?.length ?? 0) > 0) return;
 
     const timer = setTimeout(() => {
       // Read from ref so we always see the latest hands even if Rule of 1 or another
