@@ -11394,7 +11394,7 @@ function DiamondsGame() {
           /* J♦ step 1: decide to rob or not (no hands shown) */
           (() => {
             const jokerBlocking = !!(kidnapState.resultObj?.jokerWin || kidnapState.resultObj?.pendingJokerKidnap);
-            const skipLbl = jokerBlocking ? "Don't Rob & Call a Block ⚖️" : "Don't Rob & Call a Rescue ⚖️";
+            const skipLbl = (jokerBlocking || !!kidnapState.pendingQueenClubs) ? "Don't Rob & Call a Block ⚖️" : "Don't Rob & Call a Rescue ⚖️";
             return (
             <Modal>
               <div style={{textAlign:"center"}}>
@@ -11448,7 +11448,7 @@ function DiamondsGame() {
             deckTheme={deckTheme}
             isRobbinJack={!!kidnapState.isRobbinJack}
             onPeek={()=>setPeekingModal("kidnap")}
-            skipLabel={(kidnapState.resultObj?.jokerWin || kidnapState.resultObj?.pendingJokerKidnap) ? "Don't Rob & Call a Block ⚖️" : undefined}
+            skipLabel={(kidnapState.resultObj?.jokerWin || kidnapState.resultObj?.pendingJokerKidnap || kidnapState.pendingQueenClubs) ? "Don't Rob & Call a Block ⚖️" : undefined}
           />
         )
       )}
