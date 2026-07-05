@@ -9914,11 +9914,11 @@ function DiamondsGame() {
     const isCompact = !isWide && windowHeight < 720;
     const isTiny = !isWide && windowHeight < 660;
     const BG_FLOAT_ANIMS = ["bgFloat0","bgFloat1","bgFloat2","bgFloat3","bgFloat4"];
-    const BG_DURATIONS   = [9.2, 11.5, 8.8, 13.1, 10.4, 12.7, 9.6, 14.2, 8.3, 11.9, 7.8, 13.6, 10.1];
-    const BG_DELAYS      = [0, -3.2, -5.7, -1.8, -7.3, -4.1, -2.6, -6.4, -0.9, -8.1, -4.8, -1.3, -7.0];
+    const BG_DURATIONS   = [9.2, 11.5, 8.8, 13.1, 10.4, 12.7, 9.6, 14.2, 8.3, 11.9];
+    const BG_DELAYS      = [0, -3.2, -5.7, -1.8, -7.3, -4.1, -2.6, -6.4, -0.9, -8.1];
     const bgDiamonds = (
       <div style={{position:"absolute",inset:0,pointerEvents:"none",overflow:"hidden"}}>
-        {[55,90,70,120,60,85,100,65,110,75,80,50,95].map((size,i)=>(
+        {[55,90,70,120,60,85,100,65,110,75].map((size,i)=>(
           <div key={i} style={{
             position:"absolute",
             left:`${Math.round(3 + i * 7.4)}%`,top:`${3+(i%5)*19}%`,
@@ -10211,10 +10211,10 @@ function DiamondsGame() {
               {playDimondsBtn(isTiny?40:isCompact?44:54)}
             </div>
             {cardSelector}
-            <div style={{display:"flex",flexDirection:"row",justifyContent:"center",gap:8,marginTop:4,paddingBottom:10}}>
-              <GoldBtn small secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn>
-              <GoldBtn small secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn>
-              <GoldBtn small secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn>
+            <div style={{display:"flex",flexDirection:"row",gap:8,marginTop:4,paddingBottom:10,width:"100%"}}>
+              <div style={{flex:1}}><GoldBtn fill small secondary onClick={()=>setShowRules(true)}>Rules</GoldBtn></div>
+              <div style={{flex:1}}><GoldBtn fill small secondary onClick={()=>setShowOptions(true)}>Options</GoldBtn></div>
+              <div style={{flex:1}}><GoldBtn fill small secondary onClick={()=>setShowCredits(true)}>Credits</GoldBtn></div>
             </div>
           </div>
         )}
