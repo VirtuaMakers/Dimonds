@@ -6327,6 +6327,7 @@ function DiamondsGame() {
     };
     const snap = {
       phase,
+      showFireworks,
       hands: hands.map(h => (h||[]).map(toCardFB)),
       trickPlays: trickPlays.map(toPlay),
       turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
@@ -6357,7 +6358,7 @@ function DiamondsGame() {
       roundEventLog: roundEventLog.map(ev => ({ ...ev, cards:(ev.cards||[]).map(toCardFB), plays:ev.plays?ev.plays.map(toPlay):null, diamondsCaptured:ev.diamondsCaptured?ev.diamondsCaptured.map(toCardFB):null })),
     };
     ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
-  }, [phase, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
+  }, [phase, showFireworks, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
       diamondsBroken, goldenAgeActive, dealing, dealRevealIdx, dealerIdx,
       trickResult, pendingPlayContinuation,
       kidnapState, rescueState, queenClubsState, robbinSummonState, aceRobChoiceState,
@@ -6380,9 +6381,9 @@ function DiamondsGame() {
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
-      // Guest victory animation: intercept gameover before setPhase so animation plays first
+      // Guest victory animation: fire as soon as host sets showFireworks, not after cutscene ends
       const newPhase = st.phase ?? "playing";
-      if (newPhase === "gameover" && phaseRef.current !== "gameover" && !showFireworksRef.current) {
+      if ((newPhase === "gameover" || st.showFireworks) && phaseRef.current !== "gameover" && !showFireworksRef.current) {
         const scores = fbArr(st.totalScores || []);
         const myIdx = mySeatingIdxRef.current;
         const myScore = scores[myIdx] ?? 0;
