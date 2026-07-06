@@ -6091,6 +6091,8 @@ function DiamondsGame() {
   const [roundNum, setRoundNum] = useState(1);
   const [dealerIdx, setDealerIdx] = useState(0);
   const [tricksPlayed, setTricksPlayed] = useState(0);
+  const tricksPlayedRef = useRef(0);
+  useEffect(() => { tricksPlayedRef.current = tricksPlayed; }, [tricksPlayed]);
   const [isFirstTrick, setIsFirstTrick] = useState(true);
   const [gameLog, setGameLog] = useState(["Dimonds: Pressure makes champions!"]);
   const [pendingAF, setPendingAF] = useState(false); // american family detected
@@ -6280,7 +6282,7 @@ function DiamondsGame() {
   }, [mpRole, mpJoinAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!isMultiplayer()) return;
+    // Reset always — solo mode also needs the lock cleared between events
     const eventPhases = ['ruleofthree_event','swingingparadox_event','rulefour_event',
       'nuclearfamily_event','blooddiamond_event','showdown_event','riot_event','thesteal_event',
       'aceslow_event','trickresult','roundover','gameover'];
@@ -6426,9 +6428,16 @@ function DiamondsGame() {
         const pc = st.pendingPlayContinuation;
         setPendingPlayContinuation({ playerIdx:pc.playerIdx, card:pc.card, newPlays:fbArr(pc.newPlays||[]).map(toPlay).filter(Boolean), newHands:fbArr(pc.newHands||[]).map(toHand) });
       } else { setPendingPlayContinuation(null); }
-      setKidnapState(st.kidnapState ?? null);
+      if (st.kidnapState) {
+        const ks = st.kidnapState;
+        setKidnapState({ ...ks, hands: fbArr(ks.hands).map(h => fbArr(h).map(c => ({...c}))),
+          pendingQueenClubs: ks.pendingQueenClubs ? { ...ks.pendingQueenClubs, hands: fbArr(ks.pendingQueenClubs.hands).map(h => fbArr(h).map(c => ({...c}))) } : undefined });
+      } else { setKidnapState(null); }
       setRescueState(st.rescueState ?? null);
-      setQueenClubsState(st.queenClubsState ?? null);
+      if (st.queenClubsState) {
+        const qcs = st.queenClubsState;
+        setQueenClubsState({ ...qcs, hands: fbArr(qcs.hands).map(h => fbArr(h).map(c => ({...c}))) });
+      } else { setQueenClubsState(null); }
       setRobbinSummonState(st.robbinSummonState ?? null);
       setAceRobChoiceState(st.aceRobChoiceState ?? null);
       if (st.showdownOffered) setShowdownOffered(fbArr(st.showdownOffered));
@@ -6633,7 +6642,7 @@ function DiamondsGame() {
         setHands(newHAL); setRoundScores(newRAL);
         addLog(`🤖 ${allNamesRef.current[seatIdx]} triggers The Golden Age! +${pts} pts — all points doubled for rest of round!`);
         soundAcesLow();
-        logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🤖", setName:"Golden Age", cards:[] });
+        logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🤖", setName:"Golden Age", cards:[] });
         flagTrickInstance(`${allNamesRef.current[seatIdx]} triggered The Golden Age — all points doubled for the rest of the round`);
         if (newTAL.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTAL); setFireworksPlace(Math.max(1,Math.min(4,1+newTAL.filter((s,i)=>s>newTAL[seatIdx]||(s===newTAL[seatIdx]&&i!==seatIdx)).length)));
@@ -7001,18 +7010,21 @@ function DiamondsGame() {
   // Human player is exempt — handled by the human-sweep useEffect below.
   useEffect(() => {
     if (phase !== "playing") return;
+    if (isMultiplayer() && !isHost()) return; // host is the sole authority on sweeping
     if (trickPlays.length > 0) return;
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
     if (playersWithCards.length !== 1) return;
     const solo = playersWithCards[0];
     if (solo === 0) return;
+    // Never auto-sweep a human guest — they may have uncashed sets to redeem
+    if (isMultiplayer() && solo >= 1 && opponentSlotsRef.current[solo - 1] === 'human') return;
     if (hands[solo].some(c => isDiamond(c) || isAceSpades(c) || c.isJoker || isQueenClubs(c))) return;
     const soloHand = hands[solo];
     const timer = setTimeout(() => {
       if (soloHand.length > 0) addLog(`✨ ${allNames[solo]} sweeps ${soloHand.length} pointless card${soloHand.length!==1?"s":""}`);
       setHands([[],[],[],[]]);
-      const newRS = [...roundScores];
-      const newTotal = totalScores.map((s,i) => s + newRS[i]);
+      const newRS = [...roundScoresRef.current];
+      const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
@@ -7284,6 +7296,8 @@ function DiamondsGame() {
       return; // Human player notified via buttons in action area
     } else if (_afRel !== 0 && opponentSlotsRef.current[_afRel - 1] === 'simp') {
       return; // Simp never cashes sets
+    } else if (_afRel !== 0 && opponentSlotsRef.current[_afRel - 1] === 'human') {
+      return; // Human guest handles their own American Family offer
     } else {
       const GA = goldenAgeRef.current ? 2 : 1;
       const pts = AMERICAN_FAMILY_BONUS * GA;
@@ -7296,10 +7310,11 @@ function DiamondsGame() {
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:familyCards });
       setHands(hands.map((h,i) => i===cp ? h.filter(c=>!famIds.has(c.id)) : h));
-      setTimeout(() => {
+      const afTimer = setTimeout(() => {
         setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
         setPhase("trickresult");
       }, 700);
+      return () => clearTimeout(afTimer);
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
@@ -7649,6 +7664,8 @@ function DiamondsGame() {
 
   useEffect(() => {
     if (phase === "roundover" || phase === "gameover") {
+      // Guests receive roundEventLog from Firebase — don't overwrite with the always-empty local ref
+      if (isMultiplayer() && !isHost()) return;
       const log = [...roundEventLogRef.current];
       setRoundEventLog(log);
       // Accumulate game-wide trick/set totals for both roundover and gameover
@@ -9256,6 +9273,7 @@ function DiamondsGame() {
   // Depends only on phase so switching to "game" mode mid-roundover doesn't skip the current summary
   useEffect(() => {
     if (phase !== "roundover" || scoreTallyRef.current !== "game") return;
+    if (isMultiplayer() && !isHost()) return; // guests must not locally start the next round
     const t = setTimeout(() => { startNextRound(); }, 1400);
     return () => clearTimeout(t);
   }, [phase]);
@@ -9550,11 +9568,11 @@ function DiamondsGame() {
               } else {
                 // No diamonds remain — sweep silently without a modal
                 const GA = goldenAgeRef.current ? 2 : 1;
-                const newRS = [...roundScores];
+                const newRS = [...roundScoresRef.current];
                 if (soloHand.length > 0) addLog(`✨ ${allNames[soloIdx]} sweeps ${soloHand.length} unopposed card${soloHand.length!==1?"s":""}`);
                 setRoundScores(newRS);
                 setHands([[],[],[],[]]);
-                const newTotal = totalScores.map((s,i) => s + newRS[i]);
+                const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
                 setTotalScores(newTotal);
                 const gameOver = newTotal.some(s => s >= winScoreRef.current);
                 if (gameOver) {
@@ -9670,12 +9688,12 @@ function DiamondsGame() {
     const timer = setTimeout(() => {
       const GA = goldenAgeRef.current ? 2 : 1;
       const dimondPts = h0.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
-      const newRoundScores = [...roundScores];
+      const newRoundScores = [...roundScoresRef.current];
       newRoundScores[msi] += dimondPts;
       if (h0.length > 0) addLog(`✨ ${allNames[msi]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`);
       setRoundScores(newRoundScores);
       setHands([[],[],[],[]]);
-      const newTotal = totalScores.map((s,i) => s + newRoundScores[i]);
+      const newTotal = totalScoresRef.current.map((s,i) => s + newRoundScores[i]);
       setTotalScores(newTotal);
       const gameOver = newTotal.some(s => s >= winScoreRef.current);
       if (gameOver) {
@@ -11295,7 +11313,10 @@ function DiamondsGame() {
       <div style={{height:"env(safe-area-inset-bottom, 0px)",flexShrink:0}}/>
 
       {/* WAITING GIF — shows in multiplayer when it's not the player's turn */}
-      {isMultiplayer() && !isPlayerTurn && (phase === "playing" || phase === "rule1") && (
+      {isMultiplayer() && (
+        (!isPlayerTurn && (phase === "playing" || phase === "rule1")) ||
+        (!isHost() && (phase === "acerobchoice" || phase === "robbinsummon") && mySeatingIdx !== (kidnapState?.playerIdx ?? -1))
+      ) && (
         <div style={{
           position:"fixed", inset:0, zIndex:50,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
@@ -11303,7 +11324,9 @@ function DiamondsGame() {
         }}>
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:110, height:110, opacity:0.85, marginBottom:12}} />
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
-            {`Waiting for ${allNames[turnOrder[currentTurn]] ?? '…'}…`}
+            {(phase === "acerobchoice" || phase === "robbinsummon")
+              ? `Waiting for ${allNames[kidnapState?.playerIdx ?? 0] ?? '…'}…`
+              : `Waiting for ${allNames[turnOrder[currentTurn]] ?? '…'}…`}
           </div>
         </div>
       )}
