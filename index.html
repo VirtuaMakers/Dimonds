@@ -6356,6 +6356,7 @@ function DiamondsGame() {
       swingingParadoxState: swingingParadoxState ? { ...swingingParadoxState, cards:(swingingParadoxState.cards||[]).map(toCardFB) } : null,
       rule1State, rule1UsedThisTurn, gameTricksPerPlayer, gameSetsPerPlayer,
       roundEventLog: roundEventLog.map(ev => ({ ...ev, cards:(ev.cards||[]).map(toCardFB), plays:ev.plays?ev.plays.map(toPlay):null, diamondsCaptured:ev.diamondsCaptured?ev.diamondsCaptured.map(toCardFB):null })),
+      llmTaunts,
     };
     ref.child('state').set(stripUndef(snap)).catch(e => console.error('[FB write]', e));
   }, [phase, showFireworks, hands, trickPlays, turnOrder, currentTurn, roundScores, totalScores, roundNum, tricksPlayed, isFirstTrick, winScore,
@@ -6367,7 +6368,7 @@ function DiamondsGame() {
       showdownOffered, theStealOffered, riotOffered, acesLowOffered, americanFamilyOffered,
       ruleOfThreeOffered, ruleFourOffered, swingingParadoxOffered, nuclearFamilyOffered, bloodDiamondOffered,
       opponentSlots,
-      rule1State, rule1UsedThisTurn, gameTricksPerPlayer, gameSetsPerPlayer, roundEventLog]);
+      rule1State, rule1UsedThisTurn, gameTricksPerPlayer, gameSetsPerPlayer, roundEventLog, llmTaunts]);
 
   // ── Firebase: guest reads full game state snapshot ───────────────────────────
   useEffect(() => {
@@ -6476,6 +6477,7 @@ function DiamondsGame() {
       if (st.gameTricksPerPlayer != null) setGameTricksPerPlayer(fbArr(st.gameTricksPerPlayer));
       if (st.gameSetsPerPlayer != null) setGameSetsPerPlayer(fbArr(st.gameSetsPerPlayer));
       if (st.roundEventLog) setRoundEventLog(fbArr(st.roundEventLog).map(ev => ({ ...ev, cards:fbArr(ev.cards||[]), plays:ev.plays?fbArr(ev.plays).map(p=>p?{playerIdx:p.playerIdx,card:{...p.card}}:null).filter(Boolean):null, diamondsCaptured:ev.diamondsCaptured?fbArr(ev.diamondsCaptured):null })));
+      if (st.llmTaunts) setLlmTaunts(st.llmTaunts);
       if (st.hostLeft) setHostLeftGame(true);
     };
     ref.child('state').on('value', handler);
@@ -9442,6 +9444,7 @@ function DiamondsGame() {
 
   useEffect(() => {
     if (phase !== 'gameover') return;
+    if (isMultiplayer() && !isHost()) return; // guests receive taunts via Firebase
     const llmSlots = opponentSlotsRef.current
       .map((id, i) => ({ id, playerIdx: i + 1 }))
       .filter(({ id }) => LLM_IDS.has(id));
