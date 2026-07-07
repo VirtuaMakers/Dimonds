@@ -3419,6 +3419,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
               src={JOKER_IMG}
               loading="eager"
               fetchPriority="high"
+              draggable={false}
               style={{width:"100%", height:"100%", objectFit:"contain", display:"block"}}
               alt="The Joker"
               onError={e=>{e.currentTarget.style.display="none";}}
@@ -3529,6 +3530,7 @@ function CardComp({ card, selected, onClick, faceDown, tiny, dimmed, played, dec
                 <img
                   src={card.suit==="♦"?(card.rank==="K"?KINGD_IMG:card.rank==="Q"?QUEEND_IMG:JACKD_IMG):QUEENC_IMG}
                   alt={`${card.rank}${card.suit}`}
+                  draggable={false}
                   style={{
                     position:"absolute", inset:0,
                     width:"100%", height:"100%",
@@ -10825,6 +10827,7 @@ function DiamondsGame() {
                       setDragGhost({ card, x: e.clientX, y: e.clientY });
                     }
                   } : undefined}
+                  onDragStart={e => e.preventDefault()}
                   onPointerUp={isPlayerTurn ? (e) => {
                     if (!dragRef.current || dragRef.current.card.id !== card.id) return;
                     const { isDragging, isLegal: legalAtDragStart } = dragRef.current;
