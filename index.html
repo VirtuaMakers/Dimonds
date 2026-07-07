@@ -6525,6 +6525,7 @@ function DiamondsGame() {
       if (!move) return;
       const { type, seatIdx, payload } = move;
       if (type === 'playCard') {
+        if (phaseRef.current !== 'playing') return; // ignore plays that arrive during CYT or event phases
         const hand = handsRef.current[seatIdx] || [];
         const card = hand.find(c => c.id === payload.cardId);
         if (card) setTimeout(() => submitPlayRef.current(seatIdx, card), 0);
@@ -7758,6 +7759,7 @@ function DiamondsGame() {
     const justBrokeDimonds = !diamondsBrokenRef.current && isDiamond(card);
     if (justBrokeDimonds) {
       setDiamondsBroken(true);
+      diamondsBrokenRef.current = true; // sync update so a second submitPlay in the same render cycle doesn't re-trigger CYT
       soundCuttingYourTeeth();
       addLog("♦ Cutting Your Teeth — Dimonds are now in play!");
       // Stash continuation; PROCEED on CYT modal will resume the trick flow
@@ -7783,15 +7785,30 @@ function DiamondsGame() {
       return;
     }
 
-    // Advance currentTurn, skipping players with no cards — never skip human if they have cards
+    // Advance currentTurn, skipping players with no cards — never skip any human with cards
     const activeTurnOrder = turnOrderRef.current;
     let nextTurn = currentTurnRef.current + 1;
     while (nextTurn < 4 && newHands[activeTurnOrder[nextTurn]]?.length === 0) {
-      if (activeTurnOrder[nextTurn] === mySeatingIdxRef.current && (newHands[mySeatingIdxRef.current]?.length ?? 0) > 0) break; // guard: never skip human with cards
+      const seatAtNext = activeTurnOrder[nextTurn];
+      const isHumanSeat = seatAtNext === mySeatingIdxRef.current ||
+        (seatAtNext > 0 && opponentSlotsRef.current[seatAtNext - 1] === 'human');
+      if (isHumanSeat && !trickPlayerIds.has(seatAtNext) && (newHands[seatAtNext]?.length ?? 0) > 0) break;
       nextTurn++;
     }
     if (nextTurn >= 4) {
-      resolveTrickComplete(newPlays, newHands);
+      if (!hasUnplayedCardholders) {
+        resolveTrickComplete(newPlays, newHands);
+      } else {
+        // Turn order exhausted but unplayed cardholders remain — seek the missed seat
+        const unplayedTurnPos = activeTurnOrder.findIndex(i => newHands[i]?.length > 0 && !trickPlayerIds.has(i));
+        if (unplayedTurnPos >= 0) {
+          setCurrentTurn(unplayedTurnPos);
+          setTrickPlays(newPlays);
+          setHands(newHands);
+        } else {
+          resolveTrickComplete(newPlays, newHands);
+        }
+      }
     } else {
       setCurrentTurn(nextTurn);
       setTrickPlays(newPlays);
