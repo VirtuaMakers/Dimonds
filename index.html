@@ -3835,7 +3835,7 @@ function KidnapModal({ hands, jokerPlayerIdx, allNames, playerEmojis=[], onSteal
 // ===== Queen of Clubs modal — Thievin' or Reallocate =====
 function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve, onReallocate, onSkip, deckTheme, totalScores=[], onPeek }) {
   const [mode, setMode] = React.useState("thieve");
-  const others = [0,1,2,3].filter(i => i !== playerIdx && hands[i].length > 0);
+  const others = [0,1,2,3].filter(i => i !== playerIdx && (hands[i]?.length ?? 0) > 0);
 
   // Thievin' state
   const [thieveFrom, setThieveFrom] = React.useState(others[0] ?? null);
