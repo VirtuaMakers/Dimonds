@@ -4395,7 +4395,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
         <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[robbinIdx]}{" "}
           <span style={{color:"#7ec8a4",fontWeight:500,fontSize:15}}>robs</span>{" "}
-          {allNames[result.stolenFrom]}
+          {allNames[result.stolenFrom] ?? '?'}
         </div>
         {result.stolenCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -4443,7 +4443,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {rescuedIsJoker ? "The Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
             </strong>{" "}from{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom] ?? '?'}</strong>
           </div>
         )}
         {result.jackDiamondPlayerIdx != null && (
@@ -4514,7 +4514,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
         <div style={{color:"#fff",fontSize:19,fontWeight:800,fontFamily:FONT_UI}}>
           {allNames[result.winnerIdx]}{" "}
           <span style={{color:"#c084f5",fontWeight:500,fontSize:15}}>kidnaps</span>{" "}
-          {allNames[result.stolenFrom]}
+          {allNames[result.stolenFrom] ?? '?'}
         </div>
         {result.stolenCard && (
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
@@ -4581,7 +4581,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
             Thieves the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.isJoker ? "Joker" : `${result.queenClubsCard.rank}${result.queenClubsCard.suit}`}</strong>
-            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
+            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom] ?? '?'}</strong>
           </div>
         )}
       </EventBox>
@@ -4613,8 +4613,8 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>
             Moves the{" "}
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{result.queenClubsCard.isJoker ? "Joker" : `${result.queenClubsCard.rank}${result.queenClubsCard.suit}`}</strong>
-            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom]}</strong>
-            {" "}to <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsTo]}</strong>
+            {" "}from <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsFrom] ?? '?'}</strong>
+            {" "}to <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.queenClubsTo] ?? '?'}</strong>
           </div>
         )}
       </EventBox>
@@ -4642,7 +4642,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
             <strong style={{color:"#e2c97e",fontStyle:"normal"}}>
               {rescuedIsJoker ? "The Joker" : `${result.rescuedCard.rank}${result.rescuedCard.suit}`}
             </strong>{" "}from{" "}
-            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom]}</strong>
+            <strong style={{color:"#e2c97e",fontStyle:"normal"}}>{allNames[result.rescuedFrom] ?? '?'}</strong>
           </div>
         )}
         {pointsWon > 0 && (
@@ -9298,7 +9298,6 @@ function DiamondsGame() {
 
   function startNextRound() {
     startRound(totalScores);
-    setRoundNum(r=>r);
   }
 
   // Auto-advance round-over when scoreTally is "game" (skip the round summary)
@@ -10970,28 +10969,29 @@ function DiamondsGame() {
             } else if (selectedSetType === "r3" || selectedSetType === "r2") {
               const cards = selectedCards;
               const pts = selectedSetBonus;
+              const msi = mySeatingIdx;
               const cardIds = new Set(cards.map(c=>c.id));
-              const newHands = hands.map((h,j) => j===0 ? h.filter(c=>!cardIds.has(c.id)) : h);
+              const newHands = hands.map((h,j) => j===msi ? h.filter(c=>!cardIds.has(c.id)) : h);
               setHands(newHands);
-              const newRS = [...roundScores]; newRS[0] += pts;
+              const newRS = [...roundScores]; newRS[msi] += pts;
               setRoundScores(newRS);
               setSelectedCards([]);
               addLog(`${selectedSetType==="r3"?"🦅":"💍"} You redeem ${selectedSetType==="r3"?"Rule of 3":"Rule of 2"}! +${pts} pts`);
-              logRoundEvent({ type:"set", playerIdx:0, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
+              logRoundEvent({ type:"set", playerIdx:msi, trickNum:tricksPlayed+1, points:pts, setEmoji:selectedSetType==="r3"?"🦅":"💍", setName:selectedSetType==="r3"?"Rule of 3":"Rule of 2", cards });
               const newTotal = totalScores.map((s,i) => s + newRS[i]);
               if (newTotal.some(s => s >= winScoreRef.current)) {
                 setTotalScores(newTotal);
-                setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+                setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[msi] || (s === newTotal[msi] && i !== msi)).length)));
                 setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
                 setScreen("gameover"); return;
               }
               if (selectedSetType==="r3") {
-                setRuleOfThreeState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
-                setRuleOfThreeOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                setRuleOfThreeState({ _id:Math.random(), playerIdx:msi, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                setRuleOfThreeOffered(prev => { const n=[...prev]; n[msi]=null; return n; });
                 setPhase("ruleofthree_event");
               } else {
-                setSwingingParadoxState({ _id:Math.random(), playerIdx:0, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
-                setSwingingParadoxOffered(prev => { const n=[...prev]; n[0]=null; return n; });
+                setSwingingParadoxState({ _id:Math.random(), playerIdx:msi, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
+                setSwingingParadoxOffered(prev => { const n=[...prev]; n[msi]=null; return n; });
                 setPhase("swingingparadox_event");
               }
             } else if (canPlaySingle) {
@@ -11861,7 +11861,7 @@ function DiamondsGame() {
       )}
 
       {/* Aces Low — cash-in event box (after cashing, before play resumes) */}
-      {acesLowState?.cashed && (
+      {acesLowState?.cashed && phase !== 'aceslow_offer' && (
         <EventBox
           key={acesLowState._id}
           borderColor="#a8a8a8"
@@ -11999,7 +11999,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Nuclear Family event box */}
-      {nuclearFamilyState?.cashed && (
+      {nuclearFamilyState?.cashed && phase !== 'nuclearfamily_offer' && (
         <EventBox key={nuclearFamilyState._id} borderColor="#88cc44" emoji="🏠" title={"Rule of 5\n— Nuclear Family"} btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissNuclearFamilyEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[nuclearFamilyState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>In-suit run + 2 dimonds redeemed!</div>
@@ -12030,7 +12030,7 @@ function DiamondsGame() {
         </div>
       )}
       {/* Blood Diamond event box */}
-      {bloodDiamondState?.cashed && (
+      {bloodDiamondState?.cashed && phase !== 'blooddiamond_offer' && (
         <EventBox key={bloodDiamondState._id} borderColor="#cc2244" emoji="🩸" title={"Rule of 6\n— Blood Diamond"} btnLabel={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? "Waiting for players…" : "PROCEED"} onContinue={isMultiplayer() && ((isHost() && mpWaitingForDismissals) || (!isHost() && guestEventDismissed)) ? ()=>{} : dismissBloodDiamondEvent}>
           <div style={{color:"#fff",fontSize:22,fontWeight:800,fontFamily:FONT_DISPLAY}}>{allNames[bloodDiamondState.playerIdx]}</div>
           <div style={{color:"#e2c97ecc",fontSize:13,fontFamily:FONT_UI,fontStyle:"italic"}}>Rainbow run + 1 dimond redeemed!</div>
