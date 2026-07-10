@@ -2358,7 +2358,7 @@ function dealCards(dealerIdx = 0) {
 // Who leads: player holding 2♣
 function findLeader(hands) {
   for (let i=0; i<4; i++) {
-    if (hands[i].find(c => c.rank==="2" && c.suit==="♣")) return i;
+    if (hands[i]?.find(c => c.rank==="2" && c.suit==="♣")) return i;
   }
   return 0;
 }
@@ -2394,7 +2394,7 @@ const SWINGING_PARADOX_BONUS = 13;
 const RULE_OF_FOUR_BONUS = 18;
 
 // Riot — 7+ cards of same suit; Joker is wild; diamond riot requires diamondsBroken
-function checkRiot(hand, diamondsBroken = true) {
+function checkRiot(hand, diamondsBroken = false) {
   const bySuit = {};
   let joker = null;
   for (const c of hand) {
@@ -2826,7 +2826,7 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
     const disposable = hand.filter(c => !stealCardIds.has(c.id) && !isDiamond(c) && !c.isJoker && !isAceSpades(c));
     if (disposable.length > 0) return disposable.sort((a,b) => cardScore(a)-cardScore(b))[0];
     // Last resort: lowest of what's left
-    return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
+    return [...hand].sort((a,b) => cardScore(a)-cardScore(b))[0];
   }
 
   // ---- STRONG PLAY (all roles fall through here) ----
@@ -2858,7 +2858,7 @@ function aiChooseCard(hand, role, trickPlays, ledSuit, gameState) {
   }
   const dimonds = hand.filter(c => isDiamond(c) && !c.isJoker);
   if (dimonds.length > 0) return dimonds.sort((a,b) => diamondPoints(a) - diamondPoints(b))[0];
-  return hand.sort((a,b) => cardScore(a)-cardScore(b))[0];
+  return [...hand].sort((a,b) => cardScore(a)-cardScore(b))[0];
 }
 
 // ── ChatGPT-authored AI: Simp / Opportunist / Perfect ────────────────────────
@@ -2926,7 +2926,7 @@ function gptChooseCard(hand, style, trickPlays, ledSuit, gameState) {
   // ── PERFECT: full card-counting EV model ─────────────────────────────────
   if (style === "perfect") {
     const played    = cardsPlayedThisRound.map(p => p.card?.id ?? p.id).filter(Boolean);
-    const playedSet = new Set([...played, ...trickPlays.map(p => p.card.id)]);
+    const playedSet = new Set([...played, ...trickPlays.map(p => p.card?.id).filter(Boolean)]);
     const scoreArr  = scores.map(s => (typeof s === 'object' ? s.total : s));
     const myScore   = scoreArr[myPlayerIdx] ?? 0;
     const topScore  = Math.max(...scoreArr, 0);
@@ -4051,7 +4051,7 @@ function Rule1Modal({ hand, hands=[], allNames, playerEmojis=[], onGive, onSkip,
 
 // ===== Ace of Spades Rescue modal (mirrors KidnapModal with rescue vocabulary) =====
 function RescueModal({ hands, acePlayerIdx, jackDPlayerIdx, allNames, playerEmojis=[], onRescue, deckTheme, jokerLockedUp, onPeek }) {
-  const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && i!==jackDPlayerIdx && hands[i].length>0);
+  const targets = [0,1,2,3].filter(i => i!==acePlayerIdx && i!==jackDPlayerIdx && (hands[i]?.length??0)>0);
   const [chosenPlayer, setChosenPlayer] = useState(targets[0] ?? null);
   const [chosenCardIdx, setChosenCardIdx] = useState(null);
 
@@ -5350,8 +5350,12 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
   const dead = React.useRef(false);
   const joinedRef = React.useRef([]);
   const selectedAIsRef = React.useRef([]);
+  const onStartGameRef = React.useRef(onStartGame);
+  const nameInputRef = React.useRef(nameInput);
   React.useEffect(() => { joinedRef.current = joinedPlayers; }, [joinedPlayers]);
   React.useEffect(() => { selectedAIsRef.current = selectedAIs; }, [selectedAIs]);
+  React.useEffect(() => { onStartGameRef.current = onStartGame; }, [onStartGame]);
+  React.useEffect(() => { nameInputRef.current = nameInput; }, [nameInput]);
 
   React.useEffect(() => { return () => { dead.current = true; }; }, []);
 
@@ -5363,7 +5367,9 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       setTimeLeft(t => {
         if (t <= 1) {
           clearInterval(iv);
-          onStartGame(joinedRef.current, nameInput||'Player 1', selectedAIsRef.current);
+          setTimeout(() => {
+            if (!dead.current) onStartGameRef.current(joinedRef.current, nameInputRef.current||'Player 1', selectedAIsRef.current);
+          }, 0);
           return 0;
         }
         return t - 1;
@@ -6437,7 +6443,10 @@ function DiamondsGame() {
         setKidnapState({ ...ks, hands: fbArr(ks.hands).map(h => fbArr(h).map(c => ({...c}))),
           pendingQueenClubs: ks.pendingQueenClubs ? { ...ks.pendingQueenClubs, hands: fbArr(ks.pendingQueenClubs.hands).map(h => fbArr(h).map(c => ({...c}))) } : undefined });
       } else { setKidnapState(null); }
-      setRescueState(st.rescueState ?? null);
+      if (st.rescueState) {
+        const rs = st.rescueState;
+        setRescueState({ ...rs, hands: fbArr(rs.hands).map(h => fbArr(h).map(c => ({...c}))) });
+      } else { setRescueState(null); }
       if (st.queenClubsState) {
         const qcs = st.queenClubsState;
         setQueenClubsState({ ...qcs, hands: fbArr(qcs.hands).map(h => fbArr(h).map(c => ({...c}))) });
@@ -7859,7 +7868,7 @@ function DiamondsGame() {
     const jackDPendingRobChoice = !!result.jackDPendingRobChoice;
 
     const GA = goldenAgeRef.current ? 2 : 1;
-    const newRoundScores = [...roundScores];
+    const newRoundScores = [...roundScoresRef.current];
     const pointsWon = capturedDiamonds.reduce((sum,c)=>sum+diamondPoints(c),0);
     newRoundScores[winner] += pointsWon * GA;
 
@@ -8161,8 +8170,9 @@ function DiamondsGame() {
     soundRobbinPass();
     const isChainedAfterJoker = !!ks.resultObj.jokerWin || !!ks.resultObj.pendingJokerKidnap;
     if (!isChainedAfterJoker) {
-      addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +1 pt.`);
-      setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=1; return n; });
+      const GAkid = goldenAgeRef.current ? 2 : 1;
+      addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes. +${GAkid} pt${GAkid!==1?"s":""}.`);
+      setRoundScores(prev=>{ const n=[...prev]; n[jackPlayerIdx]+=GAkid; return n; });
     } else {
       addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) passes.`);
     }
@@ -8224,9 +8234,9 @@ function DiamondsGame() {
     const GA = goldenAgeRef.current ? 2 : 1;
     const finalRound = [...baseRoundScores];
     if (!jackRobbed) {
-      finalRound[jackDIdx] += passConsolation;
+      finalRound[jackDIdx] += passConsolation * GA;
       soundRobbinPass();
-      addLog(`🎴 ${allNames[jackDIdx]} (Robbin Jack) passes. +${passConsolation} pt${passConsolation !== 1 ? "s" : ""}.`);
+      addLog(`🎴 ${allNames[jackDIdx]} (Robbin Jack) passes. +${passConsolation * GA} pt${passConsolation * GA !== 1 ? "s" : ""}.`);
     }
     const totalBlocked = (jackRobbed ? 1 : 0) + (autoBlockedJoker ? 1 : 0) + (autoBlockedQC ? 1 : 0);
     if (totalBlocked > 0) {
@@ -8325,9 +8335,9 @@ function DiamondsGame() {
     const pi = theStealState.playerIdx;
     const GA = goldenAgeRef.current ? 2 : 1;
     const bonus = THE_STEAL_BONUS * GA;
-    const newRound = [...roundScores];
+    const newRound = [...roundScoresRef.current];
     newRound[pi] += bonus;
-    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
     addLog(`🌇 THE STEAL — ${allNames[pi]} ends the round! +${bonus} pts.`);
     logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:bonus, setEmoji:"🌇", setName:"The Steal", cards:[] });
     soundTheSteal();
@@ -8355,9 +8365,9 @@ function DiamondsGame() {
     const pi = showdownState.playerIdx;
     const GA = goldenAgeRef.current ? 2 : 1;
     const bonus = SHOWDOWN_BONUS * GA;
-    const newRound = [...roundScores];
+    const newRound = [...roundScoresRef.current];
     newRound[pi] += bonus;
-    const newTotal = totalScores.map((s,i) => s + newRound[i]);
+    const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
     addLog(`🌆 SHOWDOWN — ${allNames[pi]} ends the round! +${bonus} pts.`);
     logRoundEvent({ type:"set", playerIdx:pi, trickNum:tricksPlayed+1, points:bonus, setEmoji:"🌆", setName:"Showdown", cards:[] });
     soundTheSteal();
@@ -9722,7 +9732,7 @@ function DiamondsGame() {
       if (gameOver) {
         const _place = 1 + newTotal.filter((s,i) => s > newTotal[msi] || (s === newTotal[msi] && i !== msi)).length;
         setFireworksPlace(Math.max(1, Math.min(4, _place)));
-        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, FIREWORKS_DELAY);
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, 1000);
       } else {
         soundRoundWin();
         setPhase("roundover");
@@ -11639,7 +11649,7 @@ function DiamondsGame() {
               Block the Joker and win this trick yourself.
             </p>
             <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
-              {allNames[robbinSummonState.aceHolderIdx]} wins the trick and earns +{30 * (goldenAgeRef.current ? 2 : 1)}–{35 * (goldenAgeRef.current ? 2 : 1)} pts. You then choose to Rob (+{35 * (goldenAgeRef.current ? 2 : 1)} pts for Ace) or pass (+{30 * (goldenAgeRef.current ? 2 : 1)} pts for Ace, +5 for you).
+              {allNames[robbinSummonState.aceHolderIdx]} wins the trick and earns +{30 * (goldenAgeRef.current ? 2 : 1)}–{35 * (goldenAgeRef.current ? 2 : 1)} pts. You then choose to Rob (+{35 * (goldenAgeRef.current ? 2 : 1)} pts for Ace) or pass (+{30 * (goldenAgeRef.current ? 2 : 1)} pts for Ace, +{5 * (goldenAgeRef.current ? 2 : 1)} for you).
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
