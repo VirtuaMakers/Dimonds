@@ -3721,7 +3721,6 @@ function GoldBtn({ onClick, children, disabled, small, tiny, secondary, fill }) 
       color: disabled ? "#ffffff33" : secondary ? VM.tealLight : "#0a2320",
       border: secondary ? `1px solid ${VM.tealLight}44` : "none",
       borderRadius:10,
-      padding: tiny ? "3px" : small ? "7px 14px" : "14px 32px",
       fontSize: tiny ? 9 : small ? 12 : 15,
       fontWeight:800, cursor: disabled?"not-allowed":"pointer",
       letterSpacing: tiny ? 0 : small ? 0.5 : 1, textTransform:"uppercase",
@@ -3851,7 +3850,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve
   // Reallocate destination: any player except Q♣ player and source — empty hands allowed as recipients
   const realToOptions = [0,1,2,3].filter(i => i !== playerIdx && i !== realFrom);
 
-  function getOrigIdx(hand, rawHands, playerI, card) {
+  function getOrigIdx(rawHands, playerI, card) {
     return rawHands[playerI].findIndex(c => c.id === card.id);
   }
 
@@ -3909,7 +3908,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve
               <div style={{color:"#c9a84c66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[thieveFrom]}'s Hand</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"18px 0 4px"}}>
                 {thieveHand.map(card => {
-                  const origIdx = getOrigIdx(thieveHand, hands, thieveFrom, card);
+                  const origIdx = getOrigIdx(hands, thieveFrom, card);
                   const isSel = thieveCardIdx === origIdx;
                   return (
                     <div key={card.id} onClick={()=>setThieveCardIdx(origIdx)} onDoubleClick={()=>onThieve(thieveFrom,origIdx)} style={{cursor:"pointer",transform:`scale(${isSel?1.45:1.35})`,transformOrigin:"center",margin:"8px 5px"}}>
@@ -3953,7 +3952,7 @@ function QueenClubsModal({ hands, playerIdx, allNames, playerEmojis=[], onThieve
               <div style={{color:"#4466ff66",fontSize:9,letterSpacing:2,textAlign:"center",marginBottom:6,textTransform:"uppercase"}}>{allNames[realFrom]}'s Hand</div>
               <div style={{display:"flex",flexWrap:"wrap",gap:12,justifyContent:"center",padding:"18px 0 4px"}}>
                 {realHand.map(card => {
-                  const origIdx = getOrigIdx(realHand, hands, realFrom, card);
+                  const origIdx = getOrigIdx(hands, realFrom, card);
                   const isSel = realCardIdx === origIdx;
                   return (
                     <div key={card.id} onClick={()=>setRealCardIdx(origIdx)} style={{cursor:"pointer",transform:`scale(${isSel?1.45:1.35})`,transformOrigin:"center",margin:"8px 5px"}}>
@@ -4650,7 +4649,7 @@ function TrickResultModal({ result, allNames, playerEmojis=[], onContinue, isGam
             background:"#4466ff11", border:"1px solid #4466ff44",
             borderRadius:10, padding:"8px 20px", display:"inline-block",
           }}>
-            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""} (to {allNames[result.winnerIdx]})</span>
+            <span style={{color:"#e2c97e",fontSize:16,fontWeight:800}}>+{pointsWon} pt{pointsWon!==1?"s":""} 💎{isGoldenAge?" 🤖 2×":""} (to {allNames[rescuerIdx]})</span>
           </div>
         )}
       </EventBox>
@@ -4894,7 +4893,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
         </div>
 
         {sorted.map((p,i)=>(
-          <div key={p.n} onClick={()=>setDrillPlayer(p.idx)} style={{
+          <div key={p.idx} onClick={()=>setDrillPlayer(p.idx)} style={{
             display:"flex",justifyContent:"space-between",alignItems:"center",
             background: i===0?"#c9a84c14":"#ffffff05",
             border:`1px solid ${i===0?"#c9a84c55":"#ffffff0d"}`,
@@ -4929,7 +4928,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
         <div style={{height:12}}/>
         {sectionLabel("Most Tricks")}
         {trickRanked.map((p,i)=>(
-          <div key={p.n} style={{
+          <div key={p.idx} style={{
             display:"flex",justifyContent:"space-between",alignItems:"center",
             background: i===0&&p.count>0?"#1f8f4e18":"#ffffff05",
             border:`1px solid ${i===0&&p.count>0?"#1f8f4e55":"#ffffff0d"}`,
@@ -4948,7 +4947,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
         <div style={{height:4}}/>
         {sectionLabel("Most Sets")}
         {setRanked.map((p,i)=>(
-          <div key={p.n} style={{
+          <div key={p.idx} style={{
             display:"flex",justifyContent:"space-between",alignItems:"center",
             background: i===0&&p.count>0?"#4a2a8a18":"#ffffff05",
             border:`1px solid ${i===0&&p.count>0?"#8a5ad555":"#ffffff0d"}`,
@@ -5026,7 +5025,7 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
         {sorted.map((p,i)=>{
           const taunt = llmTaunts[p.i];
           return (
-          <div key={p.n} style={{
+          <div key={p.idx} style={{
             background:i===0?VM.tealLight+"16":"rgba(255,255,255,0.04)",
             border:`1px solid ${taunt?taunt.color+"55":i===0?VM.tealLight+"55":"rgba(255,255,255,0.08)"}`,
             borderRadius:10,marginBottom:8,overflow:"hidden",
@@ -5352,12 +5351,20 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
   const selectedAIsRef = React.useRef([]);
   const onStartGameRef = React.useRef(onStartGame);
   const nameInputRef = React.useRef(nameInput);
+  const playersChildRef = React.useRef(null);
+  const statusChildRef = React.useRef(null);
   React.useEffect(() => { joinedRef.current = joinedPlayers; }, [joinedPlayers]);
   React.useEffect(() => { selectedAIsRef.current = selectedAIs; }, [selectedAIs]);
   React.useEffect(() => { onStartGameRef.current = onStartGame; }, [onStartGame]);
   React.useEffect(() => { nameInputRef.current = nameInput; }, [nameInput]);
 
-  React.useEffect(() => { return () => { dead.current = true; }; }, []);
+  React.useEffect(() => {
+    return () => {
+      dead.current = true;
+      playersChildRef.current?.off();
+      statusChildRef.current?.off();
+    };
+  }, []);
 
   // 5-minute countdown while hosting
   React.useEffect(() => {
@@ -5392,7 +5399,9 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     roomRefLocal.current = ref;
     ref.child('config').set({ hostId: myPlayerId, hostName: nameInput||'Host', status:'waiting', createdAt: Date.now() });
     ref.child('players').child(myPlayerId).set({ name: nameInput||'Host', joinedAt: Date.now() });
-    ref.child('players').on('value', snap => {
+    const pRef = ref.child('players');
+    playersChildRef.current = pRef;
+    pRef.on('value', snap => {
       if (dead.current) return;
       const val = snap.val() || {};
       setJoinedPlayers(Object.entries(val).map(([pid,d])=>({playerId:pid,...d})).filter(p=>p.playerId!==myPlayerId));
@@ -5417,7 +5426,9 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       setRoomCode(code);
       setStatus('joining');
       onJoinedAsGuest(ref);
-      ref.child('config/status').on('value', st => {
+      const sRef = ref.child('config/status');
+      statusChildRef.current = sRef;
+      sRef.on('value', st => {
         if (dead.current) return;
         if (st.val() === 'playing') setStatus('waiting');
       });
@@ -6183,8 +6194,8 @@ function DiamondsGame() {
     if (screen !== "gameover" && phase !== "gameover") return;
     if (sessionWinRecordedGame.current === gameNum) return;
     sessionWinRecordedGame.current = gameNum;
-    const maxScore = Math.max(...totalScores);
-    const winnerIdx = totalScores.indexOf(maxScore);
+    const maxScore = Math.max(...totalScoresRef.current);
+    const winnerIdx = totalScoresRef.current.indexOf(maxScore);
     setSessionWins(prev => { const n=[...prev]; n[winnerIdx]++; return n; });
     setSessionGamesPlayed(p => p + 1);
   }, [screen, phase, gameNum]);
@@ -6860,14 +6871,14 @@ function DiamondsGame() {
       const stealIds = new Set((hands[cp]||[]).filter(c=>c.isJoker||isQueenClubs(c)||isJackDiamond(c)||isAceSpades(c)).map(c=>c.id));
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!stealIds.has(c.id)) : h);
       setHands(newHands);
-      const newRS = [...roundScores]; newRS[cp] += pts;
+      const newRS = [...roundScoresRef.current]; newRS[cp] += pts;
       setRoundScores(newRS);
       addLog(`🌆 ${allNames[cp]} triggers SHOWDOWN! +${pts} pts. Round ends!`);
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🌆", setName:"Showdown", cards:[] });
       soundTheSteal();
       flagTrickInstance(`${allNames[cp]} triggered the SHOWDOWN combo — all four steal cards`);
       fireTrickComment();
-      const newTotal = totalScores.map((s,i) => s + newRS[i]);
+      const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
       if (newTotal.some(s => s >= winScoreRef.current)) {
         setTotalScores(newTotal);
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
@@ -6906,9 +6917,9 @@ function DiamondsGame() {
       const pts = THE_STEAL_BONUS * (goldenAgeRef.current ? 2 : 1);
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isAceSpades(c)) : h);
       setHands(newHands);
-      const newRS = [...roundScores]; newRS[cp] += pts;
+      const newRS = [...roundScoresRef.current]; newRS[cp] += pts;
       setRoundScores(newRS);
-      const newTotal = totalScores.map((s,i) => s + newRS[i]);
+      const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
       if (newTotal.some(s => s >= winScoreRef.current)) {
         setTotalScores(newTotal);
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
@@ -6958,8 +6969,8 @@ function DiamondsGame() {
       const newHands = hands.map((h,i)=>i===cp ? h.filter(c=>!cardIds.has(c.id)) : h);
       setHands(newHands);
       const pts = RIOT_BONUS * (goldenAgeRef.current ? 2 : 1);
-      const newRound = [...roundScores]; newRound[cp] += pts;
-      const newTotal = totalScores.map((s,i) => s + newRound[i]);
+      const newRound = [...roundScoresRef.current]; newRound[cp] += pts;
+      const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
       addLog(`🔥 ${allNames[cp]} triggers RIOT! +${pts} pts. Round ends!`);
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🔥", setName:"Riot", cards:riotCards||[] });
       const gameOver = newTotal.some(s => s >= winScoreRef.current);
@@ -7000,7 +7011,7 @@ function DiamondsGame() {
       const familyIds = ["J♦","Q♦","K♦","A♦"];
       const familyCount = (hands[cp] || []).filter(c => familyIds.includes(c.id)).length;
       if (familyCount < 3) {
-        const newRoundScores = [...roundScores];
+        const newRoundScores = [...roundScoresRef.current];
         newRoundScores[cp] += ACES_LOW_BONUS;
         setRoundScores(newRoundScores);
         goldenAgeRef.current = true;
@@ -8549,7 +8560,8 @@ function DiamondsGame() {
     const rs = rescueStateRef.current;
     if (!rs) return;
     const currentHands = rs.hands;
-    const rescuedCard = currentHands[fromPlayer][cardIdx];
+    const rescuedCard = currentHands[fromPlayer]?.[cardIdx];
+    if (!rescuedCard) return;
     const acePlayerIdx = rs.acePlayerIdx;
 
     const newHands = currentHands.map((h,i) => {
@@ -8922,15 +8934,15 @@ function DiamondsGame() {
     const pts = NUCLEAR_FAMILY_BONUS * GA;
     const cardIds = new Set(cards.map(c=>c.id));
     const newHands = hands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
-    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    const newRS = [...roundScoresRef.current]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     setHands(newHands);
     addLog(`🏠 ${allNames[playerIdx]} cashes in Nuclear Family! +${pts} pts`);
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards });
-    const newTotal = totalScores.map((s,k) => s + newRS[k]);
+    const newTotal = totalScoresRef.current.map((s,k) => s + newRS[k]);
     if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
-      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[playerIdx] || (s === newTotal[playerIdx] && i !== playerIdx)).length)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
       setNuclearFamilyState(null);
       setScreen("gameover"); return;
@@ -8966,15 +8978,15 @@ function DiamondsGame() {
     const pts = BLOOD_DIAMOND_BONUS * GA;
     const cardIds = new Set(cards.map(c=>c.id));
     const newHands = hands.map((h,j) => j===playerIdx ? h.filter(c=>!cardIds.has(c.id)) : h);
-    const newRS = [...roundScores]; newRS[playerIdx] += pts;
+    const newRS = [...roundScoresRef.current]; newRS[playerIdx] += pts;
     setRoundScores(newRS);
     setHands(newHands);
     addLog(`🩸 ${allNames[playerIdx]} cashes in Blood Diamond! +${pts} pts`);
     logRoundEvent({ type:"set", playerIdx, trickNum:tricksPlayed+1, points:pts, setEmoji:"🩸", setName:"Blood Diamond", cards });
-    const newTotal = totalScores.map((s,k) => s + newRS[k]);
+    const newTotal = totalScoresRef.current.map((s,k) => s + newRS[k]);
     if (newTotal.some(s => s >= winScoreRef.current)) {
       setTotalScores(newTotal);
-      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
+      setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[playerIdx] || (s === newTotal[playerIdx] && i !== playerIdx)).length)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
       setBloodDiamondState(null);
       setScreen("gameover"); return;
@@ -9423,7 +9435,7 @@ function DiamondsGame() {
     if (trickResult.rule1Announced) flagTrickInstance(`Rule 1 triggered — a set was turned in, a card given away`);
     if (diamonds > 0) flagTrickInstance(`${winner} won a trick scoring ${diamonds} diamond${diamonds !== 1 ? 's' : ''}`);
     if (!showWelcome) fireTrickComment();
-  }, [trickResult]);
+  }, [trickResult, showWelcome]);
 
   // ---- End-of-game taunts ----
   function speakTaunt(text, provider) {
