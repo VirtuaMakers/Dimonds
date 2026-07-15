@@ -1,7 +1,7 @@
 {
   "name": "Dimonds",
   "short_name": "Dimonds",
-  "description": "A trick-taking card game with AI opponents powered by Gemini, Llama, and Mistral.",
+  "description": "A trick-taking card game with AI opponents powered by Gemini, Llama, and Vibe.",
   "start_url": "/Dimonds/",
   "scope": "/Dimonds/",
   "display": "standalone",

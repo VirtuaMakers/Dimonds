@@ -208,7 +208,7 @@ async function callGrok(prompt, env) {
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
 
-// ─── Mistral ──────────────────────────────────────────────────────────────────
+// ─── Vibe ─────────────────────────────────────────────────────────────────────
 async function callMistral(prompt, env) {
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
@@ -223,7 +223,7 @@ async function callMistral(prompt, env) {
       temperature: 0.95,
     }),
   });
-  if (!res.ok) throw new Error(`Mistral ${res.status}`);
+  if (!res.ok) throw new Error(`Vibe ${res.status}`);
   const data = await res.json();
   return data?.choices?.[0]?.message?.content?.trim() ?? "";
 }
