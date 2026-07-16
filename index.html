@@ -76,6 +76,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.7/babel.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 </head>
 <body>
 <div id="root"><p id="cdn-err" style="display:none;color:#4bc3af;padding:24px;font-family:monospace;font-size:13px">⚠️ Dimonds couldn't load its scripts. This is usually caused by a browser content-blocker (e.g. Brave Shields) or a network issue blocking unpkg.com.<br><br>Try: disabling Shields for this site, then reload.</p></div>
@@ -1278,6 +1279,8 @@ const FIREBASE_CONFIG = {
 };
 if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 const RTDB = firebase.database();
+const AUTH = firebase.auth();
+AUTH.signInAnonymously().catch(e => console.error('[FB auth]', e));
 
 function genRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -5393,7 +5396,8 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     return () => clearTimeout(timer);
   }, [status]);
 
-  function handleCreateRoom() {
+  async function handleCreateRoom() {
+    if (!AUTH.currentUser) await AUTH.signInAnonymously();
     const code = genRoomCode();
     const ref = RTDB.ref(`rooms/${code}`);
     roomRefLocal.current = ref;
@@ -5411,7 +5415,8 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
     onJoinedAsHost(ref);
   }
 
-  function handleJoinRoom() {
+  async function handleJoinRoom() {
+    if (!AUTH.currentUser) await AUTH.signInAnonymously();
     const code = (joinCode||'').trim().toUpperCase();
     if (code.length !== 4) { setError('Enter a 4-letter room code'); return; }
     setError('');
