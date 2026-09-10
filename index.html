@@ -10709,6 +10709,13 @@ function DiamondsGame() {
             position:"fixed", left:10, bottom:20, zIndex:4,
             display:"flex", flexDirection:"column", gap:5,
           }}>
+            {/* Glow key */}
+            <div style={{display:"flex",flexDirection:"column",gap:2,paddingBottom:4,borderBottom:`1px solid rgba(255,255,255,0.08)`,marginBottom:1}}>
+              <div style={{color:"rgba(255,255,255,0.25)",fontSize:6,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI}}>Glow Key</div>
+              <div style={{filter:"drop-shadow(0 0 0 rgba(75,195,175,0))",animation:"legalRipple 2.4s ease-in-out infinite",color:"#4bc3af",fontSize:9,fontFamily:FONT_UI,fontWeight:700}}>◉ Play Card</div>
+              <div style={{filter:"drop-shadow(0 0 0 rgba(201,168,76,0))",animation:"honorRipple 2.4s ease-in-out 0.8s infinite",color:"#c9a84c",fontSize:9,fontFamily:FONT_UI,fontWeight:700}}>◉ Set + Play</div>
+              <div style={{filter:"drop-shadow(0 -2px 0 rgba(201,168,76,0))",animation:"setOnlyTopGlow 3.2s ease-in-out 1.6s infinite",color:"#c9a84c",fontSize:9,fontFamily:FONT_UI,fontWeight:700,opacity:0.65}}>◉ Set Only</div>
+            </div>
             {/* Dimonds scoring key */}
             <div style={{color:VM.red+"cc",fontSize:7,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
             <div style={{display:"flex",gap:10,flexWrap:"nowrap",marginBottom:3}}>
@@ -10860,6 +10867,7 @@ function DiamondsGame() {
               const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
               const isSetCard = !isHonorCard && !isSelected && setGlowIds.has(card.id);
               const isSetOnlyCard = isSetCard && !isLegal; // set-eligible but not a valid trick play
+              const isSelectedSetOnly = isSelected && availableSetCardIds.has(card.id) && !isLegal; // tapped set-only card
               const isLockedSetCard = !isHonorCard && !isSetCard && lockedSetGlowIds.has(card.id);
 
               return (
@@ -10932,8 +10940,10 @@ function DiamondsGame() {
                       const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
                       if (isDimmed) return "brightness(0.55)";
                       if (isHonorCard && !isSelected) return "drop-shadow(0 0 0 rgba(201,168,76,0))";
-                      if (isSetCard)       return "drop-shadow(0 0 0 rgba(201,168,76,0))";
-                      if (isLockedSetCard) return "drop-shadow(0 0 0 rgba(100,160,255,0))";
+                      if (isSelectedSetOnly)   return "drop-shadow(0 0 0 rgba(201,168,76,0))";
+                      if (isSetOnlyCard)       return "drop-shadow(0 -2px 0 rgba(201,168,76,0))";
+                      if (isSetCard)           return "drop-shadow(0 0 0 rgba(201,168,76,0))";
+                      if (isLockedSetCard)     return "drop-shadow(0 0 0 rgba(100,160,255,0))";
                       if (showGlow)        return "drop-shadow(0 0 0 rgba(75,195,175,0))";
                       return "none";
                     })(),
@@ -10943,8 +10953,9 @@ function DiamondsGame() {
                       if (ci === dealRevealIdx - 1) return "cardFlip 0.18s ease-out";
                       if (isDimmed) return "none";
                       if (isHonorCard && !isSelected) return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
-                      if (isSetOnlyCard)    return `setOnlyRipple 3.5s ease-in-out ${ci*0.12}s infinite`;
-                      if (isSetCard)       return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      if (isSelectedSetOnly)   return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      if (isSetOnlyCard)       return `setOnlyTopGlow 3.2s ease-in-out ${ci*0.12}s infinite`;
+                      if (isSetCard)           return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
                       if (isLockedSetCard) return `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`;
                       if (showGlow)        return `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
                       return "none";
@@ -12221,9 +12232,9 @@ function DiamondsGame() {
           0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
         }
-        @keyframes setOnlyRipple {
-          0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
-          50% { filter: drop-shadow(0 0 4px rgba(201,168,76,0.35)); }
+        @keyframes setOnlyTopGlow {
+          0%,100% { filter: drop-shadow(0 -2px 0 rgba(201,168,76,0)); }
+          50% { filter: drop-shadow(0 -6px 10px rgba(201,168,76,0.9)); }
         }
         @keyframes lockedRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(100,160,255,0)); }
