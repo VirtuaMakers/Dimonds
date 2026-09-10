@@ -10714,7 +10714,7 @@ function DiamondsGame() {
               <div style={{color:"rgba(255,255,255,0.25)",fontSize:6,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI}}>Glow Key</div>
               <div style={{filter:"drop-shadow(0 0 0 rgba(75,195,175,0))",animation:"legalRipple 2.4s ease-in-out infinite",color:"#4bc3af",fontSize:9,fontFamily:FONT_UI,fontWeight:700}}>◉ Play Card</div>
               <div style={{filter:"drop-shadow(0 0 0 rgba(201,168,76,0))",animation:"honorRipple 2.4s ease-in-out 0.8s infinite",color:"#c9a84c",fontSize:9,fontFamily:FONT_UI,fontWeight:700}}>◉ Set + Play</div>
-              <div style={{filter:"drop-shadow(0 -2px 0 rgba(201,168,76,0))",animation:"setOnlyTopGlow 3.2s ease-in-out 1.6s infinite",color:"#c9a84c",fontSize:9,fontFamily:FONT_UI,fontWeight:700,opacity:0.65}}>◉ Set Only</div>
+              <div style={{filter:"drop-shadow(0 0 0 rgba(255,119,85,0))",animation:"coralRipple 2.4s ease-in-out 1.6s infinite",color:"#ff7755",fontSize:9,fontFamily:FONT_UI,fontWeight:700}}>◉ Set Only</div>
             </div>
             {/* Dimonds scoring key */}
             <div style={{color:VM.red+"cc",fontSize:7,letterSpacing:2,textTransform:"uppercase",fontFamily:FONT_UI,marginBottom:1}}>Dimonds</div>
@@ -10865,10 +10865,16 @@ function DiamondsGame() {
               const xPos = startX + ci * OVERLAP + spread;
               const showGlow = isPlayerTurn && isLegal && !isSelected;
               const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
-              const isSetCard = !isHonorCard && !isSelected && setGlowIds.has(card.id);
-              const isSetOnlyCard = isSetCard && !isLegal; // set-eligible but not a valid trick play
-              const isSelectedSetOnly = isSelected && availableSetCardIds.has(card.id) && !isLegal; // tapped set-only card
-              const isLockedSetCard = !isHonorCard && !isSetCard && lockedSetGlowIds.has(card.id);
+              const isLockedSetCard = !isHonorCard && !setGlowIds.has(card.id) && lockedSetGlowIds.has(card.id);
+              const isLastCard = ci === total - 1;
+              const glowW = (isSelected || isLastCard) ? cardW : OVERLAP;
+              let overlayAnimName = null;
+              if (isPlayerTurn && !dealing && !isHonorCard) {
+                const inSet = availableSetCardIds.has(card.id);
+                if (inSet && !isLegal)     overlayAnimName = "topGlowCoral";
+                else if (inSet && isLegal) overlayAnimName = "topGlowGold";
+                else if (isLegal)          overlayAnimName = "topGlowTeal";
+              }
 
               return (
                 <div
@@ -10940,24 +10946,14 @@ function DiamondsGame() {
                       const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
                       if (isDimmed) return "brightness(0.55)";
                       if (isHonorCard && !isSelected) return "drop-shadow(0 0 0 rgba(201,168,76,0))";
-                      if (isSelectedSetOnly)   return "drop-shadow(0 0 0 rgba(201,168,76,0))";
-                      if (isSetOnlyCard)       return "drop-shadow(0 -2px 0 rgba(201,168,76,0))";
-                      if (isSetCard)           return "drop-shadow(0 0 0 rgba(201,168,76,0))";
-                      if (isLockedSetCard)     return "drop-shadow(0 0 0 rgba(100,160,255,0))";
-                      if (showGlow)        return "drop-shadow(0 0 0 rgba(75,195,175,0))";
+                      if (isLockedSetCard) return "drop-shadow(0 0 0 rgba(100,160,255,0))";
                       return "none";
                     })(),
                     animation: (() => {
-                      const isDimmed = !isPlayerTurn || (!isLegal && !availableSetCardIds.has(card.id));
                       if (dealing) return `dealIn 0.42s cubic-bezier(0.2,0.8,0.3,1) ${ci*0.06}s both`;
                       if (ci === dealRevealIdx - 1) return "cardFlip 0.18s ease-out";
-                      if (isDimmed) return "none";
                       if (isHonorCard && !isSelected) return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
-                      if (isSelectedSetOnly)   return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
-                      if (isSetOnlyCard)       return `setOnlyTopGlow 3.2s ease-in-out ${ci*0.12}s infinite`;
-                      if (isSetCard)           return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
                       if (isLockedSetCard) return `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`;
-                      if (showGlow)        return `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
                       return "none";
                     })(),
                     // deck origin: cards fly up from bottom-center
@@ -10973,6 +10969,15 @@ function DiamondsGame() {
                     dimmed={false}
                     deckTheme={deckTheme}
                   />
+                  {overlayAnimName && (
+                    <div style={{
+                      position:"absolute", top:0, left:0,
+                      width:glowW, height:4,
+                      pointerEvents:"none",
+                      borderRadius: glowW === cardW ? "3px 3px 0 0" : "3px 0 0 0",
+                      animation:`${overlayAnimName} 2.8s ease-in-out ${ci*0.12}s infinite`,
+                    }} />
+                  )}
                 </div>
               );
             });
@@ -12232,9 +12237,21 @@ function DiamondsGame() {
           0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
         }
-        @keyframes setOnlyTopGlow {
-          0%,100% { filter: drop-shadow(0 -2px 0 rgba(201,168,76,0)); }
-          50% { filter: drop-shadow(0 -6px 10px rgba(201,168,76,0.9)); }
+        @keyframes topGlowTeal {
+          0%,100% { box-shadow: 0 0 0 0 rgba(75,195,175,0); }
+          50% { box-shadow: 0 -4px 12px 4px rgba(75,195,175,0.55); }
+        }
+        @keyframes topGlowGold {
+          0%,100% { box-shadow: 0 0 0 0 rgba(201,168,76,0); }
+          50% { box-shadow: 0 -4px 12px 4px rgba(201,168,76,0.55); }
+        }
+        @keyframes topGlowCoral {
+          0%,100% { box-shadow: 0 0 0 0 rgba(255,119,85,0); }
+          50% { box-shadow: 0 -4px 12px 4px rgba(255,119,85,0.55); }
+        }
+        @keyframes coralRipple {
+          0%,100% { filter: drop-shadow(0 0 0 rgba(255,119,85,0)); }
+          50% { filter: drop-shadow(0 0 7px rgba(255,119,85,0.75)); }
         }
         @keyframes lockedRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(100,160,255,0)); }
