@@ -10859,6 +10859,7 @@ function DiamondsGame() {
               const showGlow = isPlayerTurn && isLegal && !isSelected;
               const isHonorCard = afAvailForGlow && AF_IDS.includes(card.id);
               const isSetCard = !isHonorCard && !isSelected && setGlowIds.has(card.id);
+              const isSetOnlyCard = isSetCard && !isLegal; // set-eligible but not a valid trick play
               const isLockedSetCard = !isHonorCard && !isSetCard && lockedSetGlowIds.has(card.id);
 
               return (
@@ -10942,6 +10943,7 @@ function DiamondsGame() {
                       if (ci === dealRevealIdx - 1) return "cardFlip 0.18s ease-out";
                       if (isDimmed) return "none";
                       if (isHonorCard && !isSelected) return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
+                      if (isSetOnlyCard)    return `setOnlyRipple 3.5s ease-in-out ${ci*0.12}s infinite`;
                       if (isSetCard)       return `honorRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
                       if (isLockedSetCard) return `lockedRipple 3.2s ease-in-out ${ci*0.12}s infinite`;
                       if (showGlow)        return `legalRipple 2.4s ease-in-out ${ci*0.12}s infinite`;
@@ -12218,6 +12220,10 @@ function DiamondsGame() {
         @keyframes honorRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
           50% { filter: drop-shadow(0 0 8px rgba(201,168,76,0.75)); }
+        }
+        @keyframes setOnlyRipple {
+          0%,100% { filter: drop-shadow(0 0 0 rgba(201,168,76,0)); }
+          50% { filter: drop-shadow(0 0 4px rgba(201,168,76,0.35)); }
         }
         @keyframes lockedRipple {
           0%,100% { filter: drop-shadow(0 0 0 rgba(100,160,255,0)); }
