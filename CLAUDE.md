@@ -14,6 +14,10 @@ git push origin main
 git push origin main:claude/phone-playable-jsx-html-b2VVB
 ```
 
+## Future Roadmap
+- **Agora Harness 🚡 integration**: Implement full Agora Harness technology into Dimonds ♦️ at some point.
+- **Multiplayer playtesting**: Finish playtesting multiplayer in person — potential sleeper hit for the right players.
+
 ## Stack
 - Single-file React 18 + Babel standalone PWA (`index.html`, ~11,600 lines)
 - Service worker (`sw.js`) — bump `CACHE_NAME` version on every change
