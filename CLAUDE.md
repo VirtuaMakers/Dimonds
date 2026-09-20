@@ -16,6 +16,7 @@ git push origin main:claude/phone-playable-jsx-html-b2VVB
 
 ## Future Roadmap
 - **Agora Harness 🚡 integration**: Implement full Agora Harness technology into Dimonds ♦️ at some point.
+- **Agora / Computerian Manifesto research**: Cite the Magna Carta in the Manifesto section. Next documents to study: Declaration of the Rights of Man and of the Citizen (1789), then the Universal Declaration of Human Rights (1948).
 - **Multiplayer playtesting**: Finish playtesting multiplayer in person — potential sleeper hit for the right players.
 
 ## Stack
