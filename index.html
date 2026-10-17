@@ -10962,13 +10962,6 @@ function DiamondsGame() {
                     "--deal-rot": `${(ci-6)*1.5}deg`,
                   }}
                 >
-                  <CardComp
-                    card={card}
-                    selected={isSelected}
-                    faceDown={ci >= dealRevealIdx}
-                    dimmed={false}
-                    deckTheme={deckTheme}
-                  />
                   {overlayAnimName && (
                     <div style={{
                       position:"absolute", top:-3, left:0,
@@ -10978,6 +10971,13 @@ function DiamondsGame() {
                       animation:`${overlayAnimName} 2.8s ease-in-out ${ci*0.12}s infinite`,
                     }} />
                   )}
+                  <CardComp
+                    card={card}
+                    selected={isSelected}
+                    faceDown={ci >= dealRevealIdx}
+                    dimmed={false}
+                    deckTheme={deckTheme}
+                  />
                 </div>
               );
             });
