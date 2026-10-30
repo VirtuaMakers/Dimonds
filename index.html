@@ -4982,7 +4982,7 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
 // ============================================================
 // GAME OVER MODAL
 // ============================================================
-function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0, llmTaunts={}, onSpeakTaunt, restartDisabled=false, hostLeft=false }) {
+function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMenu, onShowCredits, gameTricksPerPlayer=[], gameSetsPerPlayer=[], gameNum=0, roundScores=[], eventLog=[], winScore=WIN_SCORE, sessionWins=[0,0,0,0], sessionGamesPlayed=0, llmTaunts={}, onSpeakTaunt, restartDisabled=false, restartLabel="New Game", hostLeft=false }) {
   const [showBreakdown, setShowBreakdown] = useState(false);
   const sorted = allNames.map((n,i)=>({n,s:scores[i]||0,i})).sort((a,b)=>b.s-a.s||(a.i===0?1:b.i===0?-1:a.i-b.i));
 
@@ -5091,8 +5091,8 @@ function GameOverModal({ scores, allNames, playerEmojis=[], onRestart, onMainMen
         )}
         <div style={{marginTop:20,display:"flex",flexDirection:"column",gap:8,width:200,margin:"14px auto 0"}}>
           {restartDisabled
-            ? <GoldBtn disabled small title="Only the host can start a New Game.">New Game</GoldBtn>
-            : <GoldBtn onClick={onRestart} small>New Game</GoldBtn>}
+            ? <GoldBtn disabled small>{restartLabel}</GoldBtn>
+            : <GoldBtn onClick={onRestart} small>{restartLabel}</GoldBtn>}
           {onMainMenu && <GoldBtn onClick={onMainMenu} secondary small>Main Menu</GoldBtn>}
           <GoldBtn onClick={onShowCredits} secondary small>Credits</GoldBtn>
           <GoldBtn onClick={()=>setShowBreakdown(true)} secondary small>Round Tally</GoldBtn>
@@ -6100,7 +6100,7 @@ function DiamondsGame() {
   const scorePanelRefs = useRef([null,null,null,null]); // DOM nodes of the 4 score tiles
   const trickAreaRef = useRef(null); // trick cards container
   const handAreaRef = useRef(null); // player's hand container
-  const [phase, setPhase] = useState("playing"); // playing | kidnap | rescue | trickresult | roundover | gameover
+  const [phase, setPhaseState] = useState("playing"); // playing | kidnap | rescue | trickresult | roundover | gameover
   const [trickResult, setTrickResult] = useState(null);
   const [kidnapState, setKidnapState] = useState(null);
   const [rescueState, setRescueState] = useState(null);
@@ -6168,6 +6168,9 @@ function DiamondsGame() {
   // Always-current refs so AI timer callbacks never read stale state
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
+  // Keep phaseRef in step immediately, so an effect later in the same commit sees that an
+  // earlier one already moved the game on (several start-of-turn set effects share a commit)
+  const setPhase = p => { phaseRef.current = p; setPhaseState(p); };
   const handsRef = useRef(hands);
   handsRef.current = hands;
   const trickStartHandsRef = useRef([[],[],[],[]]);
@@ -6242,6 +6245,9 @@ function DiamondsGame() {
   const [hostLeftGame, setHostLeftGame] = useState(false);
   const [disconnectedSeat, setDisconnectedSeat] = useState(null);
   const [mpSeatConfirmed, setMpSeatConfirmed] = useState(false); // guest: real seat read from Firebase
+  const [mpEnded, setMpEnded] = useState(null); // {seat, name, reason} once anyone leaves — the game is over for all
+  const mpEndedRef = useRef(null);
+  mpEndedRef.current = mpEnded;
   const lastHostPhaseRef = useRef(null);
 
   function guestSubmitMove(type, payload) {
@@ -6290,11 +6296,41 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [mpDisconnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function endMultiplayerGame(seat, reason) {
+    const ref = mpRoomRef.current;
+    if (!ref) return;
+    const name = allNamesRef.current[seat] ?? `Player ${seat + 1}`;
+    ref.child('ended').set({ seat, name, reason, at: Date.now() });
+    ref.child('config/status').set('ended');
+  }
+
+  // ── Anyone leaving (or vanishing for good) ends the game for everyone ─────
+  useEffect(() => {
+    if (!isMultiplayer()) return;
+    const endedRef = mpRoomRef.current.child('ended');
+    const handler = snap => {
+      const v = snap.val();
+      if (v && v.seat !== mySeatingIdxRef.current) setMpEnded(v);
+    };
+    endedRef.on('value', handler);
+    return () => endedRef.off('value', handler);
+  }, [mpRole, mpJoinAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A disconnected player who doesn't return within 90s has left the game
+  useEffect(() => {
+    if (disconnectedSeat === null || mpEnded) return;
+    const timer = setTimeout(() => endMultiplayerGame(disconnectedSeat, 'disconnected'), 90000);
+    return () => clearTimeout(timer);
+  }, [disconnectedSeat, mpEnded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Leaving to the menu by any route ends the multiplayer session ─────────
   // Otherwise the next single-player game still runs host/guest logic against the old room.
   useEffect(() => {
     if (screen !== 'menu' || !mpRoomRef.current) return;
+    // A 4-player game can't go on without everyone: leaving ends it for the whole table
+    if (!mpEndedRef.current) endMultiplayerGame(mySeatingIdxRef.current, 'left');
     mpRoomRef.current = null;
+    setMpEnded(null);
     setMpRole('none');
     setMySeatingIdx(0);
     setMpSeatConfirmed(false);
@@ -6651,7 +6687,7 @@ function DiamondsGame() {
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR3.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR3); setFireworksPlace(Math.max(1,Math.min(4,1+newTR3.filter((s,i)=>s>newTR3[seatIdx]||(s===newTR3[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setRuleOfThreeState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHR3.every(h=>h.length===0), continuation:null });
         setPhase('ruleofthree_event');
@@ -6668,7 +6704,7 @@ function DiamondsGame() {
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTSP.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTSP); setFireworksPlace(Math.max(1,Math.min(4,1+newTSP.filter((s,i)=>s>newTSP[seatIdx]||(s===newTSP[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setSwingingParadoxState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHSP.every(h=>h.length===0), continuation:null });
         setPhase('swingingparadox_event');
@@ -6685,7 +6721,7 @@ function DiamondsGame() {
         setRuleFourOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR4.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR4); setFireworksPlace(Math.max(1,Math.min(4,1+newTR4.filter((s,i)=>s>newTR4[seatIdx]||(s===newTR4[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setRuleFourState({ _id:Math.random(), playerIdx:seatIdx, cards, cashed:true, points:pts, isEnding:newHR4.every(h=>h.length===0), continuation:null });
         setPhase('rulefour_event');
@@ -6702,7 +6738,7 @@ function DiamondsGame() {
         setNuclearFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTNF.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTNF); setFireworksPlace(Math.max(1,Math.min(4,1+newTNF.filter((s,i)=>s>newTNF[seatIdx]||(s===newTNF[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setNuclearFamilyState({ _id:Math.random(), playerIdx:seatIdx, cashed:true, points:pts });
         setPhase('nuclearfamily_event');
@@ -6719,7 +6755,7 @@ function DiamondsGame() {
         setBloodDiamondOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTBD.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTBD); setFireworksPlace(Math.max(1,Math.min(4,1+newTBD.filter((s,i)=>s>newTBD[seatIdx]||(s===newTBD[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setBloodDiamondState({ _id:Math.random(), playerIdx:seatIdx, cashed:true, points:pts });
         setPhase('blooddiamond_event');
@@ -6738,7 +6774,7 @@ function DiamondsGame() {
         flagTrickInstance(`${allNamesRef.current[seatIdx]} triggered The Golden Age — all points doubled for the rest of the round`);
         if (newTAL.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTAL); setFireworksPlace(Math.max(1,Math.min(4,1+newTAL.filter((s,i)=>s>newTAL[seatIdx]||(s===newTAL[seatIdx]&&i!==seatIdx)).length)));
-          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setScreen("gameover"); return;
+          setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000); setPhase("victory"); setScreen("gameover"); return;
         }
         setAcesLowState({ _id:Math.random(), playerIdx:seatIdx, hands:newHAL, cashed:true, points:pts, continuation:null });
         setPhase('aceslow_event');
@@ -6918,7 +6954,7 @@ function DiamondsGame() {
 
   // SHOWDOWN: check at the start of any player's turn — must fire BEFORE The Steal (superset)
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
@@ -6951,7 +6987,7 @@ function DiamondsGame() {
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,place)));
         setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-        setScreen("gameover");
+        setPhase("victory"); setScreen("gameover");
         return;
       }
       setShowdownState({ _id:Math.random(), playerIdx: cp, points: pts, aiEvent: true, pendingRound: newRS, pendingTotal: newTotal });
@@ -6961,7 +6997,7 @@ function DiamondsGame() {
 
   // THE STEAL: check at the start of any player's turn (no cards played yet in the trick)
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
     const cp = turnOrder[currentTurn];
@@ -6992,7 +7028,7 @@ function DiamondsGame() {
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,place)));
         setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-        setScreen("gameover");
+        setPhase("victory"); setScreen("gameover");
         return;
       }
       // AI decides: end round if in the lead after the bonus, otherwise play on for more points
@@ -7011,7 +7047,7 @@ function DiamondsGame() {
 
   // Riot detection: fires at the start of each trick before playing
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
@@ -7047,7 +7083,7 @@ function DiamondsGame() {
         const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
         setFireworksPlace(Math.max(1,Math.min(4,place)));
         setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-        setScreen("gameover");
+        setPhase("victory"); setScreen("gameover");
         return;
       }
       setRiotState({ _id:Math.random(), playerIdx: cp, cards: riotCards, points: pts, suit: riotCards[0].suit, pendingRound: newRound, pendingTotal: newTotal });
@@ -7057,7 +7093,7 @@ function DiamondsGame() {
 
   // Golden Age (Aces Low): fires at the start of each player's turn, before a card is played
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
@@ -7102,7 +7138,7 @@ function DiamondsGame() {
   // clear them silently (no modal). If diamonds or special cards remain, play out normally.
   // Human player is exempt — handled by the human-sweep useEffect below.
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return; // host is the sole authority on sweeping
     if (trickPlays.length > 0) return;
     const playersWithCards = hands.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
@@ -7135,7 +7171,7 @@ function DiamondsGame() {
 
   // Pre-play set detection for AI players (Rule of 3/4/2). Human player is notified via buttons.
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (showWelcome) return; // don't fire sets while any tutorial is open (solo)
     if (isMultiplayer() && isHost() && mpPendingTutorials > 0) return; // wait for all players to dismiss tutorial
@@ -7174,7 +7210,7 @@ function DiamondsGame() {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
+            setPhase("victory"); setScreen("gameover"); return;
           }
           flagTrickInstance(`${allNames[cp]} cashed in a Rule of 4 set for ${pts} points`);
           setRuleFourState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
@@ -7210,7 +7246,7 @@ function DiamondsGame() {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
+            setPhase("victory"); setScreen("gameover"); return;
           }
           flagTrickInstance(`${allNames[cp]} cashed in a Rule of 3 set for ${pts} points`);
           setRuleOfThreeState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
@@ -7245,7 +7281,7 @@ function DiamondsGame() {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
+            setPhase("victory"); setScreen("gameover"); return;
           }
           flagTrickInstance(`${allNames[cp]} cashed in a Rule of 2 set for ${pts} points`);
           setSwingingParadoxState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts, continuation:null });
@@ -7277,7 +7313,7 @@ function DiamondsGame() {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
+            setPhase("victory"); setScreen("gameover"); return;
           }
           flagTrickInstance(`${allNames[cp]} cashed in a Nuclear Family set for ${pts} points`);
           setNuclearFamilyState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts });
@@ -7308,7 +7344,7 @@ function DiamondsGame() {
             setTotalScores(newTotal);
             setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length)));
             setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-            setScreen("gameover"); return;
+            setPhase("victory"); setScreen("gameover"); return;
           }
           flagTrickInstance(`${allNames[cp]} cashed in a Blood Diamond set for ${pts} points`);
           setBloodDiamondState({ _id:Math.random(), playerIdx:cp, cashed:true, points:pts });
@@ -7351,7 +7387,7 @@ function DiamondsGame() {
   // Running as a useEffect fires synchronously during the commit phase, BEFORE the 700ms
   // AI-turns timer, so the phase change to "trickresult" cancels the timer cleanly.
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length === 0) return; // leading case handled above
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
@@ -7378,7 +7414,7 @@ function DiamondsGame() {
 
   // American Family: offered at start of turn, like any other set
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (isMultiplayer() && !isHost()) return;
     if (trickPlays.length > 0) return;
     if (dealing || dealRevealIdx < (hands[mySeatingIdxRef.current]?.length ?? 0)) return;
@@ -7406,11 +7442,8 @@ function DiamondsGame() {
       const familyCards = (hands[cp]||[]).filter(c=>famIds.has(c.id));
       logRoundEvent({ type:"set", playerIdx:cp, trickNum:tricksPlayed+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:familyCards });
       setHands(hands.map((h,i) => i===cp ? h.filter(c=>!famIds.has(c.id)) : h));
-      const afTimer = setTimeout(() => {
-        setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
-        setPhase("trickresult");
-      }, 700);
-      return () => clearTimeout(afTimer);
+      setTrickResult({ winnerIdx:cp, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
+      setPhase("trickresult");
     }
   }, [phase, currentTurn, trickPlays.length, dealing, dealRevealIdx]);
 
@@ -8813,7 +8846,7 @@ function DiamondsGame() {
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-      setScreen("gameover");
+      setPhase("victory"); setScreen("gameover");
       return;
     }
     const updCont3 = continuation ? { ...continuation, newHands: updatedHands } : null;
@@ -8869,7 +8902,7 @@ function DiamondsGame() {
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-      setScreen("gameover");
+      setPhase("victory"); setScreen("gameover");
       return;
     }
     const updCont4 = continuation ? { ...continuation, newHands: updatedHands } : null;
@@ -8925,7 +8958,7 @@ function DiamondsGame() {
       const place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
       setFireworksPlace(Math.max(1,Math.min(4,place)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); }, 1000);
-      setScreen("gameover");
+      setPhase("victory"); setScreen("gameover");
       return;
     }
     const updCont4f = continuation ? { ...continuation, newHands: updatedHands } : null;
@@ -9022,7 +9055,7 @@ function DiamondsGame() {
       setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[playerIdx] || (s === newTotal[playerIdx] && i !== playerIdx)).length)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
       setNuclearFamilyState(null);
-      setScreen("gameover"); return;
+      setPhase("victory"); setScreen("gameover"); return;
     }
     flagTrickInstance(`${allNames[playerIdx]} cashed in a Nuclear Family set for ${pts} points`);
     setNuclearFamilyState({ _id:Math.random(), playerIdx, cashed:true, points:pts });
@@ -9066,7 +9099,7 @@ function DiamondsGame() {
       setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[playerIdx] || (s === newTotal[playerIdx] && i !== playerIdx)).length)));
       setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
       setBloodDiamondState(null);
-      setScreen("gameover"); return;
+      setPhase("victory"); setScreen("gameover"); return;
     }
     flagTrickInstance(`${allNames[playerIdx]} cashed in a Blood Diamond set for ${pts} points`);
     setBloodDiamondState({ _id:Math.random(), playerIdx, cashed:true, points:pts });
@@ -9644,9 +9677,41 @@ function DiamondsGame() {
     });
   }, [diamondsBroken]);
 
+  // Safety net: a set cashed with the last cards (e.g. Rule of 3 marked "END") can leave every hand empty
+  // with no trick in play and nothing left to advance the round — end it here.
+  useEffect(() => {
+    if (screen === 'menu' || phase !== "playing" || dealing || trickPlays.length > 0) return;
+    if (isMultiplayer() && !isHost()) return;
+    if (!hands.every(h => h.length === 0)) return;
+    const t = setTimeout(() => {
+      if (phaseRef.current !== "playing" || trickPlaysRef.current.length > 0 || !handsRef.current.every(h => h.length === 0)) return;
+      const newTotal = totalScoresRef.current.map((s,i) => s + (roundScoresRef.current[i] || 0));
+      setTotalScores(newTotal);
+      if (newTotal.some(s => s >= winScoreRef.current)) {
+        const _place = 1 + newTotal.filter((s,i) => s > newTotal[0] || (s === newTotal[0] && i !== 0)).length;
+        setFireworksPlace(Math.max(1,Math.min(4,_place)));
+        setPhase("victory");
+        setTimeout(() => { soundRoundWin(); setShowFireworks(true); }, 1000);
+      } else {
+        soundRoundWin();
+        setPhase("roundover");
+        setRoundNum(r => r + 1);
+      }
+    }, 600);
+    return () => clearTimeout(t);
+  }, [screen, phase, hands, trickPlays.length, dealing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // AIs obey the human's lead rule: no leading a Dimond before they're broken while holding anything else
+  function legalAILead(hand, card) {
+    if (!card || card.isJoker || !isDiamond(card)) return card;
+    if (trickPlaysRef.current.length > 0 || diamondsBrokenRef.current) return card;
+    const alt = hand.filter(c => !isDiamond(c) && !c.isJoker);
+    return alt.length ? alt.sort((a,b) => cardScore(a) - cardScore(b))[0] : card;
+  }
+
   // ---- AI turns ----
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || phaseRef.current !== "playing") return;
     if (showWelcome) return; // don't play cards while own intro modal is open
     if (isMultiplayer() && isHost() && mpPendingTutorials > 0) return; // wait for all players to dismiss tutorial
     const currentPlayer = turnOrder[currentTurn];
@@ -9744,7 +9809,7 @@ function DiamondsGame() {
           otherHandSizes: hands.map((h, i) => i === currentPlayer ? null : h.length),
           cardsPlayedThisRound: playedCardsRef.current,
         }).then(llmCard => {
-          const card = llmCard || aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
+          const card = legalAILead(hand, llmCard || aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken }));
           if (card) submitPlay(currentPlayer, card);
           else setCurrentTurn(t => t + 1);
         });
@@ -9761,11 +9826,11 @@ function DiamondsGame() {
           currentLeader: turnOrder[0],
           remainingDeck: 53 - playedCardsRef.current.length - hands.reduce((s, h) => s + h.length, 0),
         };
-        const card = gptChooseCard(hand, slotId, trickPlaysRef.current, ledSuit, gptState);
+        const card = legalAILead(hand, gptChooseCard(hand, slotId, trickPlaysRef.current, ledSuit, gptState));
         if (card) submitPlay(currentPlayer, card);
         else setCurrentTurn(t => t + 1);
       } else {
-        const card = aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken });
+        const card = legalAILead(hand, aiChooseCard(hand, role, trickPlaysRef.current, ledSuit, { trumpBroken: diamondsBroken }));
         if (card) {
           submitPlay(currentPlayer, card);
         } else {
@@ -11100,7 +11165,7 @@ function DiamondsGame() {
                 setTotalScores(newTotal);
                 setFireworksPlace(Math.max(1,Math.min(4, 1 + newTotal.filter((s,i) => s > newTotal[msi] || (s === newTotal[msi] && i !== msi)).length)));
                 setTimeout(()=>{ soundRoundWin(); setShowFireworks(true); },1000);
-                setScreen("gameover"); return;
+                setPhase("victory"); setScreen("gameover"); return;
               }
               if (selectedSetType==="r3") {
                 setRuleOfThreeState({ _id:Math.random(), playerIdx:msi, cashed:true, points:pts, isEnding: newHands.every(h => h.length === 0), continuation:null });
@@ -11499,7 +11564,26 @@ function DiamondsGame() {
       )}
 
       {/* REMOTE PLAYER DISCONNECTED */}
-      {isMultiplayer() && disconnectedSeat !== null && !mpDisconnected && (
+      {/* GAME ENDED — someone left; a 4-player game can't continue */}
+      {isMultiplayer() && mpEnded && (
+        <div style={{
+          position:"fixed", inset:0, zIndex:560,
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          background:"rgba(10,20,16,0.97)", gap:12, padding:"0 16px",
+        }}>
+          <div style={{fontSize:36}}>🚪</div>
+          <div style={{color:"#ff9966", fontFamily:FONT_DISPLAY, fontSize:15, fontWeight:800, letterSpacing:1}}>Game Over</div>
+          <div style={{color:"#fff", fontFamily:FONT_DISPLAY, fontSize:22, fontWeight:800, textAlign:"center"}}>
+            {mpEnded.name} {mpEnded.reason === 'disconnected' ? "didn't come back" : "left the game"}
+          </div>
+          <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:280, lineHeight:1.7}}>
+            Dimonds needs all four seats, so this game has ended.
+          </div>
+          <GoldBtn secondary small onClick={() => setScreen("menu")}>Return to Main Menu</GoldBtn>
+        </div>
+      )}
+
+      {isMultiplayer() && disconnectedSeat !== null && !mpDisconnected && !mpEnded && (
         <div style={{
           position:"fixed", inset:0, zIndex:550,
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
@@ -11511,15 +11595,14 @@ function DiamondsGame() {
             {allNames[disconnectedSeat] ?? `Player ${disconnectedSeat + 1}`}
           </div>
           <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:260, lineHeight:1.7}}>
-            Lost connection — waiting for them to come back. The game resumes automatically when they reconnect.
+            Lost connection — waiting for them to come back. The game resumes automatically if they reconnect, or ends after 90 seconds.
           </div>
           <GoldBtn secondary small onClick={() => {
+            endMultiplayerGame(disconnectedSeat, 'disconnected');
             setDisconnectedSeat(null);
-            if (mpRoomRef.current) { mpRoomRef.current.child('presence').child(String(mySeatingIdxRef.current)).remove(); mpRoomRef.current = null; }
-            setMpRole('none');
             setShowMpLobby(false);
             setScreen("menu");
-          }}>Return to Main Menu</GoldBtn>
+          }}>End Game</GoldBtn>
         </div>
       )}
 
@@ -12202,13 +12285,14 @@ function DiamondsGame() {
           scores={totalScores}
           allNames={allNames}
           playerEmojis={playerEmojis}
-          onRestart={isMultiplayer() && !isHost() ? undefined : (isMultiplayer() ? () => gateEventAdvance(startGame) : () => startGame())}
-          restartDisabled={isMultiplayer() && !isHost()}
-          onMainMenu={isMultiplayer()
-            ? (isHost()
-              ? () => { if (mpRoomRef.current) mpRoomRef.current.child('state').update({ hostLeft: true }); setScreen("menu"); }
-              : () => { if (eventDismissLockRef.current) return; eventDismissLockRef.current = true; setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); })
-            : () => setScreen("menu")}
+          onRestart={!isMultiplayer() ? () => startGame()
+            : isHost() ? () => gateEventAdvance(startGame)
+            : () => { if (eventDismissLockRef.current) return; eventDismissLockRef.current = true; setGuestEventDismissed(true); guestSubmitMove('eventDismiss', {}); }}
+          restartDisabled={isMultiplayer() && !isHost() && guestEventDismissed}
+          restartLabel={!isMultiplayer() ? "New Game"
+            : isHost() ? (mpWaitingForDismissals ? "Waiting for players…" : "New Game")
+            : (guestEventDismissed ? "Waiting for host…" : "Ready for New Game")}
+          onMainMenu={() => setScreen("menu")}
           hostLeft={hostLeftGame}
           onShowCredits={()=>setShowCredits(true)}
           gameTricksPerPlayer={gameTricksPerPlayer}
