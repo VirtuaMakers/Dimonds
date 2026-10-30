@@ -1301,6 +1301,9 @@ function cardToFB(c) {
 }
 // Firebase arrays come back as objects if sparse — normalize to array
 function fbArr(x) { return Array.isArray(x) ? x : Object.values(x ?? {}); }
+// Per-seat arrays must keep their indexes — Firebase drops empty hands and nulls, so {3:[...]} must stay at seat 3
+function fbSeatHands(x) { return [0,1,2,3].map(i => fbArr(x?.[i]).map(c => ({...c}))); }
+function fbSeatVals(x) { return [0,1,2,3].map(i => x?.[i] ?? null); }
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WIN_SCORE = 80;
@@ -5440,6 +5443,7 @@ function MultiplayerLobby({ nameInput, myPlayerId, onClose, onJoinedAsHost, onJo
       sRef.on('value', st => {
         if (dead.current) return;
         if (st.val() === 'playing') setStatus('waiting');
+        else if (st.val() === 'ended') { setError('The host closed this room.'); setStatus('idle'); }
       });
     });
   }
@@ -6287,10 +6291,8 @@ function DiamondsGame() {
   useEffect(() => {
     if (!mpDisconnected) return;
     const timer = setTimeout(() => {
-      mpRoomRef.current = null;
-      setMpRole('none');
+      teardownMultiplayer();
       setShowMpLobby(false);
-      setMpDisconnected(false);
       setScreen("menu");
     }, 60000);
     return () => clearTimeout(timer);
@@ -6325,10 +6327,7 @@ function DiamondsGame() {
 
   // ── Leaving to the menu by any route ends the multiplayer session ─────────
   // Otherwise the next single-player game still runs host/guest logic against the old room.
-  useEffect(() => {
-    if (screen !== 'menu' || !mpRoomRef.current) return;
-    // A 4-player game can't go on without everyone: leaving ends it for the whole table
-    if (!mpEndedRef.current) endMultiplayerGame(mySeatingIdxRef.current, 'left');
+  function teardownMultiplayer() {
     mpRoomRef.current = null;
     setMpEnded(null);
     setMpRole('none');
@@ -6337,7 +6336,18 @@ function DiamondsGame() {
     setMpDisconnected(false);
     setDisconnectedSeat(null);
     setHostLeftGame(false);
+    setOpponentSlots([]);
+    setRemoteNames(null);
+    setRemoteEmojis(null);
+    setMpSeatNames(null);
+    setMpPendingTutorials(0);
     lastHostPhaseRef.current = null;
+  }
+  useEffect(() => {
+    if (screen !== 'menu' || !mpRoomRef.current) return;
+    // A 4-player game can't go on without everyone: leaving ends it for the whole table
+    if (!mpEndedRef.current) endMultiplayerGame(mySeatingIdxRef.current, 'left');
+    teardownMultiplayer();
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Presence: write this seat, detect remote player disconnects ───────────
@@ -6486,7 +6496,9 @@ function DiamondsGame() {
         soundRoundWin();
         setShowFireworks(true);
       }
-      if (!GUEST_LOCAL_PHASES.has(phaseRef.current) && !GUEST_LOCAL_PHASES.has(st.phase ?? "playing")) {
+      // A guest who skipped ahead to game over stays there until the host deals a new game
+      const guestHeldAtGameOver = phaseRef.current === "gameover" && newPhase !== "playing";
+      if (!guestHeldAtGameOver && !GUEST_LOCAL_PHASES.has(phaseRef.current) && !GUEST_LOCAL_PHASES.has(st.phase ?? "playing")) {
         setPhase(st.phase ?? "playing");
         // If phase stays "playing" (React no-ops the setState), useEffect([phase]) won't fire
         // and guestEventDismissed won't auto-reset — do it explicitly here.
@@ -6496,7 +6508,7 @@ function DiamondsGame() {
         }
       }
       if (st.phase && st.phase !== "menu") { setScreen(st.phase === "gameover" ? "gameover" : "game"); setShowMpLobby(false); }
-      setHands(fbArr(st.hands).map(toHand));
+      setHands(fbSeatHands(st.hands));
       setTrickPlays(fbArr(st.trickPlays).map(toPlay).filter(Boolean));
       setTurnOrder(fbArr(st.turnOrder));
       setCurrentTurn(st.currentTurn ?? 0);
@@ -6521,20 +6533,20 @@ function DiamondsGame() {
       } else { setTrickResult(null); }
       if (st.pendingPlayContinuation) {
         const pc = st.pendingPlayContinuation;
-        setPendingPlayContinuation({ playerIdx:pc.playerIdx, card:pc.card, newPlays:fbArr(pc.newPlays||[]).map(toPlay).filter(Boolean), newHands:fbArr(pc.newHands||[]).map(toHand) });
+        setPendingPlayContinuation({ playerIdx:pc.playerIdx, card:pc.card, newPlays:fbArr(pc.newPlays||[]).map(toPlay).filter(Boolean), newHands:fbSeatHands(pc.newHands) });
       } else { setPendingPlayContinuation(null); }
       if (st.kidnapState) {
         const ks = st.kidnapState;
-        setKidnapState({ ...ks, hands: fbArr(ks.hands).map(h => fbArr(h).map(c => ({...c}))),
-          pendingQueenClubs: ks.pendingQueenClubs ? { ...ks.pendingQueenClubs, hands: fbArr(ks.pendingQueenClubs.hands).map(h => fbArr(h).map(c => ({...c}))) } : undefined });
+        setKidnapState({ ...ks, hands: fbSeatHands(ks.hands),
+          pendingQueenClubs: ks.pendingQueenClubs ? { ...ks.pendingQueenClubs, hands: fbSeatHands(ks.pendingQueenClubs.hands) } : undefined });
       } else { setKidnapState(null); }
       if (st.rescueState) {
         const rs = st.rescueState;
-        setRescueState({ ...rs, hands: fbArr(rs.hands).map(h => fbArr(h).map(c => ({...c}))) });
+        setRescueState({ ...rs, hands: fbSeatHands(rs.hands) });
       } else { setRescueState(null); }
       if (st.queenClubsState) {
         const qcs = st.queenClubsState;
-        setQueenClubsState({ ...qcs, hands: fbArr(qcs.hands).map(h => fbArr(h).map(c => ({...c}))) });
+        setQueenClubsState({ ...qcs, hands: fbSeatHands(qcs.hands) });
       } else { setQueenClubsState(null); }
       setRobbinSummonState(st.robbinSummonState ?? null);
       setAceRobChoiceState(st.aceRobChoiceState ?? null);
@@ -6543,11 +6555,11 @@ function DiamondsGame() {
       if (st.riotOffered) setRiotOffered(fbArr(st.riotOffered));
       if (st.acesLowOffered) setAcesLowOffered(fbArr(st.acesLowOffered));
       if (st.americanFamilyOffered) setAmericanFamilyOffered(fbArr(st.americanFamilyOffered));
-      if (st.ruleOfThreeOffered) setRuleOfThreeOffered(fbArr(st.ruleOfThreeOffered));
-      if (st.ruleFourOffered) setRuleFourOffered(fbArr(st.ruleFourOffered));
-      if (st.swingingParadoxOffered) setSwingingParadoxOffered(fbArr(st.swingingParadoxOffered));
-      if (st.nuclearFamilyOffered) setNuclearFamilyOffered(fbArr(st.nuclearFamilyOffered));
-      if (st.bloodDiamondOffered) setBloodDiamondOffered(fbArr(st.bloodDiamondOffered));
+      setRuleOfThreeOffered(fbSeatVals(st.ruleOfThreeOffered));
+      setRuleFourOffered(fbSeatVals(st.ruleFourOffered));
+      setSwingingParadoxOffered(fbSeatVals(st.swingingParadoxOffered));
+      setNuclearFamilyOffered(fbSeatVals(st.nuclearFamilyOffered));
+      setBloodDiamondOffered(fbSeatVals(st.bloodDiamondOffered));
       const dis = dismissedEventIdsRef.current;
       const gae = guestActiveEventIdsRef.current;
       // Helper: apply event state; when Firebase sends null, hold the modal until the guest dismisses it themselves
@@ -6586,6 +6598,7 @@ function DiamondsGame() {
   useEffect(() => {
     if (!isMultiplayer() || isHost()) return;
     const hp = lastHostPhaseRef.current;
+    if (phase === "gameover" && hp !== "playing") return;
     if (hp && phase !== hp && !GUEST_LOCAL_PHASES.has(phase) && !GUEST_LOCAL_PHASES.has(hp)) setPhase(hp);
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -6672,6 +6685,7 @@ function DiamondsGame() {
         const card = hand.find(c => c.id === payload.cardId);
         if (card) setTimeout(() => handleRule1Give(payload.targetIdx, card, seatIdx), 0);
       } else if (type === 'rule1Skip') {
+        if (phaseRef.current !== 'rule1') return;
         setTimeout(() => handleRule1Skip(), 0);
       } else if (type === 'ruleOfThreeAccept') {
         const hand = handsRef.current[seatIdx] || [];
@@ -6683,7 +6697,7 @@ function DiamondsGame() {
         const newRR3 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTR3 = totalScoresRef.current.map((s,i) => s+newRR3[i]);
         setHands(newHR3); setRoundScores(newRR3);
-        addLog(`🦅 ${allNamesRef.current[seatIdx]} cashes in Rule of 3! +${pts} pts`);
+        addLog(`🦅 ${allNamesRef.current[seatIdx]} cashes in Rule of 3! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🦅", setName:"Rule of 3", cards:cards });
         setRuleOfThreeOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR3.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR3); setFireworksPlace(Math.max(1,Math.min(4,1+newTR3.filter((s,i)=>s>newTR3[seatIdx]||(s===newTR3[seatIdx]&&i!==seatIdx)).length)));
@@ -6700,7 +6714,7 @@ function DiamondsGame() {
         const newRSP = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTSP = totalScoresRef.current.map((s,i) => s+newRSP[i]);
         setHands(newHSP); setRoundScores(newRSP);
-        addLog(`💍 ${allNamesRef.current[seatIdx]} cashes in Rule of 2! +${pts} pts`);
+        addLog(`💍 ${allNamesRef.current[seatIdx]} cashes in Rule of 2! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"💍", setName:"Rule of 2", cards:cards });
         setSwingingParadoxOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTSP.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTSP); setFireworksPlace(Math.max(1,Math.min(4,1+newTSP.filter((s,i)=>s>newTSP[seatIdx]||(s===newTSP[seatIdx]&&i!==seatIdx)).length)));
@@ -6717,7 +6731,7 @@ function DiamondsGame() {
         const newRR4 = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTR4 = totalScoresRef.current.map((s,i) => s+newRR4[i]);
         setHands(newHR4); setRoundScores(newRR4);
-        addLog(`💎 ${allNamesRef.current[seatIdx]} cashes in Rule of 4! +${pts} pts`);
+        addLog(`💎 ${allNamesRef.current[seatIdx]} cashes in Rule of 4! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"💎", setName:"Rule of 4", cards:cards });
         setRuleFourOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTR4.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTR4); setFireworksPlace(Math.max(1,Math.min(4,1+newTR4.filter((s,i)=>s>newTR4[seatIdx]||(s===newTR4[seatIdx]&&i!==seatIdx)).length)));
@@ -6734,7 +6748,7 @@ function DiamondsGame() {
         const newRNF = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTNF = totalScoresRef.current.map((s,i) => s+newRNF[i]);
         setHands(newHNF); setRoundScores(newRNF);
-        addLog(`🏠 ${allNamesRef.current[seatIdx]} cashes in Nuclear Family! +${pts} pts`);
+        addLog(`🏠 ${allNamesRef.current[seatIdx]} cashes in Nuclear Family! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🏠", setName:"Nuclear Family", cards:cards });
         setNuclearFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTNF.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTNF); setFireworksPlace(Math.max(1,Math.min(4,1+newTNF.filter((s,i)=>s>newTNF[seatIdx]||(s===newTNF[seatIdx]&&i!==seatIdx)).length)));
@@ -6751,7 +6765,7 @@ function DiamondsGame() {
         const newRBD = roundScoresRef.current.map((s,i) => i===seatIdx ? s+pts : s);
         const newTBD = totalScoresRef.current.map((s,i) => s+newRBD[i]);
         setHands(newHBD); setRoundScores(newRBD);
-        addLog(`🩸 ${allNamesRef.current[seatIdx]} cashes in Blood Diamond! +${pts} pts`);
+        addLog(`🩸 ${allNamesRef.current[seatIdx]} cashes in Blood Diamond! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🩸", setName:"Blood Diamond", cards:cards });
         setBloodDiamondOffered(prev => { const n=[...prev]; n[seatIdx]=null; return n; });
         if (newTBD.some(s => s >= winScoreRef.current)) {
           setTotalScores(newTBD); setFireworksPlace(Math.max(1,Math.min(4,1+newTBD.filter((s,i)=>s>newTBD[seatIdx]||(s===newTBD[seatIdx]&&i!==seatIdx)).length)));
@@ -6802,7 +6816,7 @@ function DiamondsGame() {
         const newTotal = totalScoresRef.current.map((s,i) => s + newRound[i]);
         setRoundScores(newRound);
         setTotalScores(newTotal);
-        addLog(`🏛️ ${allNamesRef.current[seatIdx]} redeems The First Family! +${pts} pts`);
+        addLog(`🏛️ ${allNamesRef.current[seatIdx]} redeems The First Family! +${pts} pts`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🏛️", setName:"The First Family", cards:familyCards });
         setAmericanFamilyOffered(prev => { const n=[...prev]; n[seatIdx]=false; return n; });
         setTrickResult({ winnerIdx:seatIdx, americanFamily:true, familyCards, plays:[], diamondsCaptured:[] });
         setPhase("trickresult");
@@ -6817,7 +6831,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,i) => i===seatIdx ? h.filter(c=>!cardIdSet.has(c.id)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🔥 RIOT — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🔥 RIOT — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🔥", setName:"Riot", cards:riotCards });
         soundRiot();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -6838,7 +6852,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!c.isJoker&&!isQueenClubs(c)&&!isJackDiamond(c)&&!isAceSpades(c)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🌇 THE STEAL — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🌇 THE STEAL — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🌇", setName:"The Steal", cards:[] });
         soundTheSteal();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -6861,7 +6875,7 @@ function DiamondsGame() {
         const newHands = handsRef.current.map((h,j) => j===seatIdx ? h.filter(c=>!stealIds.has(c.id)) : h);
         const newRound = [...curRound]; newRound[seatIdx] += pts;
         const newTotal = curTotal.map((s,i) => s + newRound[i]);
-        addLog(`🌆 SHOWDOWN — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`);
+        addLog(`🌆 SHOWDOWN — ${allNamesRef.current[seatIdx]} ends the round! +${pts} pts.`); logRoundEvent({ type:"set", playerIdx:seatIdx, trickNum:tricksPlayedRef.current+1, points:pts, setEmoji:"🌆", setName:"Showdown", cards:[] });
         soundTheSteal();
         setHands(newHands);
         if (newTotal.some(s=>s>=winScoreRef.current)) {
@@ -9431,7 +9445,7 @@ function DiamondsGame() {
   // Depends only on phase so switching to "game" mode mid-roundover doesn't skip the current summary
   useEffect(() => {
     if (phase !== "roundover" || scoreTallyRef.current !== "game") return;
-    if (isMultiplayer() && !isHost()) return; // guests must not locally start the next round
+    if (isMultiplayer()) return; // multiplayer waits for every player to dismiss the round summary
     const t = setTimeout(() => { startNextRound(); }, 1400);
     return () => clearTimeout(t);
   }, [phase]);
@@ -10443,11 +10457,9 @@ function DiamondsGame() {
             onClose={()=>{
               setShowMpLobby(false);
               if (mpRoomRef.current) {
-                mpRoomRef.current.child('players').child(myPlayerIdRef.current).remove();
-                mpRoomRef.current = null;
-                setMpRole('none');
-                setMySeatingIdx(0);
-                setMpSeatConfirmed(false);
+                if (mpRole === 'host') mpRoomRef.current.child('config/status').set('ended');
+                else mpRoomRef.current.child('players').child(myPlayerIdRef.current).remove();
+                teardownMultiplayer();
               }
             }}
             onJoinedAsHost={ref => { mpRoomRef.current = ref; setMpRole('host'); setMySeatingIdx(0); }}
@@ -11153,6 +11165,11 @@ function DiamondsGame() {
               setSelectedCards([]);
               setPhase("americanfamily_offer");
             } else if (selectedSetType === "r3" || selectedSetType === "r2") {
+              if (isMultiplayer() && !isHost()) {
+                guestSubmitMove(selectedSetType === "r3" ? 'ruleOfThreeAccept' : 'swingingParadoxAccept', { cardIds: selectedCards.map(c => c.id) });
+                setSelectedCards([]);
+                return;
+              }
               const cards = selectedCards;
               const pts = selectedSetBonus;
               const msi = mySeatingIdx;
@@ -11536,7 +11553,7 @@ function DiamondsGame() {
       {/* WAITING GIF — shows in multiplayer when it's not the player's turn */}
       {isMultiplayer() && (
         (!isPlayerTurn && (phase === "playing" || phase === "rule1")) ||
-        (!isHost() && (phase === "acerobchoice" || phase === "robbinsummon") && mySeatingIdx !== (kidnapState?.playerIdx ?? -1))
+        (!isHost() && (phase === "acerobchoice" || phase === "robbinsummon") && mySeatingIdx !== (robbinSummonState?.jackPlayerIdx ?? aceRobChoiceState?.jackDPlayerIdx ?? -1))
       ) && (
         <div style={{
           position:"fixed", inset:0, zIndex:50,
@@ -11546,7 +11563,7 @@ function DiamondsGame() {
           <img src="/Dimonds/assets/waiting.gif" alt="" style={{width:110, height:110, opacity:0.85, marginBottom:12}} />
           <div style={{color:"#ffffffcc", fontFamily:FONT_UI, fontSize:13, letterSpacing:1, textAlign:"center"}}>
             {(phase === "acerobchoice" || phase === "robbinsummon")
-              ? `Waiting for ${allNames[kidnapState?.playerIdx ?? 0] ?? '…'}…`
+              ? `Waiting for ${allNames[robbinSummonState?.jackPlayerIdx ?? aceRobChoiceState?.jackDPlayerIdx ?? 0] ?? '…'}…`
               : `Waiting for ${allNames[turnOrder[currentTurn]] ?? '…'}…`}
           </div>
         </div>
@@ -12312,13 +12329,18 @@ function DiamondsGame() {
         />
       )}
 
-      {showWelcome&&<WelcomeModal onClose={()=>{
+      {showWelcome&&(() => {
+        // Every exit from the welcome box must report "done", or the host's AI seats wait forever
+        const finishWelcome = () => {
           setShowWelcome(false);
           if (isMultiplayer()) {
             if (isHost()) setMpPendingTutorials(n => Math.max(0, n-1));
             else guestSubmitMove('tutorialDone', {});
           }
-        }} winScore={winScore} onRules={()=>{setShowWelcome(false);setShowRules(true);}} onOptions={()=>{setShowWelcome(false);setShowOptions(true);}}/>}
+        };
+        return <WelcomeModal onClose={finishWelcome} winScore={winScore}
+          onRules={()=>{finishWelcome();setShowRules(true);}} onOptions={()=>{finishWelcome();setShowOptions(true);}}/>;
+      })()}
       {showRules&&<RulesPanel onClose={()=>setShowRules(false)}/>}
       {showCredits&&<RulesPanel initialView="credits" onClose={()=>setShowCredits(false)}/>}
       {showOptions&&<OptionsPanel onClose={()=>setShowOptions(false)} onExit={()=>{ setShowOptions(false); setScreen("menu"); }} soundOn={soundOn} setSoundOn={setSoundOn} deckTheme={deckTheme} setDeckTheme={setDeckTheme} autoCompleteTricks={autoCompleteTricks} setAutoCompleteTricks={setAutoCompleteTricks} cardGlowHints={cardGlowHints} setCardGlowHints={setCardGlowHints} hintsEnabled={hintsEnabled} setHintsEnabled={setHintsEnabled} winScore={winScore} setWinScore={setWinScore} animSpeed={animSpeed} setAnimSpeed={setAnimSpeed} showCommuniques={showCommuniques} setShowCommuniques={setShowCommuniques} scoreTally={scoreTally} setScoreTally={setScoreTally} tutorialEnabled={tutorialEnabled} setTutorialEnabled={setTutorialEnabled} gameInProgress={true}/>}
