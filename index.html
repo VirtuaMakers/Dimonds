@@ -8095,8 +8095,9 @@ function DiamondsGame() {
           });
           setPhase("acerobchoice");
         } else {
-          // AI always passes — preserves J♦'s +1 and denies A♠ the block bonus
-          finalizeAceRobResolution(false, jdIdx, winner, aceBlockedJoker, aceBlockedQueenClubs, newRoundScores, resultObj, currentHands);
+          // AI always passes — same payout a human gets for passing (+5 when that calls a Block, else +1)
+          const hasSpecials = aceBlockedJoker || aceBlockedQueenClubs;
+          finalizeAceRobResolution(false, jdIdx, winner, aceBlockedJoker, aceBlockedQueenClubs, newRoundScores, resultObj, currentHands, hasSpecials ? 5 : 1, hasSpecials, false);
         }
       }, 600);
       return;
@@ -8147,7 +8148,9 @@ function DiamondsGame() {
         // Robin Gambit: J♦ in same trick + A♠ still available + J♦ player is human → show summon choice
         const jackDPlayerForSummon = result.jackDiamondRob ? result.jackDiamondPlayerIdx : undefined;
         const aceHolderForSummon = currentHands.findIndex(h => h.some(c => isAceSpades(c)));
-        if (aceHolderForSummon !== -1 && (jackDPlayerForSummon === mySeatingIdx || (isMultiplayer() && jackDPlayerForSummon >= 1 && opponentSlotsRef.current[jackDPlayerForSummon - 1] === 'human'))) {
+        const jackIsHuman = jackDPlayerForSummon === mySeatingIdx || (isMultiplayer() && jackDPlayerForSummon >= 1 && opponentSlotsRef.current[jackDPlayerForSummon - 1] === 'human');
+        const aiHoldsBoth = jackDPlayerForSummon !== undefined && !jackIsHuman && aceHolderForSummon === jackDPlayerForSummon;
+        if (aceHolderForSummon !== -1 && (jackIsHuman || aiHoldsBoth)) {
           setRobbinSummonState({ jackPlayerIdx: jackDPlayerForSummon, jokerPlayerIdx: winner, aceHolderIdx: aceHolderForSummon, hands: currentHands, resultObj, gameWon, newTotal });
           setPhase("robbinsummon");
           return;
@@ -10076,6 +10079,17 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [phase, rescueState]);
 
+  // AI J♦ summon choice — only reached when the AI holds both J♦ and A♠, so summoning its own Ace is pure gain
+  useEffect(() => {
+    if (isMultiplayer() && !isHost()) return;
+    if (phase !== "robbinsummon" || !robbinSummonState) return;
+    const jd = robbinSummonState.jackPlayerIdx;
+    if (jd === mySeatingIdx) return;
+    if (isMultiplayer() && jd >= 1 && opponentSlotsRef.current[jd - 1] === 'human') return;
+    const t = setTimeout(() => handleRobbinSummonYes(), 900);
+    return () => clearTimeout(t);
+  }, [phase, robbinSummonState]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // AI J♦ rob/pass choice when A♠ is in the trick — AI always passes
   useEffect(() => {
     if (isMultiplayer() && !isHost()) return;
@@ -11870,7 +11884,9 @@ function DiamondsGame() {
               Block the Joker and win this trick yourself.
             </p>
             <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>
-              {allNames[robbinSummonState.aceHolderIdx]} wins the trick and earns +{30 * (goldenAgeRef.current ? 2 : 1)}–{35 * (goldenAgeRef.current ? 2 : 1)} pts. You then choose to Rob (+{35 * (goldenAgeRef.current ? 2 : 1)} pts for Ace) or pass (+{30 * (goldenAgeRef.current ? 2 : 1)} pts for Ace, +{5 * (goldenAgeRef.current ? 2 : 1)} for you).
+              {robbinSummonState.aceHolderIdx === robbinSummonState.jackPlayerIdx
+                ? <>The Ace is in your own hand. Summon it and you take the trick — every Dimond in it, plus +{35 * (goldenAgeRef.current ? 2 : 1)} pts.</>
+                : <>{allNames[robbinSummonState.aceHolderIdx]} wins the trick and earns +{30 * (goldenAgeRef.current ? 2 : 1)}–{35 * (goldenAgeRef.current ? 2 : 1)} pts. You then choose to Rob (+{35 * (goldenAgeRef.current ? 2 : 1)} pts for Ace) or pass (+{30 * (goldenAgeRef.current ? 2 : 1)} pts for Ace, +{5 * (goldenAgeRef.current ? 2 : 1)} for you).</>}
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
               <GoldBtn onClick={handleRobbinSummonYes}>Summon The Ace ♠</GoldBtn>
@@ -11885,6 +11901,21 @@ function DiamondsGame() {
           <div style={{textAlign:"center"}}>
             <div style={{fontSize:44,marginBottom:4}}>🎴♠</div>
             <div style={{color:"#c9a84c",fontSize:11,letterSpacing:3,textTransform:"uppercase",marginBottom:4}}>Robbin Jack's Choice</div>
+            {aceRobChoiceState.acePlayerIdx === aceRobChoiceState.jackDPlayerIdx ? (()=>{
+              const GA = goldenAgeRef.current ? 2 : 1;
+              const robTotal = 35 * GA;
+              return (<>
+                <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>Your own Ace answers the call.</h2>
+                <p style={{color:"#ffffff88",fontSize:13,margin:"0 0 6px"}}>
+                  You hold both cards, so the trick is yours either way. All that's left is how Robbin Jack bows out.
+                </p>
+                <p style={{color:VM.gold,fontSize:12,margin:"0 0 20px"}}>Same points either way: +{robTotal}.</p>
+                <div style={{display:"flex",flexDirection:"column",gap:10,alignItems:"center"}}>
+                  <GoldBtn onClick={handleAceRobChoiceRob}>Rob, and Block Yourself 🎴</GoldBtn>
+                  <GoldBtn onClick={handleAceRobChoiceCallBlock} secondary>Stand Down & Call the Block ⚖️</GoldBtn>
+                </div>
+              </>);
+            })() : <>
             <h2 style={{color:"#fff",margin:"0 0 8px",fontSize:20,fontFamily:FONT_DISPLAY,fontWeight:800}}>The Ace of Spades is in this trick.</h2>
             {(()=>{
               const GA = goldenAgeRef.current ? 2 : 1;
@@ -11906,6 +11937,7 @@ function DiamondsGame() {
                 </div>
               </>);
             })()}
+            </>}
           </div>
         </Modal>
       )}
