@@ -1283,6 +1283,8 @@ const AUTH = firebase.auth();
 AUTH.signInAnonymously().catch(e => console.error('[FB auth]', e));
 // Phases a guest manages locally (its own offer modals) — host phase updates must not override them
 const GUEST_LOCAL_PHASES = new Set(['aceslow_offer','ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
+const GUEST_TURN_MOVES = new Set(['rule1Start','ruleOfThreeAccept','swingingParadoxAccept','ruleFourAccept','nuclearFamilyAccept','bloodDiamondAccept','acesLowAccept','americanFamilyAccept','riotEndRound','theStealEndRound','showdownEndRound']);
+const GUEST_PLAYING_ONLY_MOVES = new Set(['ruleOfThreeDecline','swingingParadoxDecline','ruleFourDecline','nuclearFamilyDecline','bloodDiamondDecline','acesLowDecline','riotPlayOn','theStealPlayOn','showdownPlayOn']);
 
 function genRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -6288,6 +6290,20 @@ function DiamondsGame() {
     return () => clearTimeout(timer);
   }, [mpDisconnected]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Leaving to the menu by any route ends the multiplayer session ─────────
+  // Otherwise the next single-player game still runs host/guest logic against the old room.
+  useEffect(() => {
+    if (screen !== 'menu' || !mpRoomRef.current) return;
+    mpRoomRef.current = null;
+    setMpRole('none');
+    setMySeatingIdx(0);
+    setMpSeatConfirmed(false);
+    setMpDisconnected(false);
+    setDisconnectedSeat(null);
+    setHostLeftGame(false);
+    lastHostPhaseRef.current = null;
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Presence: write this seat, detect remote player disconnects ───────────
   useEffect(() => {
     if (!isMultiplayer()) return;
@@ -6584,6 +6600,12 @@ function DiamondsGame() {
   function handleGuestMove(move) {
       const { type, seatIdx } = move;
       const payload = move.payload || {}; // Firebase drops empty objects
+      // A guest's set/Rule-of-1 actions are only offered on their own turn; a late arrival
+      // (host already moved on) would otherwise yank the host into the wrong phase.
+      const isGuestsTurnNow = phaseRef.current === 'playing' && turnOrderRef.current[currentTurnRef.current] === seatIdx;
+      if (GUEST_TURN_MOVES.has(type) && !isGuestsTurnNow) return;
+      if (GUEST_PLAYING_ONLY_MOVES.has(type) && phaseRef.current !== 'playing') return;
+      if (type === 'rule1Give' && phaseRef.current !== 'rule1') return;
       if (type === 'playCard') {
         // Reject out-of-turn and duplicate plays (e.g. a double-tap before the host's update reaches the guest)
         const canPlay = () => phaseRef.current === 'playing'
@@ -6869,29 +6891,30 @@ function DiamondsGame() {
   // Clear illegal-tap message when it's no longer the player's turn
   useEffect(() => { if (!isPlayerTurn) setIllegalTap(false); }, [isPlayerTurn]);
 
-  // Auto-skip a human (host or guest) whose hand is empty on their turn
-  const turnSeat = turnOrder[currentTurn];
-  const turnSeatIsGuest = mpRole === 'host' && turnSeat > 0 && opponentSlots[turnSeat - 1] === 'human';
-  const humanTurnEmpty = phase === "playing" && (isPlayerTurn || turnSeatIsGuest) && !(hands[turnSeat]?.length > 0);
+  // Auto-skip human player if their hand is empty (empty guest seats are skipped by the AI-turn effect)
   useEffect(() => {
-    if (!humanTurnEmpty) return;
+    if (!isPlayerTurn || hands[mySeatingIdx]?.length > 0) return;
     // In multiplayer, only the host should advance currentTurn for an empty guest.
     // Guests locally advancing creates a desync with Firebase.
     if (isMultiplayer() && !isHost()) return;
     const timer = setTimeout(() => {
       const currentHands = handsRef.current;
       const currentPlays = trickPlaysRef.current;
-      const remaining = turnOrder.slice(currentTurn + 1).filter(p => currentHands[p]?.length > 0);
-      if (remaining.length === 0 && currentPlays.length > 0) {
-        resolveTrickComplete(currentPlays, currentHands);
-      } else if (remaining.length === 0 && currentPlays.length === 0) {
-        // no trick in progress and no players after human — auto-claim useEffect handles it
+      const tsh = trickStartHandsRef.current;
+      const played = new Set(currentPlays.map(p => p.playerIdx));
+      const hasCards = p => (currentHands[p]?.length ?? 0) > 0;
+      // Next seat that still owes a card this trick (held cards at trick start, hasn't played)
+      let nextPos = turnOrder.findIndex((p, pos) => pos > currentTurn && hasCards(p) && (tsh[p]?.length ?? 0) > 0 && !played.has(p));
+      if (nextPos === -1 && currentPlays.length === 0) nextPos = turnOrder.findIndex((p, pos) => pos > currentTurn && hasCards(p));
+      if (nextPos === -1) {
+        // trick complete → resolve; no trick in progress → auto-claim useEffect handles it
+        if (currentPlays.length > 0) resolveTrickComplete(currentPlays, currentHands);
       } else {
-        setCurrentTurn(t => t + 1);
+        setCurrentTurn(nextPos);
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [humanTurnEmpty, currentTurn]);
+  }, [isPlayerTurn, currentTurn]);
 
   // SHOWDOWN: check at the start of any player's turn — must fire BEFORE The Steal (superset)
   useEffect(() => {
@@ -7296,19 +7319,22 @@ function DiamondsGame() {
     }
 
     // Rule of 1 (Girl's Best Friend) — give a diamond to another player at any time.
-    // Both humans and AI tend to target the leader (the exciting, competitive move).
-    // Simp gives its BEST diamond to the leader (self-destructive max-boost).
-    // Normal AI gives its LOWEST-value diamond to the leader (keep the good ones).
+    // A gift is points, so normal AI gives its LOWEST-value diamond to whoever is in LAST place
+    // (the least threatening recipient), preferring players who still hold cards.
+    // Simp gives its BEST diamond to the leader (self-destructive sycophancy — that's the persona).
     if (!rule1UsedThisTurn[cp]) {
       const aiDimonds = (hands[cp] || []).filter(c => isDiamond(c) && !c.isJoker);
       if (aiDimonds.length > 0 && (cpIsSimp || Math.random() < 0.25)) {
         const combined = totalScores.map((s, i) => s + (roundScores[i] || 0));
-        // Both Simp and normal AI target the leader (highest combined score)
-        let bestTarget = -1, highestScore = -Infinity;
-        for (let i = 0; i < 4; i++) {
-          if (i === cp) continue;
-          if (combined[i] > highestScore) { highestScore = combined[i]; bestTarget = i; }
-        }
+        const others = [0,1,2,3].filter(i => i !== cp);
+        const withCards = others.filter(i => (hands[i]?.length ?? 0) > 0);
+        const pool = withCards.length > 0 ? withCards : others;
+        const bestTarget = pool.reduce((best, i) => {
+          if (best === -1) return i;
+          return cpIsSimp
+            ? (combined[i] > combined[best] ? i : best)
+            : (combined[i] < combined[best] ? i : best);
+        }, -1);
         if (bestTarget !== -1) {
           const giftCard = cpIsSimp
             ? aiDimonds.reduce((b, c) => diamondPoints(c) > diamondPoints(b) ? c : b, aiDimonds[0]) // best
@@ -7848,9 +7874,12 @@ function DiamondsGame() {
     // Use trickStartHandsRef to exclude players who had 0 cards when the trick began
     // (e.g. received a card via Rule of 1 mid-trick — they don't play this trick).
     const trickStartH = trickStartHandsRef.current;
-    const playersWithCards = trickStartH.map((h, i) => h.length > 0 ? i : -1).filter(i => i >= 0);
-    // Resolve as soon as every card-holding player has already played in this trick
     const trickPlayerIds = new Set(newPlays.map(p => p.playerIdx));
+    // A seat still owes a card only if it held cards at trick start AND still holds one now —
+    // a player who gave away their last card via Rule of 1 can't play this trick.
+    const canStillPlay = i => (trickStartH[i]?.length ?? 0) > 0 && (newHands[i]?.length ?? 0) > 0;
+    const playersWithCards = [0,1,2,3].filter(i => (trickStartH[i]?.length ?? 0) > 0 && (trickPlayerIds.has(i) || (newHands[i]?.length ?? 0) > 0));
+    // Resolve as soon as every card-holding player has already played in this trick
     const hasUnplayedCardholders = playersWithCards.some(i => !trickPlayerIds.has(i));
     if (!hasUnplayedCardholders) {
       resolveTrickComplete(newPlays, newHands);
@@ -7860,11 +7889,7 @@ function DiamondsGame() {
     // Advance currentTurn, skipping players with no cards — never skip any human with cards
     const activeTurnOrder = turnOrderRef.current;
     let nextTurn = currentTurnRef.current + 1;
-    while (nextTurn < 4 && (trickStartH[activeTurnOrder[nextTurn]]?.length ?? 0) === 0) {
-      const seatAtNext = activeTurnOrder[nextTurn];
-      const isHumanSeat = seatAtNext === mySeatingIdxRef.current ||
-        (seatAtNext > 0 && opponentSlotsRef.current[seatAtNext - 1] === 'human');
-      if (isHumanSeat && !trickPlayerIds.has(seatAtNext) && (trickStartH[seatAtNext]?.length ?? 0) > 0) break;
+    while (nextTurn < 4 && (!canStillPlay(activeTurnOrder[nextTurn]) || trickPlayerIds.has(activeTurnOrder[nextTurn]))) {
       nextTurn++;
     }
     if (nextTurn >= 4) {
@@ -7872,7 +7897,7 @@ function DiamondsGame() {
         resolveTrickComplete(newPlays, newHands);
       } else {
         // Turn order exhausted but unplayed cardholders remain — seek the missed seat
-        const unplayedTurnPos = activeTurnOrder.findIndex(i => (trickStartH[i]?.length ?? 0) > 0 && !trickPlayerIds.has(i));
+        const unplayedTurnPos = activeTurnOrder.findIndex(i => canStillPlay(i) && !trickPlayerIds.has(i));
         if (unplayedTurnPos >= 0) {
           setCurrentTurn(unplayedTurnPos);
           setTrickPlays(newPlays);
@@ -10346,7 +10371,16 @@ function DiamondsGame() {
           <MultiplayerLobby
             nameInput={nameInput}
             myPlayerId={myPlayerIdRef.current}
-            onClose={()=>setShowMpLobby(false)}
+            onClose={()=>{
+              setShowMpLobby(false);
+              if (mpRoomRef.current) {
+                mpRoomRef.current.child('players').child(myPlayerIdRef.current).remove();
+                mpRoomRef.current = null;
+                setMpRole('none');
+                setMySeatingIdx(0);
+                setMpSeatConfirmed(false);
+              }
+            }}
             onJoinedAsHost={ref => { mpRoomRef.current = ref; setMpRole('host'); setMySeatingIdx(0); }}
             onJoinedAsGuest={ref => { mpRoomRef.current = ref; setMpRole('guest'); setMySeatingIdx(1); setMpSeatConfirmed(false); setMpJoinAttempt(a => a + 1); }}
             onStartGame={(guests, hostName, ais) => startMultiplayerGame(guests, hostName, ais)}
