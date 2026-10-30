@@ -1281,6 +1281,8 @@ if (!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
 const RTDB = firebase.database();
 const AUTH = firebase.auth();
 AUTH.signInAnonymously().catch(e => console.error('[FB auth]', e));
+// Phases a guest manages locally (its own offer modals) — host phase updates must not override them
+const GUEST_LOCAL_PHASES = new Set(['aceslow_offer','ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
 
 function genRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -6237,6 +6239,8 @@ function DiamondsGame() {
   const [mpJoinAttempt, setMpJoinAttempt] = useState(0);
   const [hostLeftGame, setHostLeftGame] = useState(false);
   const [disconnectedSeat, setDisconnectedSeat] = useState(null);
+  const [mpSeatConfirmed, setMpSeatConfirmed] = useState(false); // guest: real seat read from Firebase
+  const lastHostPhaseRef = useRef(null);
 
   function guestSubmitMove(type, payload) {
     if (!mpRoomRef.current) return;
@@ -6287,24 +6291,37 @@ function DiamondsGame() {
   // ── Presence: write this seat, detect remote player disconnects ───────────
   useEffect(() => {
     if (!isMultiplayer()) return;
+    if (!isHost() && !mpSeatConfirmed) return; // guest's placeholder seat would clobber another player's presence
     const ref = mpRoomRef.current;
     if (!ref) return;
-    const mySeat = mySeatingIdxRef.current;
-    const myPresRef = ref.child('presence').child(String(mySeat));
-    myPresRef.set(true);
-    myPresRef.onDisconnect().remove();
+    const myPresRef = ref.child('presence').child(String(mySeatingIdx));
+    // Re-register on every (re)connect — phones drop the socket whenever the screen sleeps
+    const connRef = RTDB.ref('.info/connected');
+    const onConn = snap => {
+      if (snap.val() !== true) return;
+      myPresRef.onDisconnect().remove();
+      myPresRef.set(true);
+    };
+    connRef.on('value', onConn);
     const presRootRef = ref.child('presence');
     const onRemoved = snap => {
       const seat = parseInt(snap.key);
       if (seat === mySeatingIdxRef.current) return; // my own disconnect handled by mpDisconnected overlay
       setDisconnectedSeat(seat);
     };
+    const onAdded = snap => {
+      const seat = parseInt(snap.key);
+      setDisconnectedSeat(cur => cur === seat ? null : cur);
+    };
     presRootRef.on('child_removed', onRemoved);
+    presRootRef.on('child_added', onAdded);
     return () => {
+      connRef.off('value', onConn);
       presRootRef.off('child_removed', onRemoved);
+      presRootRef.off('child_added', onAdded);
       myPresRef.onDisconnect().cancel();
     };
-  }, [mpRole, mpJoinAttempt]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mpRole, mpJoinAttempt, mpSeatConfirmed, mySeatingIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     // Reset always — solo mode also needs the lock cleared between events
@@ -6402,13 +6419,12 @@ function DiamondsGame() {
     if (!ref) return;
     const toHand = h => fbArr(h).map(c => ({...c}));
     const toPlay = p => p ? ({ playerIdx:p.playerIdx, card:{...p.card} }) : null;
-    // Phases the guest manages locally (offer modals) — don't let host "playing" override them
-    const GUEST_LOCAL_PHASES = new Set(['aceslow_offer','ruleofthree_offer','swingingparadox_offer','rulefour_offer','nuclearfamily_offer','blooddiamond_offer','americanfamily_offer','riot','thesteal','showdown']);
     const handler = snap => {
       const st = snap.val();
       if (!st) return;
       // Guest victory animation: fire as soon as host sets showFireworks, not after cutscene ends
       const newPhase = st.phase ?? "playing";
+      lastHostPhaseRef.current = newPhase;
       if ((newPhase === "gameover" || st.showFireworks) && phaseRef.current !== "gameover" && !showFireworksRef.current) {
         const scores = fbArr(st.totalScores || []);
         const myIdx = mySeatingIdxRef.current;
@@ -6487,6 +6503,8 @@ function DiamondsGame() {
         if (newSt) {
           if (!dis.has(newSt._id)) { gae[key] = newSt._id; setter(transform ? transform(newSt) : newSt); }
         } else {
+          // Guest's own offer modal holds local state the host doesn't know about yet — don't wipe it
+          if (GUEST_LOCAL_PHASES.has(phaseRef.current)) return;
           if (!gae[key] || dis.has(gae[key])) { delete gae[key]; setter(null); }
           // else: guest hasn't dismissed yet — keep modal visible
         }
@@ -6511,6 +6529,13 @@ function DiamondsGame() {
     ref.child('state').on('value', handler);
     return () => ref.child('state').off('value', handler);
   }, [mpRole, mpJoinAttempt]);
+
+  // Guest: after leaving a local offer modal, catch up to any phase the host moved to meanwhile
+  useEffect(() => {
+    if (!isMultiplayer() || isHost()) return;
+    const hp = lastHostPhaseRef.current;
+    if (hp && phase !== hp && !GUEST_LOCAL_PHASES.has(phase) && !GUEST_LOCAL_PHASES.has(hp)) setPhase(hp);
+  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show welcome tutorial for multiplayer guests; signal host when ready
   useEffect(() => {
@@ -6540,6 +6565,8 @@ function DiamondsGame() {
   }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Firebase: host processes guest pendingMoves ───────────────────────────────
+  // The listener subscribes once; moves dispatch through a ref so they run against the latest render.
+  const guestMoveHandlerRef = useRef(null);
   useEffect(() => {
     if (!isMultiplayer() || !isHost()) return;
     const ref = mpRoomRef.current;
@@ -6548,13 +6575,24 @@ function DiamondsGame() {
     const handler = snap => {
       const move = snap.val();
       snap.ref.remove();
-      if (!move) return;
-      const { type, seatIdx, payload } = move;
+      if (move) guestMoveHandlerRef.current(move);
+    };
+    pendingRef.on('child_added', handler);
+    return () => pendingRef.off('child_added', handler);
+  }, [mpRole]);
+  guestMoveHandlerRef.current = handleGuestMove;
+  function handleGuestMove(move) {
+      const { type, seatIdx } = move;
+      const payload = move.payload || {}; // Firebase drops empty objects
       if (type === 'playCard') {
-        if (phaseRef.current !== 'playing') return; // ignore plays that arrive during CYT or event phases
+        // Reject out-of-turn and duplicate plays (e.g. a double-tap before the host's update reaches the guest)
+        const canPlay = () => phaseRef.current === 'playing'
+          && turnOrderRef.current[currentTurnRef.current] === seatIdx
+          && !trickPlaysRef.current.some(p => p.playerIdx === seatIdx);
+        if (!canPlay()) return;
         const hand = handsRef.current[seatIdx] || [];
         const card = hand.find(c => c.id === payload.cardId);
-        if (card) setTimeout(() => submitPlayRef.current(seatIdx, card), 0);
+        if (card) setTimeout(() => { if (canPlay()) submitPlayRef.current(seatIdx, card); }, 0);
       } else if (type === 'tutorialDone') {
         setMpPendingTutorials(n => Math.max(0, n - 1));
       } else if (type === 'cyttAck') {
@@ -6815,10 +6853,7 @@ function DiamondsGame() {
       } else if (type === 'aceRobChoiceCallBlock') {
         setTimeout(() => handleAceRobChoiceCallBlock(), 0);
       }
-    };
-    pendingRef.on('child_added', handler);
-    return () => pendingRef.off('child_added', handler);
-  }, [mpRole]);
+  }
   // ────────────────────────────────────────────────────────────────────────────
 
   const isPlayerTurn = phase==="playing" && turnOrder[currentTurn]===mySeatingIdx;
@@ -6834,9 +6869,12 @@ function DiamondsGame() {
   // Clear illegal-tap message when it's no longer the player's turn
   useEffect(() => { if (!isPlayerTurn) setIllegalTap(false); }, [isPlayerTurn]);
 
-  // Auto-skip human player if their hand is empty
+  // Auto-skip a human (host or guest) whose hand is empty on their turn
+  const turnSeat = turnOrder[currentTurn];
+  const turnSeatIsGuest = mpRole === 'host' && turnSeat > 0 && opponentSlots[turnSeat - 1] === 'human';
+  const humanTurnEmpty = phase === "playing" && (isPlayerTurn || turnSeatIsGuest) && !(hands[turnSeat]?.length > 0);
   useEffect(() => {
-    if (!isPlayerTurn || hands[mySeatingIdx]?.length > 0) return;
+    if (!humanTurnEmpty) return;
     // In multiplayer, only the host should advance currentTurn for an empty guest.
     // Guests locally advancing creates a desync with Firebase.
     if (isMultiplayer() && !isHost()) return;
@@ -6853,7 +6891,7 @@ function DiamondsGame() {
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [isPlayerTurn, currentTurn]);
+  }, [humanTurnEmpty, currentTurn]);
 
   // SHOWDOWN: check at the start of any player's turn — must fire BEFORE The Steal (superset)
   useEffect(() => {
@@ -7689,6 +7727,7 @@ function DiamondsGame() {
       const idx = seats.findIndex(s => s.playerId === myId);
       if (idx >= 1) {
         setMySeatingIdx(idx);
+        setMpSeatConfirmed(true);
       }
     };
     ref.child('seats').on('value', handler);
@@ -7779,6 +7818,8 @@ function DiamondsGame() {
     const currentTrickPlays = trickPlaysRef.current;
     const newPlays = [...currentTrickPlays, { playerIdx, card }];
     const newHands = currentHands.map((h,i) => i===playerIdx ? h.filter(c=>c.id!==card.id) : h);
+    handsRef.current = newHands;
+    trickPlaysRef.current = newPlays;
     setHands(newHands);
     setTrickPlays(newPlays);
 
@@ -10307,7 +10348,7 @@ function DiamondsGame() {
             myPlayerId={myPlayerIdRef.current}
             onClose={()=>setShowMpLobby(false)}
             onJoinedAsHost={ref => { mpRoomRef.current = ref; setMpRole('host'); setMySeatingIdx(0); }}
-            onJoinedAsGuest={ref => { mpRoomRef.current = ref; setMpRole('guest'); setMySeatingIdx(1); setMpJoinAttempt(a => a + 1); }}
+            onJoinedAsGuest={ref => { mpRoomRef.current = ref; setMpRole('guest'); setMySeatingIdx(1); setMpSeatConfirmed(false); setMpJoinAttempt(a => a + 1); }}
             onStartGame={(guests, hostName, ais) => startMultiplayerGame(guests, hostName, ais)}
           />
         )}
@@ -11436,7 +11477,7 @@ function DiamondsGame() {
             {allNames[disconnectedSeat] ?? `Player ${disconnectedSeat + 1}`}
           </div>
           <div style={{color:"#ffffff77", fontFamily:FONT_UI, fontSize:12, textAlign:"center", maxWidth:260, lineHeight:1.7}}>
-            A player has lost connection. The game cannot continue.
+            Lost connection — waiting for them to come back. The game resumes automatically when they reconnect.
           </div>
           <GoldBtn secondary small onClick={() => {
             setDisconnectedSeat(null);
