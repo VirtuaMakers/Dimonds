@@ -8320,7 +8320,11 @@ function DiamondsGame() {
     if (isMultiplayer() && !isHost()) { guestSubmitMove('robbinSummonYes', {}); return; }
     const rs = robbinSummonStateRef.current;
     if (!rs) return;
-    const { jackPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = rs;
+    const { jackPlayerIdx, jokerPlayerIdx, aceHolderIdx, hands: currentHands, resultObj } = rs;
+    // The summoned Ace wins the trick outright — its Dimond points move from the Joker player to the Ace holder
+    const trickPts = (resultObj.diamondsCaptured || []).reduce((s,c) => s + diamondPoints(c), 0) * (goldenAgeRef.current ? 2 : 1);
+    const baseRoundScores = [...roundScoresRef.current];
+    if (jokerPlayerIdx !== aceHolderIdx) { baseRoundScores[jokerPlayerIdx] -= trickPts; baseRoundScores[aceHolderIdx] += trickPts; }
     const newHands = currentHands.map((h,i) => i===aceHolderIdx ? h.filter(c=>!isAceSpades(c)) : h);
     setHands(newHands);
     addLog(`🎴 ${allNames[jackPlayerIdx]} (Robbin Jack) summons The Ace of Spades!`);
@@ -8330,7 +8334,7 @@ function DiamondsGame() {
       jackDPlayerIdx: jackPlayerIdx,
       aceBlockedJoker: true,
       aceBlockedQueenClubs: false,
-      baseRoundScores: [...roundScoresRef.current],
+      baseRoundScores,
       baseResultObj: { ...resultObj, winnerIdx: aceHolderIdx, jokerWin: false, aceBlocked: true, aceBlockedJoker: true, robbinSummon: true },
       currentHands: newHands,
       passConsolation: 5,
