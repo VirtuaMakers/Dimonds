@@ -4953,6 +4953,11 @@ function RoundOverModal({ scores, allNames, playerEmojis=[], roundScores, onCont
         ))}
         {noteText("Winning the most tricks does not always win the most points!")}
         {noteText("At the end of the round, pointless tricks are not tallied.")}
+        {eventLog.some(e => e.type === "autoend") && (
+          <div style={{color:VM.gold,fontSize:12,fontStyle:"italic",textAlign:"center",marginTop:8,fontFamily:FONT_UI}}>
+            Prior round-end automated for points dearth.
+          </div>
+        )}
 
         <div style={{height:4}}/>
         {sectionLabel("Most Sets")}
@@ -7164,7 +7169,7 @@ function DiamondsGame() {
     if (hands[solo].some(c => isDiamond(c) || isAceSpades(c) || c.isJoker || isQueenClubs(c))) return;
     const soloHand = hands[solo];
     const timer = setTimeout(() => {
-      if (soloHand.length > 0) addLog(`✨ ${allNames[solo]} sweeps ${soloHand.length} pointless card${soloHand.length!==1?"s":""}`);
+      if (soloHand.length > 0) addLog(`✨ ${allNames[solo]} sweeps ${soloHand.length} pointless card${soloHand.length!==1?"s":""}`); logRoundEvent({ type:"autoend", playerIdx:-1 });
       setHands([[],[],[],[]]);
       const newRS = [...roundScoresRef.current];
       const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
@@ -9287,7 +9292,7 @@ function DiamondsGame() {
     const anyCardsLeft = hands.some(h => h.length > 0);
     if (autoCompleteTricks && anyCardsLeft && !anyDiamondsLeft) {
       const totalLeft = hands.reduce((s,h) => s+h.length, 0);
-      addLog(`✨ No dimonds remain — ${totalLeft} pointless trick${totalLeft!==1?"s":""} auto-completed`);
+      addLog(`✨ No dimonds remain — ${totalLeft} pointless trick${totalLeft!==1?"s":""} auto-completed`); logRoundEvent({ type:"autoend", playerIdx:-1 });
       setHands([[],[],[],[]]);
       setTrickResult(null);
       const newTotal = totalScores.map((s,i)=>s+(roundScores[i]||0));
@@ -9323,6 +9328,7 @@ function DiamondsGame() {
       } else {
         addLog(`✨ ${allNames[soloPlayer]} sweeps ${soloCards.length} unopposed card${soloCards.length!==1?"s":""}`);
       }
+      logRoundEvent({ type:"autoend", playerIdx:-1 });
       if (dimondPts > 0) {
         logRoundEvent({ type:"sweep", playerIdx:soloPlayer, trickNum:tricksPlayed+1, points:dimondPts, cardsSwept:soloCards.length, diamondsCaptured:soloCards.filter(c=>isDiamond(c)) });
       }
@@ -9777,7 +9783,7 @@ function DiamondsGame() {
                 // No diamonds remain — sweep silently without a modal
                 const GA = goldenAgeRef.current ? 2 : 1;
                 const newRS = [...roundScoresRef.current];
-                if (soloHand.length > 0) addLog(`✨ ${allNames[soloIdx]} sweeps ${soloHand.length} unopposed card${soloHand.length!==1?"s":""}`);
+                if (soloHand.length > 0) addLog(`✨ ${allNames[soloIdx]} sweeps ${soloHand.length} unopposed card${soloHand.length!==1?"s":""}`); logRoundEvent({ type:"autoend", playerIdx:-1 });
                 setRoundScores(newRS);
                 setHands([[],[],[],[]]);
                 const newTotal = totalScoresRef.current.map((s,i) => s + newRS[i]);
@@ -9898,7 +9904,7 @@ function DiamondsGame() {
       const dimondPts = h0.filter(c => isDiamond(c)).reduce((s,c) => s+diamondPoints(c), 0) * GA;
       const newRoundScores = [...roundScoresRef.current];
       newRoundScores[msi] += dimondPts;
-      if (h0.length > 0) addLog(`✨ ${allNames[msi]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`);
+      if (h0.length > 0) addLog(`✨ ${allNames[msi]} sweeps ${h0.length} unopposed card${h0.length!==1?"s":""}`); logRoundEvent({ type:"autoend", playerIdx:-1 });
       setRoundScores(newRoundScores);
       setHands([[],[],[],[]]);
       const newTotal = totalScoresRef.current.map((s,i) => s + newRoundScores[i]);
